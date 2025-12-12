@@ -34,6 +34,10 @@ export default function AdminDashboard() {
         display_name: ''
     });
 
+    // Password Change State
+    const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+    const [newPassword, setNewPassword] = useState('');
+
     useEffect(() => {
         const session = localStorage.getItem('admin_session');
         if (!session) {
@@ -137,8 +141,19 @@ export default function AdminDashboard() {
                         <button onClick={() => setIsModalOpen(true)} className="btn btn-primary">
                             <Plus size={18} style={{ marginRight: '0.5rem' }} /> 추가
                         </button>
-                        <button onClick={() => setIsBulkModalOpen(true)} className="btn" style={{ backgroundColor: '#4f46e5', color: 'white' }}>
+                        <button
+                            onClick={() => setIsBulkModalOpen(true)}
+                            className="btn"
+                            style={{ backgroundColor: '#4f46e5', color: 'white' }}
+                        >
                             <Upload size={18} style={{ marginRight: '0.5rem' }} /> 대량 등록
+                        </button>
+                        <button
+                            onClick={() => setIsPasswordModalOpen(true)}
+                            className="btn"
+                            style={{ border: '1px solid #e2e8f0' }}
+                        >
+                            비밀번호 변경
                         </button>
                     </div>
 
@@ -193,7 +208,24 @@ export default function AdminDashboard() {
                                     <tr key={a.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
                                         <td style={{ padding: '1rem', fontWeight: 600 }}>{a.display_name}</td>
                                         <td style={{ padding: '1rem' }}>{a.username}</td>
-                                        <td style={{ padding: '1rem', fontFamily: 'monospace' }}>{a.password}</td>
+                                        <td style={{ padding: '1rem', fontFamily: 'monospace' }}>
+                                            <span style={{ marginRight: '0.5rem' }}>{a.password}</span>
+                                            <button
+                                                onClick={() => {
+                                                    const newPw = prompt(`'${a.display_name}'의 새 비밀번호를 입력하세요:`);
+                                                    if (newPw) {
+                                                        (async () => {
+                                                            const { error } = await supabase.from('accounts').update({ password: newPw }).eq('id', a.id);
+                                                            if (!error) { alert('변경 완료'); fetchAccounts(); }
+                                                            else { alert(error.message); }
+                                                        })();
+                                                    }
+                                                }}
+                                                style={{ fontSize: '0.8rem', padding: '0.2rem 0.5rem', background: '#e2e8f0', borderRadius: '4px', border: 'none', cursor: 'pointer' }}
+                                            >
+                                                변경
+                                            </button>
+                                        </td>
                                         <td style={{ padding: '1rem', textAlign: 'right' }}>
                                             <button onClick={() => deleteAccount(a.id)} style={{ color: '#ef4444', border: 'none', background: 'none', cursor: 'pointer' }}><Trash2 size={18} /></button>
                                         </td>
@@ -280,6 +312,47 @@ export default function AdminDashboard() {
                             >
                                 등록
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Change Password Modal */}
+            {isPasswordModalOpen && (
+                <div className="mobile-overlay" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60 }}>
+                    <div style={{ background: 'white', padding: '2rem', borderRadius: '0.5rem', width: '100%', maxWidth: '400px' }}>
+                        <h2 style={{ marginBottom: '1rem', fontWeight: 700 }}>관리자 비밀번호 변경</h2>
+                        <p style={{ marginBottom: '1rem', color: '#64748b', fontSize: '0.9rem' }}>
+                            현재 로그인된 관리자({adminUser?.username})의 비밀번호를 변경합니다.
+                        </p>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            <input
+                                type="password"
+                                placeholder="새로운 비밀번호"
+                                value={newPassword}
+                                onChange={e => setNewPassword(e.target.value)}
+                                style={{ padding: '0.5rem', border: '1px solid #e2e8f0' }}
+                            />
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                                <button onClick={() => setIsPasswordModalOpen(false)} className="btn">취소</button>
+                                <button
+                                    onClick={async () => {
+                                        if (!newPassword) return alert('새 비밀번호를 입력하세요.');
+                                        try {
+                                            const { error } = await supabase
+                                                .from('accounts')
+                                                .update({ password: newPassword })
+                                                .eq('id', adminUser.id);
+                                            if (error) throw error;
+                                            alert('비밀번호가 변경되었습니다. 다시 로그인해주세요.');
+                                            handleLogout();
+                                        } catch (e) { alert(e.message); }
+                                    }}
+                                    className="btn btn-primary"
+                                >
+                                    변경하기
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

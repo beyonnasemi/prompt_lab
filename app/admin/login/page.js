@@ -61,7 +61,7 @@ export default function AdminLogin() {
                     type="text"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    placeholder="아이디 (admin1)"
+                    placeholder="아이디 (admin)"
                     style={{
                         padding: '0.75rem',
                         borderRadius: '0.5rem',
