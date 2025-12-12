@@ -5,6 +5,9 @@ import "./globals.css";
 export const metadata = {
   title: "Prompt Lab",
   description: "Generative AI Education Platform",
+  icons: {
+    icon: 'https://img.aicec.kr/web_images/logo_aicea.png',
+  },
 };
 
 export default function RootLayout({ children }) {
