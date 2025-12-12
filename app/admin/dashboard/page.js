@@ -207,8 +207,8 @@ export default function AdminDashboard() {
                                         <div style={{ display: 'flex', gap: '0.5rem', maxWidth: '300px' }}>
                                             <input
                                                 type="text"
-                                                placeholder="새 비밀번호"
-                                                value={passwords[account.id] || ''}
+                                                placeholder="비밀번호"
+                                                value={passwords[account.id] !== undefined ? passwords[account.id] : account.password}
                                                 onChange={(e) => setPasswords({ ...passwords, [account.id]: e.target.value })}
                                                 style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #cbd5e1', width: '100%' }}
                                             />
