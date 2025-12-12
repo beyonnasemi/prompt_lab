@@ -7,6 +7,8 @@ export const metadata = {
   description: "Generative AI Education Platform",
   icons: {
     icon: 'https://img.aicec.kr/web_images/logo_aicea.png',
+    shortcut: 'https://img.aicec.kr/web_images/logo_aicea.png',
+    apple: 'https://img.aicec.kr/web_images/logo_aicea.png',
   },
 };
 
