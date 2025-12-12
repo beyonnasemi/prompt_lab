@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { Copy, Check, ChevronRight, Plus, Pencil, Trash2, X, Save, ShieldCheck, FileJson } from 'lucide-react';
+import { Copy, Check, ChevronRight, Plus, Pencil, Trash2, X, Save, ShieldCheck, FileText } from 'lucide-react';
 
 const targetNames = {
     'business': '비즈니스',
@@ -225,7 +225,7 @@ function LearnContent() {
                             className="btn"
                             style={{ padding: '0.75rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'white', border: '1px solid #e2e8f0', color: '#475569' }}
                         >
-                            <FileJson size={18} /> 대량 등록
+                            <FileText size={18} /> 대량 등록
                         </button>
                         <button
                             onClick={handleAddClick}
@@ -501,7 +501,7 @@ function LearnContent() {
                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
                             <button onClick={() => setIsBulkModalOpen(false)} className="btn" style={{ border: '1px solid #e2e8f0' }}>취소</button>
                             <button onClick={handleBulkSubmit} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                <FileJson size={18} /> 일괄 등록하기
+                                <FileText size={18} /> 일괄 등록하기
                             </button>
                         </div>
                     </div>

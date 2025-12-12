@@ -6,8 +6,8 @@ export const metadata = {
   title: "Prompt Lab",
   description: "Generative AI Education Platform",
   icons: [
-    { rel: 'icon', url: 'https://img.aicec.kr/web_images/logo_aicea.png' },
-    { rel: 'apple-touch-icon', url: 'https://img.aicec.kr/web_images/logo_aicea.png' },
+    { rel: 'icon', url: 'https://img.aicec.kr/web_images/logo_aicea.png?v=3' },
+    { rel: 'apple-touch-icon', url: 'https://img.aicec.kr/web_images/logo_aicea.png?v=3' },
   ],
 };
 

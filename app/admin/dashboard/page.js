@@ -195,7 +195,7 @@ export default function AdminDashboard() {
                                 gap: '0.5rem',
                                 padding: '0.5rem 1rem',
                                 background: 'white',
-                                border: '1px solid #cbd5e1',
+                                border: '1px solid #e2e8f0',
                                 borderRadius: '0.5rem',
                                 cursor: 'pointer',
                                 fontSize: '0.9rem',
