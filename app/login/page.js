@@ -85,6 +85,7 @@ function LoginForm() {
             <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <input
                     type="password"
+                    autoFocus
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="비밀번호 입력"

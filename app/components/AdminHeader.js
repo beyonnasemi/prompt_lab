@@ -36,7 +36,7 @@ export default function AdminHeader() {
     if (!isAdmin) return null;
 
     return (
-        <div style={{
+        <div className="admin-header" style={{
             position: 'fixed',
             top: '1.5rem',
             right: '2rem',

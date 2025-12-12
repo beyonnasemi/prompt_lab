@@ -74,6 +74,7 @@ export default function AdminLogin() {
                 <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                     <input
                         type="text"
+                        autoFocus
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
                         placeholder="아이디"
