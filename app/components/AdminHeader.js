@@ -37,13 +37,13 @@ export default function AdminHeader() {
 
     return (
         <div style={{
-            position: 'absolute',
-            top: '1rem',
+            position: 'fixed',
+            top: '1.5rem',
             right: '2rem',
             display: 'flex',
             alignItems: 'center',
             gap: '1rem',
-            zIndex: 50
+            zIndex: 100
         }}>
             <div style={{
                 display: 'flex',
