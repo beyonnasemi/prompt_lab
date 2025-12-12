@@ -22,11 +22,13 @@ export default function Sidebar() {
 
       <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
         <div className="logo-container">
-          <img 
-            src="https://img.aicec.kr/web_images/prompt_lab.png" 
-            alt="Prompt Lab" 
-            className="logo-img"
-          />
+          <Link href="/" style={{ cursor: 'pointer' }}>
+            <img
+              src="https://img.aicec.kr/web_images/prompt_lab.png"
+              alt="Prompt Lab"
+              className="logo-img"
+            />
+          </Link>
         </div>
 
         <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -44,17 +46,17 @@ export default function Sidebar() {
           </Link>
         </nav>
       </aside>
-      
+
       {/* Overlay for mobile when sidebar is open */}
       {isOpen && (
-        <div 
+        <div
           onClick={() => setIsOpen(false)}
           style={{
             position: 'fixed',
             inset: 0,
             background: 'rgba(0,0,0,0.5)',
             zIndex: 45
-          }} 
+          }}
           className="mobile-overlay"
         />
       )}
