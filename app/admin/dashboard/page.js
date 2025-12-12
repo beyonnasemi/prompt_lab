@@ -219,39 +219,14 @@ export default function AdminDashboard() {
                                             >
                                                 변경
                                             </button>
-                                        </p>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                                            <input
-                                                type="password"
-                                                placeholder="새로운 비밀번호"
-                                                value={newPassword}
-                                                onChange={e => setNewPassword(e.target.value)}
-                                                style={{ padding: '0.5rem', border: '1px solid #e2e8f0' }}
-                                            />
-                                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-                                                <button onClick={() => setIsPasswordModalOpen(false)} className="btn">취소</button>
-                                                <button
-                                                    onClick={async () => {
-                                                        if (!newPassword) return alert('새 비밀번호를 입력하세요.');
-                                                        try {
-                                                            const { error } = await supabase
-                                                                .from('accounts')
-                                                                .update({ password: newPassword })
-                                                                .eq('id', adminUser.id);
-                                                            if (error) throw error;
-                                                            alert('비밀번호가 변경되었습니다. 다시 로그인해주세요.');
-                                                            handleLogout();
-                                                        } catch (e) { alert(e.message); }
-                                                    }}
-                                                    className="btn btn-primary"
-                                                >
-                                                    변경하기
-                                                </button>
-                                            </div>
                                         </div>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                        );
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+        </div>
+    );
 }

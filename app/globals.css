@@ -217,19 +217,20 @@ body {
 }
 
 .target-name {
-  font-size: 1.25rem;
+  font-weight: 600;
+}
 
-  /* Admin Header Responsive */
-  @media (max-width: 768px) {
-    .admin-header {
-      top: 4rem !important;
-      /* Move below mobile header */
-      right: 1rem !important;
-      gap: 0.5rem !important;
-    }
-
-    .admin-header span {
-      display: none;
-      /* Hide 'Admin Mode' text on very small screens if needed, or keep it */
-    }
+/* Admin Header Responsive */
+@media (max-width: 768px) {
+  .admin-header {
+    top: 4rem !important;
+    /* Move below mobile header */
+    right: 1rem !important;
+    gap: 0.5rem !important;
   }
+
+  .admin-header span {
+    display: none;
+    /* Hide 'Admin Mode' text on very small screens if needed, or keep it */
+  }
+}
