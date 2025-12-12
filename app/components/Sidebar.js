@@ -17,12 +17,16 @@ export default function Sidebar() {
         <button className="btn" onClick={toggleSidebar}>
           <Menu size={24} />
         </button>
-        <span style={{ fontWeight: 600 }}>Prompt Lab</span>
+        <img
+          src="https://img.aicec.kr/web_images/prompt_lab.png"
+          alt="Prompt Lab"
+          style={{ height: '30px', width: 'auto' }}
+        />
       </div>
 
       <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
         <div className="logo-container">
-          <Link href="/" style={{ cursor: 'pointer' }}>
+          <Link href="/" style={{ cursor: 'pointer' }} onClick={() => setIsOpen(false)}>
             <img
               src="https://img.aicec.kr/web_images/prompt_lab.png"
               alt="Prompt Lab"
