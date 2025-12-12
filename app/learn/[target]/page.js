@@ -40,10 +40,11 @@ function LearnContent() {
     };
 
     useEffect(() => {
+        if (!targetId) return;
+
         // 1. Auth Check
         const adminSessionStr = localStorage.getItem('admin_session');
         if (adminSessionStr) {
-            // const adminSession = JSON.parse(adminSessionStr); // Unused
             const targetName = targetNames[targetId] || targetId;
             setUserSession({ display_name: targetName, username: targetId, role: 'admin' });
             setIsAdmin(true);
@@ -52,18 +53,26 @@ function LearnContent() {
         }
 
         const sessionStr = localStorage.getItem('user_session');
+        // Delay redirect slightly to avoid race conditions or use router.replace
         if (!sessionStr) {
-            router.push(`/login?target=${targetId}`);
+            router.replace(`/login?target=${targetId}`);
             return;
         }
-        const session = JSON.parse(sessionStr);
-        if (session.username !== targetId && session.role !== 'admin') {
-            alert('접근 권한이 없습니다.');
-            router.push('/');
-            return;
+
+        try {
+            const session = JSON.parse(sessionStr);
+            if (session.username !== targetId && session.role !== 'admin') {
+                alert('접근 권한이 없습니다.');
+                router.replace('/');
+                return;
+            }
+            setUserSession(session);
+            fetchPrompts(targetId, selectedDifficulty);
+        } catch (e) {
+            console.error(e);
+            localStorage.removeItem('user_session');
+            router.replace(`/login?target=${targetId}`);
         }
-        setUserSession(session);
-        fetchPrompts(targetId, selectedDifficulty);
     }, [targetId, selectedDifficulty, router]);
 
     // ... (fetchPrompts and other functions remain same) ...
