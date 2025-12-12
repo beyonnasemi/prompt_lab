@@ -76,10 +76,9 @@ body {
 /* Layout Structure */
 .main-content {
   margin-left: var(--sidebar-width);
-  padding: 2rem;
+  padding: 3rem;
   min-height: 100vh;
-  /* Ensure it takes full remaining width */
-  width: calc(100% - var(--sidebar-width));
+  /* width: auto by default which is correct for block level with margin */
 }
 
 /* Let valid pages center themselves using their own containers */
