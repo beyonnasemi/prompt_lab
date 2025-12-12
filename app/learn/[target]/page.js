@@ -209,8 +209,8 @@ function LearnContent() {
 
     return (
         <div className="centered-container" style={{ maxWidth: '1200px', margin: '0 auto', paddingBottom: '4rem' }}>
-            <div style={{ marginBottom: '3rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-                <div>
+            <div className="learn-header" style={{ marginBottom: '3rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '1rem' }}>
+                <div style={{ flex: 1, minWidth: '300px' }}>
                     <h1 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '0.5rem' }}>
                         {userSession.display_name} 프롬프트 실습
                     </h1>
@@ -219,18 +219,18 @@ function LearnContent() {
                     </p>
                 </div>
                 {isAdmin && (
-                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
                         <button
                             onClick={() => setIsBulkModalOpen(true)}
                             className="btn"
-                            style={{ padding: '0.75rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'white', border: '1px solid #e2e8f0', color: '#475569' }}
+                            style={{ padding: '0.75rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'white', border: '1px solid #e2e8f0', color: '#475569', whiteSpace: 'nowrap' }}
                         >
-                            <FileText size={18} /> 대량 등록
+                            <FileText size={18} /> <span className="mobile-hidden">대량 등록</span>
                         </button>
                         <button
                             onClick={handleAddClick}
                             className="btn btn-primary"
-                            style={{ padding: '0.75rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                            style={{ padding: '0.75rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', whiteSpace: 'nowrap' }}
                         >
                             <Plus size={18} /> 프롬프트 추가
                         </button>

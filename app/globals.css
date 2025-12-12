@@ -107,7 +107,7 @@ body {
   .main-content {
     margin-left: 0;
     width: 100%;
-    padding: 6rem 1rem 2rem 1rem;
+    padding: 7rem 1rem 2rem 1rem;
     /* Adjust padding for mobile header + admin header space if needed */
   }
 
@@ -232,5 +232,9 @@ body {
   .admin-header span {
     display: none;
     /* Hide 'Admin Mode' text on very small screens if needed, or keep it */
+  }
+
+  .mobile-hidden {
+    display: none;
   }
 }
