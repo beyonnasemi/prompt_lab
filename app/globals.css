@@ -74,13 +74,21 @@ body {
 
 /* Layout Structure */
 .main-content {
-  flex: 1;
+  /* This ensures the content block itself takes up the remaining space but centers its children */
   margin-left: var(--sidebar-width);
   padding: 2rem;
-  width: calc(100% - var(--sidebar-width));
-  /* Centering the content wrapper */
-  max-width: 1400px;
-  /* Optional cap */
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* Center horizontally */
+}
+
+/* Ensure children take appropriate width but don't stretch too wide */
+.main-content>* {
+  width: 100%;
+  max-width: 1000px;
+  /* Constrain max width for better reading */
 }
 
 /* Center children inside main-content if needed, or apply to specific pages */
