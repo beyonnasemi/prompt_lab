@@ -222,16 +222,30 @@ body {
 
 /* Admin Header Responsive */
 @media (max-width: 768px) {
+  .sidebar {
+    transform: translateX(-100%);
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+    z-index: 200;
+    /* Ensure sidebar covers everything */
+  }
+
   .admin-header {
-    top: 4rem !important;
-    /* Move below mobile header */
+    position: absolute !important;
+    /* Scroll with page, don't float */
+    top: 3.6rem !important;
+    /* Just below mobile header */
     right: 1rem !important;
+    width: auto !important;
+    padding: 0.5rem !important;
+  }
+
+  .admin-header>div {
+    padding: 0 !important;
     gap: 0.5rem !important;
   }
 
   .admin-header span {
     display: none;
-    /* Hide 'Admin Mode' text on very small screens if needed, or keep it */
   }
 
   .mobile-hidden {

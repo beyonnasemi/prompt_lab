@@ -13,14 +13,14 @@ export default function Sidebar() {
 
   return (
     <>
-      <div className="mobile-header">
-        <button className="btn" onClick={toggleSidebar}>
+      <div className="mobile-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+        <button className="btn" onClick={toggleSidebar} style={{ position: 'absolute', left: '1rem' }}>
           <Menu size={24} />
         </button>
         <img
           src="https://img.aicec.kr/web_images/prompt_lab.png"
           alt="Prompt Lab"
-          style={{ height: '30px', width: 'auto' }}
+          style={{ height: '24px', width: 'auto' }}
         />
       </div>
 
