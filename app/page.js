@@ -40,7 +40,7 @@ export default function Home() {
                 학습 시작하기 &rarr;
               </p>
             </div>
-          </Link>
+          </div>
         ))}
       </div>
     </div>

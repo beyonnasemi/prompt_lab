@@ -326,77 +326,73 @@ function LearnContent() {
                     ))
                 )}
             </div>
-        </div>
+            {/* Add/Edit Modal */}
+            {isModalOpen && (
+                <div className="mobile-overlay" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60 }}>
+                    <div style={{ background: 'white', padding: '2rem', borderRadius: '0.5rem', width: '100%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <h2 style={{ fontSize: '1.25rem', fontWeight: 700 }}>
+                                {editingPrompt ? '프롬프트 수정' : '새 프롬프트 추가'}
+                            </h2>
+                            <button onClick={() => setIsModalOpen(false)} style={{ border: 'none', background: 'none', cursor: 'pointer' }}><X size={24} /></button>
+                        </div>
 
-            {/* Add/Edit Modal */ }
-    {
-        isModalOpen && (
-            <div className="mobile-overlay" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60 }}>
-                <div style={{ background: 'white', padding: '2rem', borderRadius: '0.5rem', width: '100%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                        <h2 style={{ fontSize: '1.25rem', fontWeight: 700 }}>
-                            {editingPrompt ? '프롬프트 수정' : '새 프롬프트 추가'}
-                        </h2>
-                        <button onClick={() => setIsModalOpen(false)} style={{ border: 'none', background: 'none', cursor: 'pointer' }}><X size={24} /></button>
-                    </div>
+                        <form onSubmit={handleFormSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            <div style={{ display: 'flex', gap: '1rem' }}>
+                                <div style={{ flex: 1 }}>
+                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>제목</label>
+                                    <input
+                                        type="text"
+                                        value={promptForm.title}
+                                        onChange={e => setPromptForm({ ...promptForm, title: e.target.value })}
+                                        style={{ width: '100%', padding: '0.75rem', border: '1px solid #e2e8f0', borderRadius: '0.5rem' }}
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>난이도</label>
+                                    <select
+                                        value={selectedDifficulty}
+                                        disabled
+                                        style={{ width: '100%', padding: '0.75rem', border: '1px solid #e2e8f0', borderRadius: '0.5rem', background: '#f1f5f9' }}
+                                    >
+                                        <option value="beginner">초급</option>
+                                        <option value="intermediate">중급</option>
+                                        <option value="advanced">고급</option>
+                                    </select>
+                                </div>
+                            </div>
 
-                    <form onSubmit={handleFormSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                        <div style={{ display: 'flex', gap: '1rem' }}>
-                            <div style={{ flex: 1 }}>
-                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>제목</label>
-                                <input
-                                    type="text"
-                                    value={promptForm.title}
-                                    onChange={e => setPromptForm({ ...promptForm, title: e.target.value })}
-                                    style={{ width: '100%', padding: '0.75rem', border: '1px solid #e2e8f0', borderRadius: '0.5rem' }}
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>프롬프트 내용</label>
+                                <textarea
+                                    value={promptForm.content}
+                                    onChange={e => setPromptForm({ ...promptForm, content: e.target.value })}
+                                    style={{ width: '100%', padding: '0.75rem', border: '1px solid #e2e8f0', borderRadius: '0.5rem', minHeight: '150px' }}
                                     required
                                 />
                             </div>
+
                             <div>
-                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>난이도</label>
-                                <select
-                                    value={selectedDifficulty}
-                                    disabled
-                                    style={{ width: '100%', padding: '0.75rem', border: '1px solid #e2e8f0', borderRadius: '0.5rem', background: '#f1f5f9' }}
-                                >
-                                    <option value="beginner">초급</option>
-                                    <option value="intermediate">중급</option>
-                                    <option value="advanced">고급</option>
-                                </select>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>예상 답변 (선택사항)</label>
+                                <textarea
+                                    value={promptForm.expected_answer}
+                                    onChange={e => setPromptForm({ ...promptForm, expected_answer: e.target.value })}
+                                    style={{ width: '100%', padding: '0.75rem', border: '1px solid #e2e8f0', borderRadius: '0.5rem', minHeight: '100px' }}
+                                />
                             </div>
-                        </div>
 
-                        <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>프롬프트 내용</label>
-                            <textarea
-                                value={promptForm.content}
-                                onChange={e => setPromptForm({ ...promptForm, content: e.target.value })}
-                                style={{ width: '100%', padding: '0.75rem', border: '1px solid #e2e8f0', borderRadius: '0.5rem', minHeight: '150px' }}
-                                required
-                            />
-                        </div>
-
-                        <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>예상 답변 (선택사항)</label>
-                            <textarea
-                                value={promptForm.expected_answer}
-                                onChange={e => setPromptForm({ ...promptForm, expected_answer: e.target.value })}
-                                style={{ width: '100%', padding: '0.75rem', border: '1px solid #e2e8f0', borderRadius: '0.5rem', minHeight: '100px' }}
-                            />
-                        </div>
-
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '1rem' }}>
-                            <button type="button" onClick={() => setIsModalOpen(false)} className="btn" style={{ border: '1px solid #e2e8f0' }}>취소</button>
-                            <button type="submit" className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                <Save size={18} /> 저장하기
-                            </button>
-                        </div>
-                    </form>
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '1rem' }}>
+                                <button type="button" onClick={() => setIsModalOpen(false)} className="btn" style={{ border: '1px solid #e2e8f0' }}>취소</button>
+                                <button type="submit" className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <Save size={18} /> 저장하기
+                                </button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
-            </div>
-        )
-    }
-        </div >
+            )}
+        </div>
     );
 }
 
