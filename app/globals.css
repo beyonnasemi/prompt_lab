@@ -76,24 +76,15 @@ body {
 /* Layout Structure */
 .main-content {
   margin-left: var(--sidebar-width);
-  padding: 4rem 2rem;
-  /* More top padding */
+  padding: 2rem;
   min-height: 100vh;
-  /* Reset flexbox to normal block flow */
-  display: block;
+  /* Ensure it takes full remaining width */
+  width: calc(100% - var(--sidebar-width));
 }
 
-/* Center children inside main-content if needed, or apply to specific pages */
-.main-content>* {
-  /* This actually centers the child container */
-  max-width: 1000px;
-  margin: 0 auto;
-}
-
-/* Ensure children take appropriate width but don't stretch too wide */
+/* Let valid pages center themselves using their own containers */
 .main-content>* {
   width: 100%;
-  max-width: 1000px;
   /* Constrain max width for better reading */
 }
 

@@ -54,7 +54,7 @@ export default function AdminLogin() {
             justifyContent: 'center',
             alignItems: 'center'
         }}>
-            <div style={{ width: '100%', maxWidth: '400px', textAlign: 'center' }}>
+            <div style={{ width: '100%', maxWidth: '400px', textAlign: 'center', margin: '0 auto' }}>
                 <div style={{ marginBottom: '2rem', display: 'inline-block', padding: '1rem', background: '#f0fdf4', borderRadius: '50%', color: '#16a34a' }}>
                     <ShieldCheck size={40} />
                 </div>

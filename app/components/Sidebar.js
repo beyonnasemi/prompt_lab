@@ -32,15 +32,27 @@ export default function Sidebar() {
         </div>
 
         <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          <Link href="/" className={`nav-item ${pathname === '/' ? 'active' : ''}`}>
+          <Link
+            href="/"
+            className={`nav-item ${pathname === '/' ? 'active' : ''}`}
+            onClick={() => setIsOpen(false)}
+          >
             <Layout size={20} />
             <span>메인</span>
           </Link>
-          <Link href="/manual" className={`nav-item ${pathname === '/manual' ? 'active' : ''}`}>
+          <Link
+            href="/manual"
+            className={`nav-item ${pathname === '/manual' ? 'active' : ''}`}
+            onClick={() => setIsOpen(false)}
+          >
             <BookOpen size={20} />
             <span>사용 가이드</span>
           </Link>
-          <Link href="/admin/login" className={`nav-item ${pathname.includes('/admin') ? 'active' : ''}`}>
+          <Link
+            href="/admin/login"
+            className={`nav-item ${pathname.includes('/admin') ? 'active' : ''}`}
+            onClick={() => setIsOpen(false)}
+          >
             <Settings size={20} />
             <span>관리자</span>
           </Link>
