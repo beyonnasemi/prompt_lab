@@ -5,6 +5,34 @@ import { useRouter, useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Copy, Check, ChevronRight, Plus, Pencil, Trash2, X, Save, ShieldCheck } from 'lucide-react';
 
+const targetNames = {
+    'business': '비즈니스',
+    'public': '공공기관',
+    'univ': '대학',
+    'elem': '초등학교',
+    'middle': '중학교',
+    'high': '고등학교',
+    'adult': '일반성인 (기초)',
+};
+
+const difficultyGuides = {
+    beginner: {
+        title: "초급 (Beginner)",
+        desc: "생성형 AI와 친해지는 단계입니다. 간단하고 명확한 지시로 AI에게 기초적인 작업을 요청하는 방법을 익힙니다.",
+        features: "핵심 특징: 명확한 지시어(명령), 짧고 간결한 문장"
+    },
+    intermediate: {
+        title: "중급 (Intermediate)",
+        desc: "구체적인 상황(Context)을 설정하고 AI에게 역할(Persona)을 부여하여, 업무에 바로 활용 가능한 실무형 답변을 얻는 단계입니다.",
+        features: "핵심 특징: 역할 부여(Role), 구체적 상황 설명, 목적 명시"
+    },
+    advanced: {
+        title: "고급 (Advanced)",
+        desc: "복잡한 논리적 추론이나 창의적 결과물이 필요할 때 사용합니다. 예시(Few-shot)를 제공하거나 출력 형식을 지정하여 전문가 수준의 결과를 도출합니다.",
+        features: "핵심 특징: 예시 제공(Few-shot), 출력 형식 지정(Format), 단계별 사고 유도"
+    }
+};
+
 function LearnContent() {
     const params = useParams();
     const router = useRouter();
@@ -27,17 +55,6 @@ function LearnContent() {
         { id: 'intermediate', label: '중급' },
         { id: 'advanced', label: '고급' },
     ];
-
-    // Map IDs to Names for display
-    const targetNames = {
-        'business': '비즈니스',
-        'public': '공공기관',
-        'univ': '대학',
-        'elem': '초등학교',
-        'middle': '중학교',
-        'high': '고등학교',
-        'adult': '일반성인 (기초)',
-    };
 
     useEffect(() => {
         if (!targetId) return;
@@ -75,9 +92,84 @@ function LearnContent() {
         }
     }, [targetId, selectedDifficulty, router]);
 
-    // ... (fetchPrompts and other functions remain same) ...
+    const fetchPrompts = async (target, difficulty) => {
+        setLoading(true);
+        const { data, error } = await supabase
+            .from('prompts')
+            .select('*')
+            .eq('target_group', target)
+            .eq('difficulty', difficulty)
+            .order('created_at', { ascending: false });
+
+        if (!error) {
+            setPrompts(data || []);
+        }
+        setLoading(false);
+    };
+
+    const handleCopy = (text, id) => {
+        navigator.clipboard.writeText(text);
+        setCopiedId(id);
+        setTimeout(() => setCopiedId(null), 2000);
+    };
+
+    // Admin Functions
+    const handleAddClick = () => {
+        setEditingPrompt(null);
+        setPromptForm({ title: '', content: '', expected_answer: '' });
+        setIsModalOpen(true);
+    };
+
+    const handleEditClick = (prompt) => {
+        setEditingPrompt(prompt);
+        setPromptForm({
+            title: prompt.title,
+            content: prompt.content,
+            expected_answer: prompt.expected_answer || ''
+        });
+        setIsModalOpen(true);
+    };
+
+    const handleDeleteClick = async (id) => {
+        if (!confirm('정말 삭제하시겠습니까?')) return;
+        const { error } = await supabase.from('prompts').delete().eq('id', id);
+        if (error) alert('삭제 실패: ' + error.message);
+        else fetchPrompts(targetId, selectedDifficulty);
+    };
+
+    const handleFormSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            // Get admin ID
+            const adminSession = JSON.parse(localStorage.getItem('admin_session') || '{}');
+            const { data: adminAccount } = await supabase.from('accounts').select('id').eq('username', 'admin').single();
+
+            const payload = {
+                target_group: targetId,
+                difficulty: selectedDifficulty,
+                title: promptForm.title,
+                content: promptForm.content,
+                expected_answer: promptForm.expected_answer,
+                created_by: adminAccount?.id
+            };
+
+            if (editingPrompt) {
+                const { error } = await supabase.from('prompts').update(payload).eq('id', editingPrompt.id);
+                if (error) throw error;
+            } else {
+                const { error } = await supabase.from('prompts').insert([payload]);
+                if (error) throw error;
+            }
+            setIsModalOpen(false);
+            fetchPrompts(targetId, selectedDifficulty);
+        } catch (error) {
+            alert('저장 실패: ' + error.message);
+        }
+    };
 
     if (!userSession) return null;
+
+    const currentGuide = difficultyGuides[selectedDifficulty] || difficultyGuides['beginner'];
 
     return (
         <div className="centered-container" style={{ maxWidth: '1000px', margin: '0 auto', paddingBottom: '4rem' }}>
@@ -135,13 +227,13 @@ function LearnContent() {
                 marginBottom: '3rem'
             }}>
                 <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '0.5rem', color: '#1e293b' }}>
-                    {difficultyGuides[selectedDifficulty].title}
+                    {currentGuide.title}
                 </h3>
                 <p style={{ color: '#475569', marginBottom: '0.5rem', lineHeight: '1.6' }}>
-                    {difficultyGuides[selectedDifficulty].desc}
+                    {currentGuide.desc}
                 </p>
                 <p style={{ color: '#2563eb', fontSize: '0.9rem', fontWeight: 500 }}>
-                    💡 {difficultyGuides[selectedDifficulty].features}
+                    💡 {currentGuide.features}
                 </p>
             </div>
 
