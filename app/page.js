@@ -1,66 +1,48 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+import Link from "next/link";
+import { Users, Building2, GraduationCap, School, Baby, User } from "lucide-react";
 
 export default function Home() {
+  const targets = [
+    { id: 'business', name: '비즈니스', icon: <Building2 size={40} /> },
+    { id: 'public', name: '공공기관', icon: <Users size={40} /> },
+    { id: 'univ', name: '대학', icon: <GraduationCap size={40} /> },
+    { id: 'elem', name: '초등학교', icon: <Baby size={40} /> },
+    { id: 'middle', name: '중학교', icon: <School size={40} /> },
+    { id: 'high', name: '고등학교', icon: <School size={40} /> },
+    { id: 'adult', name: '일반성인 (기초)', icon: <User size={40} /> },
+  ];
+
+  const { Sparkles } = require('lucide-react');
+
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className={styles.intro}>
-          <h1>To get started, edit the page.js file.</h1>
-          <p>
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className={styles.secondary}
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+    <div>
+      <div style={{ marginBottom: '2rem' }}>
+        <p style={{ color: '#2563eb', fontWeight: 600, marginBottom: '0.5rem' }}>
+          인공지능융합교육협회 & 인공지능융합교육원
+        </p>
+        <h1 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          생성형 AI 프롬프트 실습 Lab <Sparkles color="#fbbf24" fill="#fbbf24" />
+        </h1>
+        <p style={{ color: '#64748b', fontSize: '1.1rem' }}>
+          학습을 진행할 소속 유형을 선택해주세요.
+        </p>
+      </div>
+
+      <div className="target-grid">
+        {targets.map((target) => (
+          <Link href={`/login?target=${target.id}`} key={target.id} style={{ textDecoration: 'none' }}>
+            <div className="target-card">
+              <div className="target-icon">
+                {target.icon}
+              </div>
+              <h3 className="target-name">{target.name}</h3>
+              <p style={{ marginTop: '0.5rem', color: '#94a3b8', fontSize: '0.9rem' }}>
+                학습 시작하기 &rarr;
+              </p>
+            </div>
+          </Link>
+        ))}
+      </div>
     </div>
   );
 }
