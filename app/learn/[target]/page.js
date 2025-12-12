@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { Copy, Check, ChevronRight, Plus, Pencil, Trash2, X, Save } from 'lucide-react';
+import { Copy, Check, ChevronRight, Plus, Pencil, Trash2, X, Save, ShieldCheck } from 'lucide-react';
 
 function LearnContent() {
     const params = useParams();
@@ -165,13 +165,29 @@ function LearnContent() {
                     </p>
                 </div>
                 {isAdmin && (
-                    <button
-                        onClick={handleAddClick}
-                        className="btn btn-primary"
-                        style={{ padding: '0.75rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-                    >
-                        <Plus size={18} /> 프롬프트 추가
-                    </button>
+                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                        <span style={{
+                            background: '#fff7ed',
+                            color: '#c2410c',
+                            padding: '0.5rem 1rem',
+                            borderRadius: '9999px',
+                            fontSize: '0.9rem',
+                            fontWeight: 600,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            border: '1px solid #ffedd5'
+                        }}>
+                            <ShieldCheck size={16} /> 관리자 모드
+                        </span>
+                        <button
+                            onClick={handleAddClick}
+                            className="btn btn-primary"
+                            style={{ padding: '0.75rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                        >
+                            <Plus size={18} /> 프롬프트 추가
+                        </button>
+                    </div>
                 )}
             </div>
 
