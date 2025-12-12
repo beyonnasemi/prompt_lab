@@ -65,17 +65,17 @@ export default function SessionHeader() {
             width: '100%',
             padding: '1.5rem 0',
             zIndex: 100,
-            pointerEvents: 'none' // Allow clicking through empty space
+            pointerEvents: 'none'
         }}>
             <div style={{
                 maxWidth: '1200px',
                 margin: '0 auto',
-                padding: '0 1rem', // Match common page padding
+                padding: '0 2rem', // Match AdminDashboard padding
                 display: 'flex',
                 justifyContent: 'flex-end',
                 alignItems: 'center',
                 gap: '1rem',
-                pointerEvents: 'auto' // Re-enable clicks for buttons
+                pointerEvents: 'auto'
             }}>
                 <div style={{
                     display: 'flex',

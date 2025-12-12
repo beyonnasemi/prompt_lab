@@ -5,11 +5,10 @@ import "./globals.css";
 export const metadata = {
   title: "Prompt Lab",
   description: "Generative AI Education Platform",
-  icons: {
-    icon: 'https://img.aicec.kr/web_images/logo_aicea.png?v=2',
-    shortcut: 'https://img.aicec.kr/web_images/logo_aicea.png?v=2',
-    apple: 'https://img.aicec.kr/web_images/logo_aicea.png?v=2',
-  },
+  icons: [
+    { rel: 'icon', url: 'https://img.aicec.kr/web_images/logo_aicea.png' },
+    { rel: 'apple-touch-icon', url: 'https://img.aicec.kr/web_images/logo_aicea.png' },
+  ],
 };
 
 export default function RootLayout({ children }) {

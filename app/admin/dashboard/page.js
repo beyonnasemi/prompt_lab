@@ -73,7 +73,7 @@ export default function AdminDashboard() {
     }
 
     return (
-        <div className="centered-container" style={{ maxWidth: '1200px', margin: '0 auto', paddingBottom: '4rem' }}>
+        <div className="centered-container" style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 2rem', paddingBottom: '4rem' }}>
             <div style={{ marginBottom: '3rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                     <h1 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -189,10 +189,21 @@ export default function AdminDashboard() {
                         </div>
                         <button
                             onClick={handleAdminPasswordChange}
-                            className="btn"
-                            style={{ border: '1px solid #cbd5e1', background: 'white', color: '#475569' }}
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.5rem',
+                                padding: '0.5rem 1rem',
+                                background: 'white',
+                                border: '1px solid #cbd5e1',
+                                borderRadius: '0.5rem',
+                                cursor: 'pointer',
+                                fontSize: '0.9rem',
+                                color: '#475569',
+                                fontWeight: 500
+                            }}
                         >
-                            <KeyRound size={16} style={{ marginRight: '0.5rem' }} /> 비밀번호 변경하기
+                            <KeyRound size={16} /> 관리자 비밀번호 변경
                         </button>
                     </div>
 
