@@ -1,4 +1,5 @@
 import Sidebar from './components/Sidebar';
+import AdminHeader from './components/AdminHeader';
 import "./globals.css";
 
 export const metadata = {
@@ -12,7 +13,8 @@ export default function RootLayout({ children }) {
       <body>
         <div className="app-container">
           <Sidebar />
-          <main className="main-content">
+          <main className="main-content" style={{ position: 'relative' }}>
+            <AdminHeader />
             {children}
           </main>
         </div>
