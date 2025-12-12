@@ -172,7 +172,7 @@ function LearnContent() {
     const currentGuide = difficultyGuides[selectedDifficulty] || difficultyGuides['beginner'];
 
     return (
-        <div className="centered-container" style={{ maxWidth: '1000px', margin: '0 auto', paddingBottom: '4rem' }}>
+        <div className="centered-container" style={{ maxWidth: '1200px', margin: '0 auto', paddingBottom: '4rem' }}>
             <div style={{ marginBottom: '3rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                 <div>
                     <h1 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '0.5rem' }}>

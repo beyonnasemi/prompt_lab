@@ -60,51 +60,62 @@ export default function SessionHeader() {
     return (
         <div className="admin-header" style={{
             position: 'fixed',
-            top: '1.5rem',
-            right: '2rem',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '1rem',
-            zIndex: 100
+            top: '0',
+            left: '0',
+            width: '100%',
+            padding: '1.5rem 0',
+            zIndex: 100,
+            pointerEvents: 'none' // Allow clicking through empty space
         }}>
             <div style={{
+                maxWidth: '1200px',
+                margin: '0 auto',
+                padding: '0 1rem', // Match common page padding
                 display: 'flex',
+                justifyContent: 'flex-end',
                 alignItems: 'center',
-                gap: '0.5rem',
-                background: session.type === 'admin' ? '#fff7ed' : '#eff6ff',
-                color: session.type === 'admin' ? '#c2410c' : '#1d4ed8',
-                padding: '0.5rem 1rem',
-                borderRadius: '9999px',
-                fontSize: '0.9rem',
-                fontWeight: 600,
-                border: session.type === 'admin' ? '1px solid #ffedd5' : '1px solid #dbeafe',
-                boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                gap: '1rem',
+                pointerEvents: 'auto' // Re-enable clicks for buttons
             }}>
-                {session.type === 'admin' ? <ShieldCheck size={16} /> : <User size={16} />}
-                {session.name}
-            </div>
-            <button
-                onClick={handleLogout}
-                style={{
+                <div style={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: '0.5rem',
+                    background: session.type === 'admin' ? '#fff7ed' : '#eff6ff',
+                    color: session.type === 'admin' ? '#c2410c' : '#1d4ed8',
                     padding: '0.5rem 1rem',
-                    background: 'white',
-                    border: '1px solid #e2e8f0',
-                    borderRadius: '0.5rem',
-                    cursor: 'pointer',
+                    borderRadius: '9999px',
                     fontSize: '0.9rem',
-                    color: '#64748b',
-                    transition: 'all 0.2s',
-                    fontWeight: 500
-                }}
-                onMouseOver={(e) => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = '#ef4444'; }}
-                onMouseOut={(e) => { e.currentTarget.style.background = 'white'; e.currentTarget.style.color = '#64748b'; }}
-            >
-                <LogOut size={16} />
-                로그아웃
-            </button>
+                    fontWeight: 600,
+                    border: session.type === 'admin' ? '1px solid #ffedd5' : '1px solid #dbeafe',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                }}>
+                    {session.type === 'admin' ? <ShieldCheck size={16} /> : <User size={16} />}
+                    {session.name}
+                </div>
+                <button
+                    onClick={handleLogout}
+                    style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        padding: '0.5rem 1rem',
+                        background: 'white',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '0.5rem',
+                        cursor: 'pointer',
+                        fontSize: '0.9rem',
+                        color: '#64748b',
+                        transition: 'all 0.2s',
+                        fontWeight: 500
+                    }}
+                    onMouseOver={(e) => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = '#ef4444'; }}
+                    onMouseOut={(e) => { e.currentTarget.style.background = 'white'; e.currentTarget.style.color = '#64748b'; }}
+                >
+                    <LogOut size={16} />
+                    로그아웃
+                </button>
+            </div>
         </div>
     );
 }
