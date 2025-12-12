@@ -393,11 +393,35 @@ function LearnContent() {
             {isModalOpen && (
                 <div className="mobile-overlay" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60 }}>
                     <div style={{ background: 'white', padding: '2rem', borderRadius: '0.5rem', width: '100%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                            <h2 style={{ fontSize: '1.25rem', fontWeight: 700 }}>
-                                {editingPrompt ? '프롬프트 수정' : '새 프롬프트 추가'}
-                            </h2>
-                            <button onClick={() => setIsModalOpen(false)} style={{ border: 'none', background: 'none', cursor: 'pointer' }}><X size={24} /></button>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+                            <div>
+                                <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem' }}>
+                                    {editingPrompt ? '프롬프트 수정' : '새 프롬프트 추가'}
+                                </h2>
+                                {!editingPrompt && (
+                                    <button
+                                        onClick={() => {
+                                            setIsModalOpen(false);
+                                            setIsBulkModalOpen(true);
+                                        }}
+                                        style={{
+                                            fontSize: '0.85rem',
+                                            color: '#2563eb',
+                                            background: 'none',
+                                            border: 'none',
+                                            padding: 0,
+                                            cursor: 'pointer',
+                                            textDecoration: 'underline',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '0.25rem'
+                                        }}
+                                    >
+                                        <FileText size={14} /> JSON으로 대량 등록하기 (클릭)
+                                    </button>
+                                )}
+                            </div>
+                            <button onClick={() => setIsModalOpen(false)} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: '0.5rem' }}><X size={24} /></button>
                         </div>
 
                         <form onSubmit={handleFormSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
