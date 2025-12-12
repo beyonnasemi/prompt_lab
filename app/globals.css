@@ -72,11 +72,21 @@ body {
   transition: transform 0.3s ease;
 }
 
+/* Layout Structure */
 .main-content {
   flex: 1;
   margin-left: var(--sidebar-width);
   padding: 2rem;
   width: calc(100% - var(--sidebar-width));
+  /* Centering the content wrapper */
+  max-width: 1400px;
+  /* Optional cap */
+}
+
+/* Center children inside main-content if needed, or apply to specific pages */
+.centered-container {
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 /* Mobile Responsive */
