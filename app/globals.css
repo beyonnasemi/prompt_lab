@@ -53,7 +53,7 @@ body {
 
 /* Layout Structure */
 .app-container {
-  display: flex;
+  display: block;
   min-height: 100vh;
 }
 
