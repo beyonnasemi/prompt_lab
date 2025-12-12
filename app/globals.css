@@ -9,7 +9,7 @@
 
   --sidebar-bg: #ffffff;
   --sidebar-border: #e2e8f0;
-  --sidebar-width: 260px;
+  --sidebar-width: 300px;
 
   --card-bg: #ffffff;
   --card-border: #e2e8f0;
@@ -169,6 +169,10 @@ body {
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 1.5rem;
   margin-top: 2rem;
+  /* Ensure centering */
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .target-card {
