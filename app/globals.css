@@ -107,7 +107,7 @@ body {
   .main-content {
     margin-left: 0;
     width: 100%;
-    padding: 7rem 1rem 2rem 1rem;
+    padding: 9rem 1rem 2rem 1rem;
     /* Adjust padding for mobile header + admin header space if needed */
   }
 
@@ -225,7 +225,7 @@ body {
   .sidebar {
     transform: translateX(-100%);
     box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
-    z-index: 200;
+    z-index: 200 !important;
     /* Ensure sidebar covers everything */
   }
 
@@ -237,6 +237,7 @@ body {
     right: 1rem !important;
     width: auto !important;
     padding: 0.5rem !important;
+    z-index: 20 !important;
   }
 
   .admin-header>div {

@@ -64,7 +64,7 @@ export default function SessionHeader() {
             left: '0',
             width: '100%',
             padding: '1.5rem 0',
-            zIndex: 30,
+            zIndex: 20,
             pointerEvents: 'none'
         }}>
             <div style={{

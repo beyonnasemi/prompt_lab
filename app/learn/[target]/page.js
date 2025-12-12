@@ -232,7 +232,7 @@ function LearnContent() {
                             className="btn btn-primary"
                             style={{ padding: '0.75rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', whiteSpace: 'nowrap' }}
                         >
-                            <Plus size={18} /> 프롬프트 추가
+                            <Plus size={18} /> <span className="mobile-hidden">프롬프트 추가</span>
                         </button>
                     </div>
                 )}
