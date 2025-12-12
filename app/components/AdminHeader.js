@@ -58,15 +58,7 @@ export default function SessionHeader() {
     if (!session) return null;
 
     return (
-        <div className="admin-header" style={{
-            position: 'fixed',
-            top: '0',
-            left: '0',
-            width: '100%',
-            padding: '1.5rem 0',
-            zIndex: 20,
-            pointerEvents: 'none'
-        }}>
+        <div className="admin-header">
             <div style={{
                 maxWidth: '1200px',
                 margin: '0 auto',

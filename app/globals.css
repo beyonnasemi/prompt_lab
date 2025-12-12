@@ -220,6 +220,17 @@ body {
   font-weight: 600;
 }
 
+/* Admin Header Base Styles (Desktop) */
+.admin-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  padding: 1.5rem 0;
+  z-index: 20;
+  pointer-events: none;
+}
+
 /* Admin Header Responsive */
 @media (max-width: 768px) {
   .sidebar {
