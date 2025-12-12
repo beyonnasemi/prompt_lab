@@ -2,38 +2,60 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { ShieldCheck, LogOut } from 'lucide-react';
+import { ShieldCheck, LogOut, User, Building2, GraduationCap, School, Baby } from 'lucide-react';
 
-export default function AdminHeader() {
-    const [isAdmin, setIsAdmin] = useState(false);
+export default function SessionHeader() {
+    const [session, setSession] = useState(null); // { type: 'admin' | 'user', name: string }
     const router = useRouter();
     const pathname = usePathname();
 
+    const targetNames = {
+        'business': '비즈니스',
+        'public': '공공기관',
+        'univ': '대학',
+        'elem': '초등학교',
+        'middle': '중학교',
+        'high': '고등학교',
+        'adult': '일반성인',
+    };
+
     useEffect(() => {
-        // Check for admin session on mount and route change
-        const checkAdmin = () => {
-            const session = localStorage.getItem('admin_session');
-            setIsAdmin(!!session);
+        const checkSession = () => {
+            // 1. Check Admin
+            const adminSession = localStorage.getItem('admin_session');
+            if (adminSession) {
+                setSession({ type: 'admin', name: '관리자 모드' });
+                return;
+            }
+
+            // 2. Check User
+            const userSessionStr = localStorage.getItem('user_session');
+            if (userSessionStr) {
+                const userSession = JSON.parse(userSessionStr);
+                // Map username (target id) to display name if possible, else use provided display name
+                const displayName = targetNames[userSession.username] || userSession.displayName || '학습자';
+                setSession({ type: 'user', name: displayName });
+                return;
+            }
+
+            setSession(null);
         };
 
-        checkAdmin();
-        // In a real app we'd subscribe to storage events or use a context, 
-        // but for now checking on render/mount is okay since we redirect on login/logout.
+        checkSession();
     }, [pathname]);
 
     const handleLogout = () => {
-        localStorage.removeItem('admin_session');
-        localStorage.removeItem('user_session'); // Optional: clear user session too if desired? Actually maybe keep user session.
-        // Spec says: "Logout feature for Admin".
-        setIsAdmin(false);
-        router.push('/admin/login'); // Or home? User usually expects to go to login or home. 
-        // Request says: "Clicking logout...". Let's go to admin login or home.
-        // Given the flow, going to home or admin login is fine. Let's go to Home so they see they are out.
-        // Wait, let's stick to /admin/login so they can log in again if needed, or /
-        router.push('/');
+        if (session?.type === 'admin') {
+            localStorage.removeItem('admin_session');
+            router.push('/admin/login');
+        } else {
+            localStorage.removeItem('user_session');
+            router.push('/');
+        }
+        setSession(null);
     };
 
-    if (!isAdmin) return null;
+    if (!session) return null;
 
     return (
         <div className="admin-header" style={{
@@ -49,17 +71,17 @@ export default function AdminHeader() {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.5rem',
-                background: '#fff7ed',
-                color: '#c2410c',
+                background: session.type === 'admin' ? '#fff7ed' : '#eff6ff',
+                color: session.type === 'admin' ? '#c2410c' : '#1d4ed8',
                 padding: '0.5rem 1rem',
                 borderRadius: '9999px',
                 fontSize: '0.9rem',
                 fontWeight: 600,
-                border: '1px solid #ffedd5',
+                border: session.type === 'admin' ? '1px solid #ffedd5' : '1px solid #dbeafe',
                 boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
             }}>
-                <ShieldCheck size={16} />
-                관리자 모드
+                {session.type === 'admin' ? <ShieldCheck size={16} /> : <User size={16} />}
+                {session.name}
             </div>
             <button
                 onClick={handleLogout}
