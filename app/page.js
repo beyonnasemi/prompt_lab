@@ -1,7 +1,23 @@
+'use client';
+
 import Link from "next/link";
-import { Users, Building2, GraduationCap, School, Baby, User } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Users, Building2, GraduationCap, School, Baby, User, Sparkles } from "lucide-react";
 
 export default function Home() {
+  const router = useRouter();
+
+  const handleTargetClick = (id) => {
+    // If admin is logged in, go directly to learn page
+    const adminSession = localStorage.getItem('admin_session');
+    if (adminSession) {
+      router.push(`/learn/${id}`);
+      return;
+    }
+    // Otherwise go to login
+    router.push(`/login?target=${id}`);
+  };
+
   const targets = [
     { id: 'business', name: '비즈니스', icon: <Building2 size={40} /> },
     { id: 'public', name: '공공기관', icon: <Users size={40} /> },
@@ -11,8 +27,6 @@ export default function Home() {
     { id: 'high', name: '고등학교', icon: <School size={40} /> },
     { id: 'adult', name: '일반성인 (기초)', icon: <User size={40} /> },
   ];
-
-  const { Sparkles } = require('lucide-react');
 
   return (
     <div>
