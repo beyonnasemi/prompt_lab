@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { Copy, Check, ChevronRight, Plus, Pencil, Trash2, X, Save, ShieldCheck } from 'lucide-react';
+import { Copy, Check, ChevronRight, Plus, Pencil, Trash2, X, Save, ShieldCheck, FileJson } from 'lucide-react';
 
 const targetNames = {
     'business': '비즈니스',
@@ -47,8 +47,10 @@ function LearnContent() {
     // Admin State
     const [isAdmin, setIsAdmin] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
     const [editingPrompt, setEditingPrompt] = useState(null);
     const [promptForm, setPromptForm] = useState({ title: '', content: '', expected_answer: '' });
+    const [bulkJson, setBulkJson] = useState('');
 
     const difficulties = [
         { id: 'beginner', label: '초급' },
@@ -167,6 +169,40 @@ function LearnContent() {
         }
     };
 
+    const handleBulkSubmit = async () => {
+        if (!bulkJson.trim()) return alert('JSON 데이터를 입력해주세요.');
+        try {
+            const parsed = JSON.parse(bulkJson);
+            if (!Array.isArray(parsed)) throw new Error('데이터는 배열 형식이어야 합니다.');
+
+            const { data: adminAccount } = await supabase.from('accounts').select('id').eq('username', 'admin').single();
+
+            const payload = parsed.map(item => ({
+                target_group: targetId,
+                title: item.title,
+                content: item.content,
+                difficulty: item.difficulty || selectedDifficulty,
+                expected_answer: item.expected_answer || '',
+                created_by: adminAccount?.id
+            }));
+
+            // Validate payload
+            for (const item of payload) {
+                if (!item.title || !item.content) throw new Error('모든 항목에 제목(title)과 내용(content)이 포함되어야 합니다.');
+            }
+
+            const { error } = await supabase.from('prompts').insert(payload);
+            if (error) throw error;
+
+            alert(`${payload.length}개의 프롬프트가 성공적으로 등록되었어요!`);
+            setIsBulkModalOpen(false);
+            setBulkJson('');
+            fetchPrompts(targetId, selectedDifficulty);
+        } catch (e) {
+            alert('등록 실패: ' + e.message + '\n\n올바른 JSON 형식인지 확인해주세요.');
+        }
+    };
+
     if (!userSession) return null;
 
     const currentGuide = difficultyGuides[selectedDifficulty] || difficultyGuides['beginner'];
@@ -184,6 +220,13 @@ function LearnContent() {
                 </div>
                 {isAdmin && (
                     <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                        <button
+                            onClick={() => setIsBulkModalOpen(true)}
+                            className="btn"
+                            style={{ padding: '0.75rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'white', border: '1px solid #e2e8f0', color: '#475569' }}
+                        >
+                            <FileJson size={18} /> 대량 등록
+                        </button>
                         <button
                             onClick={handleAddClick}
                             className="btn btn-primary"
