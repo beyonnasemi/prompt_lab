@@ -81,13 +81,6 @@ export default function AdminDashboard() {
                     </h1>
                     <p style={{ color: '#64748b' }}>프롬프트 및 사용자 계정을 관리합니다.</p>
                 </div>
-                <button
-                    onClick={handleAdminPasswordChange}
-                    className="btn"
-                    style={{ border: '1px solid #e2e8f0', background: 'white', color: '#475569' }}
-                >
-                    <KeyRound size={16} style={{ marginRight: '0.5rem' }} /> 관리자 비밀번호 변경
-                </button>
             </div>
 
             {/* Tabs */}
@@ -187,46 +180,62 @@ export default function AdminDashboard() {
 
             {/* Account Management Tab (Existing Logic) */}
             {activeTab === 'accounts' && (
-                <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', background: 'white', borderRadius: '0.5rem', overflow: 'hidden', border: '1px solid #e2e8f0' }}>
-                        <thead style={{ background: '#f8fafc' }}>
-                            <tr>
-                                <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '1px solid #e2e8f0', width: '20%' }}>아이디 (그룹)</th>
-                                <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '1px solid #e2e8f0', width: '30%' }}>표시 이름</th>
-                                <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '1px solid #e2e8f0', width: '50%' }}>비밀번호 변경</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {loadingAccounts ? (
-                                <tr><td colSpan="3" style={{ padding: '2rem', textAlign: 'center' }}>로딩 중...</td></tr>
-                            ) : accounts.map((account) => (
-                                <tr key={account.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                    <td style={{ padding: '1rem', fontWeight: 500 }}>{account.username}</td>
-                                    <td style={{ padding: '1rem', color: '#64748b' }}>{account.display_name}</td>
-                                    <td style={{ padding: '1rem' }}>
-                                        <div style={{ display: 'flex', gap: '0.5rem', maxWidth: '300px' }}>
-                                            <input
-                                                type="text"
-                                                placeholder="비밀번호"
-                                                value={passwords[account.id] !== undefined ? passwords[account.id] : account.password}
-                                                onChange={(e) => setPasswords({ ...passwords, [account.id]: e.target.value })}
-                                                style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #cbd5e1', width: '100%' }}
-                                            />
-                                            <button
-                                                onClick={() => handlePasswordChange(account.id)}
-                                                className="btn"
-                                                style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', whiteSpace: 'nowrap' }}
-                                            >
-                                                변경
-                                            </button>
-                                        </div>
-                                    </td>
+                <div>
+                    {/* Admin Password Change Card */}
+                    <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '0.5rem', padding: '1.5rem', marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e293b', marginBottom: '0.25rem' }}>관리자 계정 설정</h3>
+                            <p style={{ color: '#64748b', fontSize: '0.9rem' }}>관리자 계정의 비밀번호를 안전하게 관리하세요.</p>
+                        </div>
+                        <button
+                            onClick={handleAdminPasswordChange}
+                            className="btn"
+                            style={{ border: '1px solid #cbd5e1', background: 'white', color: '#475569' }}
+                        >
+                            <KeyRound size={16} style={{ marginRight: '0.5rem' }} /> 비밀번호 변경하기
+                        </button>
+                    </div>
+
+                    <div style={{ overflowX: 'auto' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', background: 'white', borderRadius: '0.5rem', overflow: 'hidden', border: '1px solid #e2e8f0' }}>
+                            <thead style={{ background: '#f8fafc' }}>
+                                <tr>
+                                    <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '1px solid #e2e8f0', width: '20%' }}>아이디 (그룹)</th>
+                                    <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '1px solid #e2e8f0', width: '30%' }}>표시 이름</th>
+                                    <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '1px solid #e2e8f0', width: '50%' }}>비밀번호 변경</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
+                            </thead>
+                            <tbody>
+                                {loadingAccounts ? (
+                                    <tr><td colSpan="3" style={{ padding: '2rem', textAlign: 'center' }}>로딩 중...</td></tr>
+                                ) : accounts.map((account) => (
+                                    <tr key={account.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                        <td style={{ padding: '1rem', fontWeight: 500 }}>{account.username}</td>
+                                        <td style={{ padding: '1rem', color: '#64748b' }}>{account.display_name}</td>
+                                        <td style={{ padding: '1rem' }}>
+                                            <div style={{ display: 'flex', gap: '0.5rem', maxWidth: '300px' }}>
+                                                <input
+                                                    type="text"
+                                                    placeholder="비밀번호"
+                                                    value={passwords[account.id] !== undefined ? passwords[account.id] : account.password}
+                                                    onChange={(e) => setPasswords({ ...passwords, [account.id]: e.target.value })}
+                                                    style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #cbd5e1', width: '100%' }}
+                                                />
+                                                <button
+                                                    onClick={() => handlePasswordChange(account.id)}
+                                                    className="btn"
+                                                    style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', whiteSpace: 'nowrap' }}
+                                                >
+                                                    변경
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
             )}
-        </div>
-    );
+                </div>
+            );
 }
