@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { Copy, Check, ChevronRight } from 'lucide-react';
+import { Copy, Check, ChevronRight, Plus, Pencil, Trash2, X, Save } from 'lucide-react';
 
 function LearnContent() {
     const params = useParams();
@@ -16,6 +16,12 @@ function LearnContent() {
     const [selectedDifficulty, setSelectedDifficulty] = useState('beginner');
     const [copiedId, setCopiedId] = useState(null);
 
+    // Admin State
+    const [isAdmin, setIsAdmin] = useState(false);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingPrompt, setEditingPrompt] = useState(null);
+    const [promptForm, setPromptForm] = useState({ title: '', content: '', expected_answer: '' });
+
     const difficulties = [
         { id: 'beginner', label: '초급' },
         { id: 'intermediate', label: '중급' },
@@ -24,6 +30,15 @@ function LearnContent() {
 
     useEffect(() => {
         // 1. Auth Check
+        const adminSessionStr = localStorage.getItem('admin_session');
+        if (adminSessionStr) {
+            const adminSession = JSON.parse(adminSessionStr);
+            setUserSession({ display_name: '관리자', username: targetId, role: 'admin' }); // Mock session for admin view
+            setIsAdmin(true);
+            fetchPrompts(targetId, selectedDifficulty);
+            return;
+        }
+
         const sessionStr = localStorage.getItem('user_session');
         if (!sessionStr) {
             router.push(`/login?target=${targetId}`);
@@ -36,8 +51,6 @@ function LearnContent() {
             return;
         }
         setUserSession(session);
-
-        // 2. Fetch Data
         fetchPrompts(targetId, selectedDifficulty);
     }, [targetId, selectedDifficulty, router]);
 
@@ -60,6 +73,63 @@ function LearnContent() {
         navigator.clipboard.writeText(text);
         setCopiedId(id);
         setTimeout(() => setCopiedId(null), 2000);
+    };
+
+    // Admin Functions
+    const handleAddClick = () => {
+        setEditingPrompt(null);
+        setPromptForm({ title: '', content: '', expected_answer: '' });
+        setIsModalOpen(true);
+    };
+
+    const handleEditClick = (prompt) => {
+        setEditingPrompt(prompt);
+        setPromptForm({
+            title: prompt.title,
+            content: prompt.content,
+            expected_answer: prompt.expected_answer || ''
+        });
+        setIsModalOpen(true);
+    };
+
+    const handleDeleteClick = async (id) => {
+        if (!confirm('정말 삭제하시겠습니까?')) return;
+        const { error } = await supabase.from('prompts').delete().eq('id', id);
+        if (error) alert('삭제 실패: ' + error.message);
+        else fetchPrompts(targetId, selectedDifficulty);
+    };
+
+    const handleFormSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            // Get admin ID
+            const adminSession = JSON.parse(localStorage.getItem('admin_session') || '{}');
+            // Assuming admin table id is needed, but we used a seed script before. 
+            // In a real flow, we might need to fetch the admin's UUID from the accounts table using the username from session
+            // For simplicity, let's fetch the admin account ID first.
+            const { data: adminAccount } = await supabase.from('accounts').select('id').eq('username', 'admin').single();
+
+            const payload = {
+                target_group: targetId,
+                difficulty: selectedDifficulty,
+                title: promptForm.title,
+                content: promptForm.content,
+                expected_answer: promptForm.expected_answer,
+                created_by: adminAccount?.id
+            };
+
+            if (editingPrompt) {
+                const { error } = await supabase.from('prompts').update(payload).eq('id', editingPrompt.id);
+                if (error) throw error;
+            } else {
+                const { error } = await supabase.from('prompts').insert([payload]);
+                if (error) throw error;
+            }
+            setIsModalOpen(false);
+            fetchPrompts(targetId, selectedDifficulty);
+        } catch (error) {
+            alert('저장 실패: ' + error.message);
+        }
     };
 
     // Difficulty Guide Text
@@ -85,13 +155,24 @@ function LearnContent() {
 
     return (
         <div className="centered-container" style={{ maxWidth: '1000px', margin: '0 auto', paddingBottom: '4rem' }}>
-            <div style={{ marginBottom: '3rem' }}>
-                <h1 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '0.5rem' }}>
-                    {userSession.display_name} 학습 과정
-                </h1>
-                <p style={{ color: '#64748b' }}>
-                    난이도를 선택하고 제공되는 프롬프트를 복사하여 실습해보세요.
-                </p>
+            <div style={{ marginBottom: '3rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                <div>
+                    <h1 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '0.5rem' }}>
+                        {userSession.display_name} 학습 과정
+                    </h1>
+                    <p style={{ color: '#64748b' }}>
+                        난이도를 선택하고 제공되는 프롬프트를 복사하여 실습해보세요.
+                    </p>
+                </div>
+                {isAdmin && (
+                    <button
+                        onClick={handleAddClick}
+                        className="btn btn-primary"
+                        style={{ padding: '0.75rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                    >
+                        <Plus size={18} /> 프롬프트 추가
+                    </button>
+                )}
             </div>
 
             {/* Difficulty Tabs */}
@@ -157,6 +238,24 @@ function LearnContent() {
                             <div style={{ padding: '1.5rem' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
                                     <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#1e293b' }}>{prompt.title}</h3>
+                                    {isAdmin && (
+                                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                            <button
+                                                onClick={() => handleEditClick(prompt)}
+                                                style={{ padding: '0.4rem', borderRadius: '4px', border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', color: '#64748b' }}
+                                                title="수정"
+                                            >
+                                                <Pencil size={16} />
+                                            </button>
+                                            <button
+                                                onClick={() => handleDeleteClick(prompt.id)}
+                                                style={{ padding: '0.4rem', borderRadius: '4px', border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', color: '#ef4444' }}
+                                                title="삭제"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div style={{
@@ -228,6 +327,76 @@ function LearnContent() {
                 )}
             </div>
         </div>
+
+            {/* Add/Edit Modal */ }
+    {
+        isModalOpen && (
+            <div className="mobile-overlay" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60 }}>
+                <div style={{ background: 'white', padding: '2rem', borderRadius: '0.5rem', width: '100%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                        <h2 style={{ fontSize: '1.25rem', fontWeight: 700 }}>
+                            {editingPrompt ? '프롬프트 수정' : '새 프롬프트 추가'}
+                        </h2>
+                        <button onClick={() => setIsModalOpen(false)} style={{ border: 'none', background: 'none', cursor: 'pointer' }}><X size={24} /></button>
+                    </div>
+
+                    <form onSubmit={handleFormSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        <div style={{ display: 'flex', gap: '1rem' }}>
+                            <div style={{ flex: 1 }}>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>제목</label>
+                                <input
+                                    type="text"
+                                    value={promptForm.title}
+                                    onChange={e => setPromptForm({ ...promptForm, title: e.target.value })}
+                                    style={{ width: '100%', padding: '0.75rem', border: '1px solid #e2e8f0', borderRadius: '0.5rem' }}
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>난이도</label>
+                                <select
+                                    value={selectedDifficulty}
+                                    disabled
+                                    style={{ width: '100%', padding: '0.75rem', border: '1px solid #e2e8f0', borderRadius: '0.5rem', background: '#f1f5f9' }}
+                                >
+                                    <option value="beginner">초급</option>
+                                    <option value="intermediate">중급</option>
+                                    <option value="advanced">고급</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>프롬프트 내용</label>
+                            <textarea
+                                value={promptForm.content}
+                                onChange={e => setPromptForm({ ...promptForm, content: e.target.value })}
+                                style={{ width: '100%', padding: '0.75rem', border: '1px solid #e2e8f0', borderRadius: '0.5rem', minHeight: '150px' }}
+                                required
+                            />
+                        </div>
+
+                        <div>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>예상 답변 (선택사항)</label>
+                            <textarea
+                                value={promptForm.expected_answer}
+                                onChange={e => setPromptForm({ ...promptForm, expected_answer: e.target.value })}
+                                style={{ width: '100%', padding: '0.75rem', border: '1px solid #e2e8f0', borderRadius: '0.5rem', minHeight: '100px' }}
+                            />
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '1rem' }}>
+                            <button type="button" onClick={() => setIsModalOpen(false)} className="btn" style={{ border: '1px solid #e2e8f0' }}>취소</button>
+                            <button type="submit" className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <Save size={18} /> 저장하기
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        )
+    }
+        </div >
     );
 }
 

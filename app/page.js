@@ -30,7 +30,7 @@ export default function Home() {
 
       <div className="target-grid">
         {targets.map((target) => (
-          <Link href={`/login?target=${target.id}`} key={target.id} style={{ textDecoration: 'none' }}>
+          <div key={target.id} onClick={() => handleTargetClick(target.id)} style={{ textDecoration: 'none', cursor: 'pointer' }}>
             <div className="target-card">
               <div className="target-icon">
                 {target.icon}
