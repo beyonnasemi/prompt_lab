@@ -455,6 +455,58 @@ function LearnContent() {
                     </div>
                 </div>
             )}
+            {/* Bulk Upload Modal */}
+            {isBulkModalOpen && (
+                <div className="mobile-overlay" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60 }}>
+                    <div style={{ background: 'white', padding: '2rem', borderRadius: '0.5rem', width: '100%', maxWidth: '700px', maxHeight: '90vh', overflowY: 'auto' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <h2 style={{ fontSize: '1.25rem', fontWeight: 700 }}>
+                                📂 프롬프트 대량 등록
+                            </h2>
+                            <button onClick={() => setIsBulkModalOpen(false)} style={{ border: 'none', background: 'none', cursor: 'pointer' }}><X size={24} /></button>
+                        </div>
+
+                        <div style={{ marginBottom: '1.5rem' }}>
+                            <p style={{ marginBottom: '0.5rem', fontWeight: 500, color: '#334155' }}>작성 가이드</p>
+                            <div style={{ background: '#f1f5f9', padding: '1rem', borderRadius: '0.5rem', fontSize: '0.9rem', color: '#475569' }}>
+                                <p style={{ marginBottom: '0.5rem' }}>아래와 같은 JSON 배열 형식으로 입력해주세요. <br />(난이도를 생략하면 현재 페이지의 난이도({currentGuide.title})로 자동 설정됩니다.)</p>
+                                <pre style={{ background: '#1e293b', color: '#f8fafc', padding: '1rem', borderRadius: '4px', overflowX: 'auto', fontFamily: 'monospace' }}>
+                                    {`[
+  {
+    "title": "안내 문자 작성하기",
+    "content": "구직자에게 면접 안내 문자를 작성해주세요...",
+    "difficulty": "beginner", 
+    "expected_answer": "안녕하세요, 000님..."
+  },
+  {
+    "title": "두 번째 프롬프트",
+    "content": "...",
+    "difficulty": "intermediate"
+  }
+]`}
+                                </pre>
+                            </div>
+                        </div>
+
+                        <div style={{ marginBottom: '1.5rem' }}>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>JSON 데이터 입력</label>
+                            <textarea
+                                value={bulkJson}
+                                onChange={(e) => setBulkJson(e.target.value)}
+                                placeholder={`[\n  {\n    "title": "예시 프롬프트",\n    "content": "내용...",\n  }\n]`}
+                                style={{ width: '100%', padding: '1rem', border: '1px solid #e2e8f0', borderRadius: '0.5rem', minHeight: '200px', fontFamily: 'monospace', fontSize: '0.9rem' }}
+                            />
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                            <button onClick={() => setIsBulkModalOpen(false)} className="btn" style={{ border: '1px solid #e2e8f0' }}>취소</button>
+                            <button onClick={handleBulkSubmit} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <FileJson size={18} /> 일괄 등록하기
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
