@@ -12,9 +12,9 @@ export default function RootLayout({ children }) {
     <html lang="ko">
       <body>
         <div className="app-container">
+          <AdminHeader />
           <Sidebar />
           <main className="main-content" style={{ position: 'relative' }}>
-            <AdminHeader />
             {children}
           </main>
         </div>
