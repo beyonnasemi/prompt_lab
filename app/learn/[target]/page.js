@@ -489,7 +489,7 @@ function LearnContent() {
             <BulkUploadModal
                 isOpen={isBulkModalOpen}
                 onClose={() => setIsBulkModalOpen(false)}
-                targetId={target}
+                targetId={targetId}
                 currentDifficulty={currentDifficulty}
                 onSuccess={handleBulkSuccess}
             />
