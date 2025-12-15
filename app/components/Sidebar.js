@@ -58,16 +58,16 @@ export default function Sidebar() {
 
   return (
     <>
-      <div className="mobile-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', position: 'relative', paddingRight: '1rem' }}>
+      <div className="mobile-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', position: 'relative', paddingRight: '1.5rem', paddingTop: '0.5rem', paddingBottom: '0.5rem' }}>
         <button className="btn" onClick={toggleSidebar} style={{ position: 'absolute', left: '1rem' }}>
           <Menu size={24} />
         </button>
         <Image
           src="https://img.aicec.kr/web_images/prompt_lab_logo_withoutbg.png"
           alt="Prompt Lab"
-          width={150}
-          height={24}
-          style={{ height: '24px', width: 'auto' }}
+          width={180}
+          height={30}
+          style={{ height: '30px', width: 'auto' }}
           priority
         />
       </div>
