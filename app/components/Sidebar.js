@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+
 import { Menu, X, Layout, Users, BookOpen, Settings, ShieldCheck, LogOut, User } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 
 export default function Sidebar() {
@@ -60,20 +62,27 @@ export default function Sidebar() {
         <button className="btn" onClick={toggleSidebar} style={{ position: 'absolute', left: '1rem' }}>
           <Menu size={24} />
         </button>
-        <img
+        <Image
           src="https://img.aicec.kr/web_images/prompt_lab.png"
           alt="Prompt Lab"
+          width={150}
+          height={24}
           style={{ height: '24px', width: 'auto' }}
+          priority
         />
       </div>
 
       <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
         <div className="logo-container">
           <Link href="/" style={{ cursor: 'pointer' }} onClick={() => setIsOpen(false)}>
-            <img
+            <Image
               src="https://img.aicec.kr/web_images/prompt_lab.png"
               alt="Prompt Lab"
+              width={220}
+              height={35}
               className="logo-img"
+              style={{ width: 'auto', height: 'auto' }}
+              priority
             />
           </Link>
         </div>

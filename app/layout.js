@@ -1,5 +1,4 @@
 import Sidebar from './components/Sidebar';
-import AdminHeader from './components/AdminHeader';
 import AutoLogout from './components/AutoLogout';
 import "./globals.css";
 
@@ -24,7 +23,6 @@ export default function RootLayout({ children }) {
       <body>
         <div className="app-container">
           <AutoLogout />
-          <AdminHeader />
           <Sidebar />
           <main className="main-content" style={{ position: 'relative' }}>
             {children}

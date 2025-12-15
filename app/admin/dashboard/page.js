@@ -38,7 +38,7 @@ export default function AdminDashboard() {
 
     const fetchAccounts = async () => {
         setLoadingAccounts(true);
-        const { data, error } = await supabase.from('accounts').select('*').neq('role', 'admin').order('created_at');
+        const { data, error } = await supabase.from('accounts').select('id, username, created_at, role').neq('role', 'admin').order('created_at');
         if (!error) setAccounts(data || []);
         setLoadingAccounts(false);
     };
