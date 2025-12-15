@@ -1,13 +1,56 @@
 'use client';
 
-import { useState } from 'react';
-import { Menu, X, Layout, Users, BookOpen, Settings } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Menu, X, Layout, Users, BookOpen, Settings, ShieldCheck, LogOut, User } from 'lucide-react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 
 export default function Sidebar() {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
+  const [session, setSession] = useState(null);
+
+  const targetNames = {
+    'business': '비즈니스',
+    'public': '공공기관',
+    'univ': '대학',
+    'elem': '초등학교',
+    'middle': '중학교',
+    'high': '고등학교',
+    'adult': '일반성인',
+  };
+
+  useEffect(() => {
+    const checkSession = () => {
+      const adminSession = localStorage.getItem('admin_session');
+      if (adminSession) {
+        setSession({ type: 'admin', name: '관리자 모드' });
+        return;
+      }
+      const userSessionStr = localStorage.getItem('user_session');
+      if (userSessionStr) {
+        const userSession = JSON.parse(userSessionStr);
+        const displayName = targetNames[userSession.username] || userSession.displayName || '학습자';
+        setSession({ type: 'user', name: displayName });
+        return;
+      }
+      setSession(null);
+    };
+    checkSession();
+  }, [pathname]);
+
+  const handleLogout = () => {
+    if (session?.type === 'admin') {
+      localStorage.removeItem('admin_session');
+      router.push('/admin/login');
+    } else {
+      localStorage.removeItem('user_session');
+      router.push('/');
+    }
+    setSession(null);
+    setIsOpen(false);
+  };
 
   const toggleSidebar = () => setIsOpen(!isOpen);
 
@@ -61,6 +104,31 @@ export default function Sidebar() {
             <span>관리자</span>
           </Link>
         </nav>
+
+        {session && (
+          <div style={{ marginTop: 'auto', paddingTop: '1rem', borderTop: '1px solid #e2e8f0' }}>
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: '0.5rem',
+              padding: '0.75rem 1rem', marginBottom: '0.5rem',
+              background: session.type === 'admin' ? '#fff7ed' : '#eff6ff',
+              color: session.type === 'admin' ? '#c2410c' : '#1d4ed8',
+              borderRadius: '0.5rem', fontSize: '0.9rem', fontWeight: 600
+            }}>
+              {session.type === 'admin' ? <ShieldCheck size={16} /> : <User size={16} />}
+              {session.name}
+            </div>
+            <button
+              onClick={handleLogout}
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', gap: '0.75rem',
+                padding: '0.75rem 1rem', background: 'white', border: '1px solid #e2e8f0',
+                borderRadius: '0.5rem', cursor: 'pointer', color: '#64748b', fontWeight: 500
+              }}
+            >
+              <LogOut size={18} /> 로그아웃
+            </button>
+          </div>
+        )}
       </aside>
 
       {/* Overlay for mobile when sidebar is open */}

@@ -223,7 +223,7 @@ body {
 
 /* Admin Header Base Styles (Desktop) */
 .admin-header {
-  position: fixed;
+  position: absolute;
   top: 0;
   left: 0;
   width: 100%;
@@ -242,17 +242,7 @@ body {
   }
 
   .admin-header {
-    position: relative !important;
-    /* Use relative flow instead of absolute/fixed */
-    margin-top: 3.5rem !important;
-    /* Push down below fixed mobile header */
-    width: 100% !important;
-    padding: 0.5rem 1rem !important;
-    background: var(--background);
-    /* Ensure legibility */
-    z-index: 5 !important;
-    /* Low enough to be covered by sidebar */
-    pointer-events: auto !important;
+    display: none !important;
   }
 
   .admin-header>div {
