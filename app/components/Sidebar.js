@@ -58,7 +58,7 @@ export default function Sidebar() {
 
   return (
     <>
-      <div className="mobile-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+      <div className="mobile-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', position: 'relative', paddingRight: '1rem' }}>
         <button className="btn" onClick={toggleSidebar} style={{ position: 'absolute', left: '1rem' }}>
           <Menu size={24} />
         </button>
