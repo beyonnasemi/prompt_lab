@@ -1,5 +1,6 @@
 import Sidebar from './components/Sidebar';
 import AdminHeader from './components/AdminHeader';
+import AutoLogout from './components/AutoLogout';
 import "./globals.css";
 
 export const metadata = {
@@ -22,6 +23,7 @@ export default function RootLayout({ children }) {
     <html lang="ko">
       <body>
         <div className="app-container">
+          <AutoLogout />
           <AdminHeader />
           <Sidebar />
           <main className="main-content" style={{ position: 'relative' }}>
