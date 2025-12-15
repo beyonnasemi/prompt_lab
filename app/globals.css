@@ -96,6 +96,7 @@ body {
 /* Mobile Responsive */
 @media (max-width: 768px) {
   .sidebar {
+    width: 100%;
     transform: translateX(-100%);
     box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
   }
@@ -234,9 +235,10 @@ body {
 /* Admin Header Responsive */
 @media (max-width: 768px) {
   .sidebar {
+    width: 100%;
     transform: translateX(-100%);
     box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
-    z-index: 200 !important;
+    z-index: 9999 !important;
   }
 
   .admin-header {
@@ -248,7 +250,7 @@ body {
     padding: 0.5rem 1rem !important;
     background: var(--background);
     /* Ensure legibility */
-    z-index: 10 !important;
+    z-index: 5 !important;
     /* Low enough to be covered by sidebar */
     pointer-events: auto !important;
   }
