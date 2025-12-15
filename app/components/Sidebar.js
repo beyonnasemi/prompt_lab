@@ -63,7 +63,7 @@ export default function Sidebar() {
           <Menu size={24} />
         </button>
         <Image
-          src="https://img.aicec.kr/web_images/prompt_lab.png"
+          src="https://img.aicec.kr/web_images/prompt_lab_logo_withoutbg.png"
           alt="Prompt Lab"
           width={150}
           height={24}
@@ -76,7 +76,7 @@ export default function Sidebar() {
         <div className="logo-container">
           <Link href="/" style={{ cursor: 'pointer' }} onClick={() => setIsOpen(false)}>
             <Image
-              src="https://img.aicec.kr/web_images/prompt_lab.png"
+              src="https://img.aicec.kr/web_images/prompt_lab_logo_withoutbg.png"
               alt="Prompt Lab"
               width={220}
               height={35}
