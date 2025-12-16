@@ -60,18 +60,26 @@ export default function AIGenerateModal({ isOpen, onClose, targetId, currentDiff
         }
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (selectedIndices.length === 0) {
             alert("저장할 프롬프트를 최소 1개 이상 선택해주세요.");
             return;
         }
 
-        const promptsToSave = generatedPrompts.filter((_, i) => selectedIndices.includes(i));
-        onSuccess(promptsToSave);
-        onClose();
-        // Reset state after save
-        setGeneratedPrompts([]);
-        setTopic('');
+        setLoading(true); // Show loading state on button
+        try {
+            const promptsToSave = generatedPrompts.filter((_, i) => selectedIndices.includes(i));
+            await onSuccess(promptsToSave); // Wait for parent to save & refresh
+            // Reset state after save
+            setGeneratedPrompts([]);
+            setTopic('');
+            onClose(); // Close only after success
+        } catch (e) {
+            console.error(e);
+            alert("저장 중 오류가 발생했습니다.");
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -142,7 +150,7 @@ export default function AIGenerateModal({ isOpen, onClose, targetId, currentDiff
                                             cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem'
                                         }}
                                     >
-                                        <Bot size={18} /> GPT-3.5
+                                        <Bot size={18} /> GPT-4o
                                     </button>
                                     <button
                                         type="button"
@@ -271,16 +279,17 @@ export default function AIGenerateModal({ isOpen, onClose, targetId, currentDiff
                             </button>
                             <button
                                 onClick={handleSave}
+                                disabled={loading || selectedIndices.length === 0}
                                 className="btn btn-primary"
                                 style={{
                                     display: 'flex', alignItems: 'center', gap: '0.5rem',
-                                    background: '#16a34a', border: 'none',
+                                    background: loading ? '#94a3b8' : '#16a34a', border: 'none',
                                     boxShadow: '0 4px 6px -1px rgba(22, 163, 74, 0.3)',
-                                    opacity: selectedIndices.length === 0 ? 0.5 : 1,
-                                    cursor: selectedIndices.length === 0 ? 'not-allowed' : 'pointer'
+                                    opacity: (loading || selectedIndices.length === 0) ? 0.5 : 1,
+                                    cursor: (loading || selectedIndices.length === 0) ? 'not-allowed' : 'pointer'
                                 }}
                             >
-                                <Save size={18} /> {selectedIndices.length}개 선택 항목 저장하기
+                                {loading ? <><Loader2 className="spin" size={18} /> 저장 중...</> : <><Save size={18} /> {selectedIndices.length}개 선택 항목 저장하기</>}
                             </button>
                         </div>
                     </div>
