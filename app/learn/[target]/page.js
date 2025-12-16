@@ -213,7 +213,14 @@ function LearnContent() {
             if (error) throw error;
 
             successCount = payload.length;
-            alert(`${successCount}개의 프롬프트가 성공적으로 등록되었어요!`);
+            alert(
+                `${successCount}개의 프롬프트가 성공적으로 등록되었어요!\n` +
+                `[디버깅 정보]\n` +
+                `- 타겟: ${targetId}\n` +
+                `- 난이도: ${payload[0].difficulty}\n` +
+                `- 작성자ID: ${account?.id ? '설정됨' : '없음 (NULL)'}\n` +
+                `*이제 목록이 새로고침됩니다.*`
+            );
         } catch (e) {
             console.error(e);
             alert('등록 실패: ' + e.message + '\n\n올바른 JSON 형식인지 확인해주세요.');
