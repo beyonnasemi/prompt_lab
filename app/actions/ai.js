@@ -148,15 +148,16 @@ export async function generatePromptsAction({ model, topic, count, difficulty, t
     // Validate JSON
     try {
       const parsed = JSON.parse(resultText);
-      if (!Array.isArray(parsed)) throw new Error("AI가 배열 형식이 아닌 데이터를 반환했습니다.");
-      return parsed;
+      if (!Array.isArray(parsed)) return { error: "AI가 배열 형식이 아닌 데이터를 반환했습니다." };
+      return parsed; // Return array directly on success
     } catch (e) {
       console.error("JSON Parse Error:", resultText);
-      throw new Error("AI 응답을 JSON으로 변환하는데 실패했습니다. 다시 시도해주세요.");
+      return { error: "AI 응답을 분석할 수 없습니다. 다시 시도해주세요." };
     }
 
   } catch (error) {
     console.error("AI Generation Error:", error);
-    throw new Error(error.message || "프롬프트 생성 중 오류가 발생했습니다.");
+    // Return the specific error message to the client
+    return { error: error.message || "알 수 없는 오류가 발생했습니다." };
   }
 }

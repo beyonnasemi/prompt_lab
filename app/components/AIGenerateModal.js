@@ -43,6 +43,14 @@ export default function AIGenerateModal({ isOpen, onClose, targetId, currentDiff
                 apiKey // Pass the entered key
             });
 
+            if (result && result.error) {
+                // Determine if it looks like an API key error
+                if (result.error.includes("401") || result.error.includes("Key")) {
+                    throw new Error("API 키가 잘못되었습니다. 키를 확인해주세요. (Error: " + result.error + ")");
+                }
+                throw new Error(result.error);
+            }
+
             if (result && Array.isArray(result)) {
                 setGeneratedPrompts(result);
             } else {
