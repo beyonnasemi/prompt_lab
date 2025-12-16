@@ -1,29 +1,17 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { generatePromptsAction } from '@/app/actions/ai';
-import { X, Sparkles, Loader2, Save, RefreshCw, Bot } from 'lucide-react';
-import { API_KEYS } from '@/app/api_keys'; // Import separate keys file
+import { X, Sparkles, Loader2, Save, RefreshCw, Bot, CheckCircle, Circle } from 'lucide-react';
 
 export default function AIGenerateModal({ isOpen, onClose, targetId, currentDifficulty, onSuccess }) {
     const [topic, setTopic] = useState('');
     const [model, setModel] = useState('gpt'); // 'gpt' or 'gemini'
     const [count, setCount] = useState(3);
-
-    // Initialize with the key corresponding to default model (gpt)
-    const [apiKey, setApiKey] = useState(API_KEYS.OPENAI_API_KEY);
-
-    // Update apiKey when model changes, IF the user hasn't manually typed something else
-    useEffect(() => {
-        if (model === 'gpt') {
-            setApiKey(API_KEYS.OPENAI_API_KEY);
-        } else {
-            setApiKey(API_KEYS.GEMINI_API_KEY);
-        }
-    }, [model]);
     const [loading, setLoading] = useState(false);
     const [generatedPrompts, setGeneratedPrompts] = useState([]);
     const [error, setError] = useState('');
+    const [selectedIndices, setSelectedIndices] = useState([]);
 
     if (!isOpen) return null;
 
@@ -32,6 +20,7 @@ export default function AIGenerateModal({ isOpen, onClose, targetId, currentDiff
         setLoading(true);
         setError('');
         setGeneratedPrompts([]);
+        setSelectedIndices([]);
 
         try {
             const result = await generatePromptsAction({
@@ -39,20 +28,20 @@ export default function AIGenerateModal({ isOpen, onClose, targetId, currentDiff
                 topic,
                 count: parseInt(count),
                 difficulty: currentDifficulty,
-                targetGroup: targetId,
-                apiKey // Pass the entered key
+                targetGroup: targetId
             });
 
             if (result && result.error) {
-                // Determine if it looks like an API key error
                 if (result.error.includes("401") || result.error.includes("Key")) {
-                    throw new Error("API 키가 잘못되었습니다. 키를 확인해주세요. (Error: " + result.error + ")");
+                    throw new Error("API 키 오류: Vercel 환경 변수 설정을 확인해주세요.");
                 }
                 throw new Error(result.error);
             }
 
             if (result && Array.isArray(result)) {
                 setGeneratedPrompts(result);
+                // Default: Select all for convenience
+                setSelectedIndices(result.map((_, i) => i));
             } else {
                 throw new Error("AI가 유효한 응답을 주지 않았습니다.");
             }
@@ -63,13 +52,26 @@ export default function AIGenerateModal({ isOpen, onClose, targetId, currentDiff
         }
     };
 
+    const toggleSelection = (index) => {
+        if (selectedIndices.includes(index)) {
+            setSelectedIndices(selectedIndices.filter(i => i !== index));
+        } else {
+            setSelectedIndices([...selectedIndices, index]);
+        }
+    };
+
     const handleSave = () => {
-        // Pass the generated prompts back to the parent to save to DB
-        // The parent will handle the DB insertion to reuse logic if possible, 
-        // or we can invoke a save action here.
-        // Based on previous code in LearnPage, handleBulkSuccess takes an array of prompts.
-        onSuccess(generatedPrompts);
+        if (selectedIndices.length === 0) {
+            alert("저장할 프롬프트를 최소 1개 이상 선택해주세요.");
+            return;
+        }
+
+        const promptsToSave = generatedPrompts.filter((_, i) => selectedIndices.includes(i));
+        onSuccess(promptsToSave);
         onClose();
+        // Reset state after save
+        setGeneratedPrompts([]);
+        setTopic('');
     };
 
     return (
@@ -93,10 +95,10 @@ export default function AIGenerateModal({ isOpen, onClose, targetId, currentDiff
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
                     <div>
                         <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#7c3aed' }}>
-                            <Sparkles size={24} /> AI 프롬프트 자동 생성
+                            <Sparkles size={24} /> AI 프롬프트 자동 생성 (v2)
                         </h2>
                         <p style={{ color: '#64748b' }}>
-                            주제만 입력하면 AI가 교육용 프롬프트를 자동으로 만들어줍니다.
+                            주제만 입력하면 AI가 교육용 프롬프트를 자동으로 설계해드립니다.
                         </p>
                     </div>
                     <button onClick={onClose} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: '0.5rem' }}>
@@ -196,7 +198,7 @@ export default function AIGenerateModal({ isOpen, onClose, targetId, currentDiff
                                     boxShadow: '0 4px 6px -1px rgba(124, 58, 237, 0.3)'
                                 }}
                             >
-                                {loading ? <><Loader2 className="spin" size={20} /> 생성 중...</> : <><Sparkles size={20} /> 프롬프트 생성하기</>}
+                                {loading ? <><Loader2 className="spin" size={20} /> 전문가 모드로 생성 중...</> : <><Sparkles size={20} /> 교육 과정 설계하기</>}
                             </button>
                         </div>
                     </form>
@@ -205,7 +207,7 @@ export default function AIGenerateModal({ isOpen, onClose, targetId, currentDiff
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#1e293b' }}>
-                                ✨ {generatedPrompts.length}개의 프롬프트가 생성되었습니다.
+                                ✨ {generatedPrompts.length}개의 교육용 프롬프트가 준비되었습니다.
                             </h3>
                             <button
                                 onClick={() => setGeneratedPrompts([])}
@@ -221,28 +223,42 @@ export default function AIGenerateModal({ isOpen, onClose, targetId, currentDiff
                         </div>
 
                         <div style={{ maxHeight: '50vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem', paddingRight: '0.5rem' }}>
-                            {generatedPrompts.map((item, idx) => (
-                                <div key={idx} style={{
-                                    background: '#f8fafc',
-                                    border: '1px solid #e2e8f0',
-                                    borderRadius: '0.75rem',
-                                    padding: '1.25rem'
-                                }}>
-                                    <h4 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '0.5rem', color: '#334155' }}>
-                                        {idx + 1}. {item.title}
-                                    </h4>
-                                    <div style={{
-                                        background: 'white', padding: '0.75rem', borderRadius: '0.5rem',
-                                        fontSize: '0.9rem', color: '#475569',
-                                        border: '1px dashed #cbd5e1', marginBottom: '0.75rem'
-                                    }}>
-                                        {item.content}
+                            {generatedPrompts.map((item, idx) => {
+                                const isSelected = selectedIndices.includes(idx);
+                                return (
+                                    <div
+                                        key={idx}
+                                        onClick={() => toggleSelection(idx)}
+                                        style={{
+                                            background: isSelected ? '#f5f3ff' : '#f8fafc',
+                                            border: isSelected ? '2px solid #7c3aed' : '1px solid #e2e8f0',
+                                            borderRadius: '0.75rem',
+                                            padding: '1.25rem',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s',
+                                            position: 'relative'
+                                        }}
+                                    >
+                                        <div style={{ position: 'absolute', top: '1rem', right: '1rem', color: isSelected ? '#7c3aed' : '#cbd5e1' }}>
+                                            {isSelected ? <CheckCircle size={24} fill="white" /> : <Circle size={24} />}
+                                        </div>
+
+                                        <h4 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '0.5rem', color: '#334155', paddingRight: '2rem' }}>
+                                            {idx + 1}. {item.title}
+                                        </h4>
+                                        <div style={{
+                                            background: 'white', padding: '0.75rem', borderRadius: '0.5rem',
+                                            fontSize: '0.9rem', color: '#475569',
+                                            border: '1px dashed #cbd5e1', marginBottom: '0.75rem'
+                                        }}>
+                                            {item.content}
+                                        </div>
+                                        <div style={{ fontSize: '0.85rem', color: '#64748b' }}>
+                                            <strong>예상 답변:</strong> {item.expected_answer?.substring(0, 100)}...
+                                        </div>
                                     </div>
-                                    <div style={{ fontSize: '0.85rem', color: '#64748b' }}>
-                                        <strong>예상 답변:</strong> {item.expected_answer?.substring(0, 100)}...
-                                    </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
 
                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', borderTop: '1px solid #e2e8f0', paddingTop: '1.5rem' }}>
@@ -259,10 +275,12 @@ export default function AIGenerateModal({ isOpen, onClose, targetId, currentDiff
                                 style={{
                                     display: 'flex', alignItems: 'center', gap: '0.5rem',
                                     background: '#16a34a', border: 'none',
-                                    boxShadow: '0 4px 6px -1px rgba(22, 163, 74, 0.3)'
+                                    boxShadow: '0 4px 6px -1px rgba(22, 163, 74, 0.3)',
+                                    opacity: selectedIndices.length === 0 ? 0.5 : 1,
+                                    cursor: selectedIndices.length === 0 ? 'not-allowed' : 'pointer'
                                 }}
                             >
-                                <Save size={18} /> 모두 저장하기
+                                <Save size={18} /> {selectedIndices.length}개 선택 항목 저장하기
                             </button>
                         </div>
                     </div>

@@ -94,6 +94,7 @@ export async function generatePromptsAction({ model, topic, count, difficulty, t
     2. "content": The ACTUAL PROMPT input that the user should copy and paste into ChatGPT/Gemini. 
        - This must be a "Best Practice" prompt.
        - It should likely start with "Act as a..." or specific instructions suitable for the difficulty.
+       - IMPORTANT: The 'content' must be written in KOREAN (use English only for necessary technical terms).
     3. "expected_answer": A concrete example of what the AI would generate from that prompt. Show the user the potential result.
     4. "difficulty": "${currentDifficulty}"
     
