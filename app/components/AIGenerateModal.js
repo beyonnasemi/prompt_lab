@@ -8,6 +8,7 @@ export default function AIGenerateModal({ isOpen, onClose, targetId, currentDiff
     const [topic, setTopic] = useState('');
     const [model, setModel] = useState('gpt'); // 'gpt' or 'gemini'
     const [count, setCount] = useState(3);
+    const [apiKey, setApiKey] = useState(''); // New state for API Key
     const [loading, setLoading] = useState(false);
     const [generatedPrompts, setGeneratedPrompts] = useState([]);
     const [error, setError] = useState('');
@@ -26,7 +27,8 @@ export default function AIGenerateModal({ isOpen, onClose, targetId, currentDiff
                 topic,
                 count: parseInt(count),
                 difficulty: currentDifficulty,
-                targetGroup: targetId
+                targetGroup: targetId,
+                apiKey // Pass the entered key
             });
 
             if (result && Array.isArray(result)) {
@@ -85,6 +87,25 @@ export default function AIGenerateModal({ isOpen, onClose, targetId, currentDiff
                 {generatedPrompts.length === 0 ? (
                     /* INPUT FORM */
                     <form onSubmit={handleGenerate} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+
+                        {/* API KEY INPUT - FOR TESTING WITHOUT ENV VARS */}
+                        <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155', fontSize: '0.9rem' }}>
+                                🔑 {model === 'gpt' ? 'OpenAI' : 'Gemini'} API 키 입력
+                            </label>
+                            <input
+                                type="password"
+                                value={apiKey}
+                                onChange={e => setApiKey(e.target.value)}
+                                placeholder={`여기에 ${model === 'gpt' ? 'sk-...' : 'Gemini API'} 키를 붙여넣으세요`}
+                                style={{ width: '100%', padding: '0.75rem', border: '1px solid #cbd5e1', borderRadius: '0.5rem', fontSize: '0.9rem' }}
+                                required
+                            />
+                            <p style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '0.25rem' }}>
+                                * 입력하신 키는 저장되지 않고 이번 생성에만 사용됩니다.
+                            </p>
+                        </div>
+
                         <div>
                             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#1e293b' }}>
                                 주제 (Topic)
