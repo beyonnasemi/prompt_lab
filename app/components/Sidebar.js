@@ -25,29 +25,39 @@ export default function Sidebar() {
 
   useEffect(() => {
     const checkSession = () => {
-      const adminSession = localStorage.getItem('admin_session');
-      if (adminSession) {
-        setSession({ type: 'admin', name: '관리자 모드' });
-        return;
+      try {
+        const adminSession = localStorage.getItem('admin_session');
+        if (adminSession) {
+          setSession({ type: 'admin', name: '관리자 모드' });
+          return;
+        }
+        const userSessionStr = localStorage.getItem('user_session');
+        if (userSessionStr) {
+          const userSession = JSON.parse(userSessionStr);
+          const displayName = targetNames[userSession.username] || userSession.displayName || '학습자';
+          setSession({ type: 'user', name: displayName });
+          return;
+        }
+        setSession(null);
+      } catch (e) {
+        console.error("Session check error:", e);
+        setSession(null);
       }
-      const userSessionStr = localStorage.getItem('user_session');
-      if (userSessionStr) {
-        const userSession = JSON.parse(userSessionStr);
-        const displayName = targetNames[userSession.username] || userSession.displayName || '학습자';
-        setSession({ type: 'user', name: displayName });
-        return;
-      }
-      setSession(null);
     };
     checkSession();
   }, [pathname]);
 
   const handleLogout = () => {
-    if (session?.type === 'admin') {
-      localStorage.removeItem('admin_session');
-      router.push('/admin/login');
-    } else {
-      localStorage.removeItem('user_session');
+    try {
+      if (session?.type === 'admin') {
+        localStorage.removeItem('admin_session');
+        router.push('/admin/login');
+      } else {
+        localStorage.removeItem('user_session');
+        router.push('/');
+      }
+    } catch (e) {
+      console.error("Logout error:", e);
       router.push('/');
     }
     setSession(null);

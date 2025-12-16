@@ -10,15 +10,19 @@ export default function AutoLogout() {
 
     const handleLogout = useCallback(() => {
         // Check if any session exists before alerting
-        const adminSession = localStorage.getItem('admin_session');
-        const userSession = localStorage.getItem('user_session');
+        try {
+            const adminSession = localStorage.getItem('admin_session');
+            const userSession = localStorage.getItem('user_session');
 
-        if (adminSession || userSession) {
-            localStorage.removeItem('admin_session');
-            localStorage.removeItem('user_session');
-            alert('장시간 미사용으로 인해 자동 로그아웃 되었습니다.');
-            router.push('/');
-            window.location.reload(); // Force refresh to update UI state
+            if (adminSession || userSession) {
+                localStorage.removeItem('admin_session');
+                localStorage.removeItem('user_session');
+                alert('장시간 미사용으로 인해 자동 로그아웃 되었습니다.');
+                router.push('/');
+                window.location.reload(); // Force refresh to update UI state
+            }
+        } catch (e) {
+            console.error("AutoLogout error:", e);
         }
     }, [router]);
 
