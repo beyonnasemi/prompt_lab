@@ -494,7 +494,7 @@ function LearnContent() {
                 isOpen={isBulkModalOpen}
                 onClose={() => setIsBulkModalOpen(false)}
                 targetId={targetId}
-                currentDifficulty={currentDifficulty}
+                currentDifficulty={selectedDifficulty}
                 onSuccess={handleBulkSuccess}
             />
         </div>
