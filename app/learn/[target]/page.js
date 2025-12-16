@@ -188,7 +188,8 @@ function LearnContent() {
 
             const payload = parsedPrompts.map(item => ({
                 target_group: targetId,
-                difficulty: item.difficulty || selectedDifficulty,
+                // Force difficulty to match the current tab so it appears in the list
+                difficulty: selectedDifficulty,
                 title: item.title,
                 content: item.content,
                 expected_answer: item.expected_answer || '',

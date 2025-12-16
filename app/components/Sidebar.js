@@ -104,7 +104,7 @@ export default function Sidebar() {
             onClick={() => setIsOpen(false)}
           >
             <Layout size={20} />
-            <span>메인</span>
+            <span>프롬프트 실습</span>
           </Link>
           <Link
             href="/manual"
