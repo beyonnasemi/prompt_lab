@@ -112,7 +112,16 @@ function LearnContent() {
             .eq('difficulty', difficulty)
             .order('created_at', { ascending: false });
 
-        if (!error) {
+        if (error) {
+            console.error("Fetch Error:", error);
+            alert(`불러오기 실패: ${error.message} (Code: ${error.code})`);
+        } else {
+            console.log("Fetched Data:", data);
+            if (!data || data.length === 0) {
+                // Only alert if we expected to see something (optional, but good for debug)
+                // alert(`데이터가 비어있습니다. (Target: ${target}, Difficulty: ${difficulty})`);
+                console.warn(`데이터가 0건입니다. Target: ${target}, Diff: ${difficulty}`);
+            }
             setPrompts(data || []);
         }
         setLoading(false);
