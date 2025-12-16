@@ -88,7 +88,11 @@ function LearnContent() {
                 router.replace('/');
                 return;
             }
-            setUserSession(session);
+            // Normalize session data to handle both key formats
+            setUserSession({
+                ...session,
+                display_name: session.display_name || session.displayName || '사용자'
+            });
             fetchPrompts(targetId, selectedDifficulty);
         } catch (e) {
             console.error(e);

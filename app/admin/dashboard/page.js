@@ -26,12 +26,17 @@ export default function AdminDashboard() {
 
     useEffect(() => {
         const checkAdmin = () => {
-            const session = localStorage.getItem('admin_session');
-            if (!session) {
+            try {
+                const session = localStorage.getItem('admin_session');
+                if (!session) {
+                    router.push('/admin/login');
+                    return;
+                }
+                fetchAccounts();
+            } catch (e) {
+                console.error("Local storage error:", e);
                 router.push('/admin/login');
-                return;
             }
-            fetchAccounts();
         };
         checkAdmin();
     }, [router]);
@@ -65,11 +70,19 @@ export default function AdminDashboard() {
         const newPassword = prompt("새로운 관리자 비밀번호를 입력하세요:");
         if (!newPassword) return;
 
-        const adminSession = JSON.parse(localStorage.getItem('admin_session'));
-        const { error } = await supabase.from('accounts').update({ password: newPassword }).eq('id', adminSession.id);
+        try {
+            const adminSessionStr = localStorage.getItem('admin_session');
+            if (adminSessionStr) {
+                const adminSession = JSON.parse(adminSessionStr);
+                const { error } = await supabase.from('accounts').update({ password: newPassword }).eq('id', adminSession.id);
 
-        if (error) alert("비밀번호 변경 실패: " + error.message);
-        else alert("관리자 비밀번호가 변경되었습니다. 다음 로그인부터 적용됩니다.");
+                if (error) alert("비밀번호 변경 실패: " + error.message);
+                else alert("관리자 비밀번호가 변경되었습니다. 다음 로그인부터 적용됩니다.");
+            }
+        } catch (e) {
+            console.error("Local storage error:", e);
+            alert("관리자 세션 정보를 불러오는 중 오류가 발생했습니다.");
+        }
     }
 
     return (

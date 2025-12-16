@@ -9,10 +9,14 @@ export default function Home() {
 
   const handleTargetClick = (id) => {
     // If admin is logged in, go directly to learn page
-    const adminSession = localStorage.getItem('admin_session');
-    if (adminSession) {
-      router.push(`/learn/${id}`);
-      return;
+    try {
+      const adminSession = localStorage.getItem('admin_session');
+      if (adminSession) {
+        router.push(`/learn/${id}`);
+        return;
+      }
+    } catch (e) {
+      console.error('Local storage access failed:', e);
     }
     // Otherwise go to login
     router.push(`/login?target=${id}`);
