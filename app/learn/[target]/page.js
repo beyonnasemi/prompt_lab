@@ -6,6 +6,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { generatePromptsAction } from '@/app/actions/ai';
 import BulkUploadModal from '@/app/components/BulkUploadModal';
+import AIGenerateModal from '@/app/components/AIGenerateModal';
 import { Copy, Check, ChevronRight, Plus, Pencil, Trash2, X, Save, ShieldCheck, FileText, Sparkles, Bot, Key, ArrowLeft, Filter, Share2, Edit2, Upload } from 'lucide-react';
 
 const targetNames = {
@@ -52,8 +53,9 @@ function LearnContent() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingPrompt, setEditingPrompt] = useState(null);
     const [promptForm, setPromptForm] = useState({ title: '', content: '', expected_answer: '' });
-    // Bulk Upload State
+    // Bulk Upload & AI State
     const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+    const [isAIModalOpen, setIsAIModalOpen] = useState(false);
 
     const difficulties = [
         { id: 'beginner', label: '초급' },
@@ -230,6 +232,13 @@ function LearnContent() {
                 </div>
                 {isAdmin && (
                     <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <button
+                            onClick={() => setIsAIModalOpen(true)}
+                            className="btn"
+                            style={{ padding: '0.75rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'white', border: '1px solid #7c3aed', color: '#7c3aed', whiteSpace: 'nowrap' }}
+                        >
+                            <Sparkles size={18} /> <span className="mobile-hidden">AI 자동 생성</span>
+                        </button>
                         <button
                             onClick={() => setIsBulkModalOpen(true)}
                             className="btn"
@@ -489,6 +498,14 @@ function LearnContent() {
                     </div>
                 </div>
             )}
+            {/* AI Generate Modal Component */}
+            <AIGenerateModal
+                isOpen={isAIModalOpen}
+                onClose={() => setIsAIModalOpen(false)}
+                targetId={targetId}
+                currentDifficulty={selectedDifficulty}
+                onSuccess={handleBulkSuccess}
+            />
             {/* Bulk Upload Modal Component */}
             <BulkUploadModal
                 isOpen={isBulkModalOpen}
