@@ -1,14 +1,26 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { generatePromptsAction } from '@/app/actions/ai';
 import { X, Sparkles, Loader2, Save, RefreshCw, Bot } from 'lucide-react';
+import { API_KEYS } from '@/app/api_keys'; // Import separate keys file
 
 export default function AIGenerateModal({ isOpen, onClose, targetId, currentDifficulty, onSuccess }) {
     const [topic, setTopic] = useState('');
     const [model, setModel] = useState('gpt'); // 'gpt' or 'gemini'
     const [count, setCount] = useState(3);
-    const [apiKey, setApiKey] = useState(''); // New state for API Key
+
+    // Initialize with the key corresponding to default model (gpt)
+    const [apiKey, setApiKey] = useState(API_KEYS.OPENAI_API_KEY);
+
+    // Update apiKey when model changes, IF the user hasn't manually typed something else
+    useEffect(() => {
+        if (model === 'gpt') {
+            setApiKey(API_KEYS.OPENAI_API_KEY);
+        } else {
+            setApiKey(API_KEYS.GEMINI_API_KEY);
+        }
+    }, [model]);
     const [loading, setLoading] = useState(false);
     const [generatedPrompts, setGeneratedPrompts] = useState([]);
     const [error, setError] = useState('');
