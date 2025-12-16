@@ -8,6 +8,7 @@ export default function AIGenerateModal({ isOpen, onClose, targetId, currentDiff
     const [topic, setTopic] = useState('');
     const [model, setModel] = useState('gpt'); // 'gpt' or 'gemini'
     const [count, setCount] = useState(3);
+    const [difficulty, setDifficulty] = useState(currentDifficulty || 'beginner'); // Add state
     const [loading, setLoading] = useState(false);
     const [generatedPrompts, setGeneratedPrompts] = useState([]);
     const [error, setError] = useState('');
@@ -27,7 +28,7 @@ export default function AIGenerateModal({ isOpen, onClose, targetId, currentDiff
                 model,
                 topic,
                 count: parseInt(count),
-                difficulty: currentDifficulty,
+                difficulty, // Use selected difficulty
                 targetGroup: targetId
             });
 
@@ -182,6 +183,21 @@ export default function AIGenerateModal({ isOpen, onClose, targetId, currentDiff
                                     <option value="5">5개</option>
                                 </select>
                             </div>
+                        </div>
+
+                        <div>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#1e293b' }}>
+                                난이도 (Difficulty)
+                            </label>
+                            <select
+                                value={difficulty}
+                                onChange={e => setDifficulty(e.target.value)}
+                                style={{ width: '100%', padding: '1rem', border: '1px solid #cbd5e1', borderRadius: '0.5rem', background: 'white', fontSize: '1rem' }}
+                            >
+                                <option value="beginner">초급 (Beginner)</option>
+                                <option value="intermediate">중급 (Intermediate)</option>
+                                <option value="advanced">고급 (Advanced)</option>
+                            </select>
                         </div>
 
                         {error && (

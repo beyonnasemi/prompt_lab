@@ -184,16 +184,24 @@ function LearnContent() {
         let failCount = 0;
 
         try {
-            const { data: adminAccount } = await supabase.from('accounts').select('id').eq('username', 'admin').single();
+            // 1. Find the account ID for the creator (current target/user)
+            // Try to find the account matching the current targetId first
+            let { data: account } = await supabase.from('accounts').select('id').eq('username', targetId).single();
+
+            // If not found, try 'admin' as fallback
+            if (!account) {
+                const { data: admin } = await supabase.from('accounts').select('id').eq('username', 'admin').single();
+                account = admin;
+            }
 
             const payload = parsedPrompts.map(item => ({
                 target_group: targetId,
-                // Force difficulty to match the current tab so it appears in the list
-                difficulty: selectedDifficulty,
+                // Use the difficulty from the AI item (which comes from the modal selector now), fallback to tab
+                difficulty: item.difficulty || selectedDifficulty,
                 title: item.title,
                 content: item.content,
                 expected_answer: item.expected_answer || '',
-                created_by: adminAccount?.id
+                created_by: account?.id // Use the found account ID
             }));
 
             // Validate payload
@@ -207,12 +215,16 @@ function LearnContent() {
             successCount = payload.length;
             alert(`${successCount}개의 프롬프트가 성공적으로 등록되었어요!`);
         } catch (e) {
+            console.error(e);
             alert('등록 실패: ' + e.message + '\n\n올바른 JSON 형식인지 확인해주세요.');
-            failCount = parsedPrompts.length; // Assume all failed if an error occurred during insert or validation
+            failCount = parsedPrompts.length;
         } finally {
             setLoading(false);
             setIsBulkModalOpen(false);
-            fetchPrompts(targetId, selectedDifficulty); // Refresh list
+            // Wait a bit for DB propagation then refresh
+            setTimeout(() => {
+                fetchPrompts(targetId, selectedDifficulty);
+            }, 500);
         }
     };
 
