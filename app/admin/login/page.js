@@ -13,9 +13,13 @@ export default function AdminLogin() {
     const [error, setError] = useState('');
 
     useEffect(() => {
-        const session = localStorage.getItem('admin_session');
-        if (session) {
-            router.push('/admin/dashboard');
+        try {
+            const session = localStorage.getItem('admin_session');
+            if (session) {
+                router.push('/admin/dashboard');
+            }
+        } catch (e) {
+            console.error("Session check error:", e);
         }
     }, [router]);
 
@@ -38,11 +42,15 @@ export default function AdminLogin() {
             }
 
             // Save Admin Session
-            localStorage.setItem('admin_session', JSON.stringify({
-                role: data.role,
-                username: data.username,
-                id: data.id
-            }));
+            try {
+                localStorage.setItem('admin_session', JSON.stringify({
+                    role: data.role,
+                    username: data.username,
+                    id: data.id
+                }));
+            } catch (e) {
+                console.error("Local storage save error:", e);
+            }
 
             router.push('/admin/dashboard');
 

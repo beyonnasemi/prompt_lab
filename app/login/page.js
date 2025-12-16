@@ -51,11 +51,16 @@ function LoginForm() {
             }
 
             // Login Success: Save to localStorage for simple session
-            localStorage.setItem('user_session', JSON.stringify({
-                role: data.role,
-                username: data.username,
-                displayName: data.display_name
-            }));
+            try {
+                localStorage.setItem('user_session', JSON.stringify({
+                    role: data.role,
+                    username: data.username,
+                    displayName: data.display_name
+                }));
+            } catch (e) {
+                console.error("Local storage save error:", e);
+                // Can decide to warn user or proceed (session might not persist)
+            }
 
             // Redirect to Learn page
             router.push(`/learn/${targetId}`);

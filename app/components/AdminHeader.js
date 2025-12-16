@@ -21,21 +21,25 @@ export default function SessionHeader() {
 
     useEffect(() => {
         const checkSession = () => {
-            // 1. Check Admin
-            const adminSession = localStorage.getItem('admin_session');
-            if (adminSession) {
-                setSession({ type: 'admin', name: '관리자 모드' });
-                return;
-            }
+            try {
+                // 1. Check Admin
+                const adminSession = localStorage.getItem('admin_session');
+                if (adminSession) {
+                    setSession({ type: 'admin', name: '관리자 모드' });
+                    return;
+                }
 
-            // 2. Check User
-            const userSessionStr = localStorage.getItem('user_session');
-            if (userSessionStr) {
-                const userSession = JSON.parse(userSessionStr);
-                // Map username (target id) to display name if possible, else use provided display name
-                const displayName = targetNames[userSession.username] || userSession.displayName || '학습자';
-                setSession({ type: 'user', name: displayName });
-                return;
+                // 2. Check User
+                const userSessionStr = localStorage.getItem('user_session');
+                if (userSessionStr) {
+                    const userSession = JSON.parse(userSessionStr);
+                    // Map username (target id) to display name if possible, else use provided display name
+                    const displayName = targetNames[userSession.username] || userSession.displayName || '학습자';
+                    setSession({ type: 'user', name: displayName });
+                    return;
+                }
+            } catch (e) {
+                console.error("Session check error:", e);
             }
 
             setSession(null);
@@ -45,11 +49,16 @@ export default function SessionHeader() {
     }, [pathname]);
 
     const handleLogout = () => {
-        if (session?.type === 'admin') {
-            localStorage.removeItem('admin_session');
-            router.push('/admin/login');
-        } else {
-            localStorage.removeItem('user_session');
+        try {
+            if (session?.type === 'admin') {
+                localStorage.removeItem('admin_session');
+                router.push('/admin/login');
+            } else {
+                localStorage.removeItem('user_session');
+                router.push('/');
+            }
+        } catch (e) {
+            console.error("Logout error:", e);
             router.push('/');
         }
         setSession(null);
