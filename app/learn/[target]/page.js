@@ -6,6 +6,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { generatePromptsAction } from '@/app/actions/ai';
 import BulkUploadModal from '@/app/components/BulkUploadModal';
+import AIGenerateModal from '@/app/components/AIGenerateModal';
 import { Copy, Check, ChevronRight, Plus, Pencil, Trash2, X, Save, ShieldCheck, FileText, Sparkles, Bot, Key, ArrowLeft, Filter, Share2, Edit2, Upload } from 'lucide-react';
 
 const targetNames = {
@@ -52,8 +53,9 @@ function LearnContent() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingPrompt, setEditingPrompt] = useState(null);
     const [promptForm, setPromptForm] = useState({ title: '', content: '', expected_answer: '' });
-    // Bulk Upload State
+    // Bulk Upload & AI State
     const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+    const [isAIModalOpen, setIsAIModalOpen] = useState(false);
 
     const difficulties = [
         { id: 'beginner', label: '초급' },
@@ -110,7 +112,16 @@ function LearnContent() {
             .eq('difficulty', difficulty)
             .order('created_at', { ascending: false });
 
-        if (!error) {
+        if (error) {
+            console.error("Fetch Error:", error);
+            alert(`불러오기 실패: ${error.message} (Code: ${error.code})`);
+        } else {
+            console.log("Fetched Data:", data);
+            if (!data || data.length === 0) {
+                // Only alert if we expected to see something (optional, but good for debug)
+                // alert(`데이터가 비어있습니다. (Target: ${target}, Difficulty: ${difficulty})`);
+                console.warn(`데이터가 0건입니다. Target: ${target}, Diff: ${difficulty}`);
+            }
             setPrompts(data || []);
         }
         setLoading(false);
@@ -182,15 +193,24 @@ function LearnContent() {
         let failCount = 0;
 
         try {
-            const { data: adminAccount } = await supabase.from('accounts').select('id').eq('username', 'admin').single();
+            // 1. Find the account ID for the creator (current target/user)
+            // Try to find the account matching the current targetId first
+            let { data: account } = await supabase.from('accounts').select('id').eq('username', targetId).single();
+
+            // If not found, try 'admin' as fallback
+            if (!account) {
+                const { data: admin } = await supabase.from('accounts').select('id').eq('username', 'admin').single();
+                account = admin;
+            }
 
             const payload = parsedPrompts.map(item => ({
                 target_group: targetId,
+                // Use the difficulty from the AI item (which comes from the modal selector now), fallback to tab
                 difficulty: item.difficulty || selectedDifficulty,
                 title: item.title,
                 content: item.content,
                 expected_answer: item.expected_answer || '',
-                created_by: adminAccount?.id
+                created_by: account?.id // Use the found account ID
             }));
 
             // Validate payload
@@ -202,14 +222,25 @@ function LearnContent() {
             if (error) throw error;
 
             successCount = payload.length;
-            alert(`${successCount}개의 프롬프트가 성공적으로 등록되었어요!`);
+            alert(
+                `${successCount}개의 프롬프트가 성공적으로 등록되었어요!\n` +
+                `[디버깅 정보]\n` +
+                `- 타겟: ${targetId}\n` +
+                `- 난이도: ${payload[0].difficulty}\n` +
+                `- 작성자ID: ${account?.id ? '설정됨' : '없음 (NULL)'}\n` +
+                `*이제 목록이 새로고침됩니다.*`
+            );
         } catch (e) {
+            console.error(e);
             alert('등록 실패: ' + e.message + '\n\n올바른 JSON 형식인지 확인해주세요.');
-            failCount = parsedPrompts.length; // Assume all failed if an error occurred during insert or validation
+            failCount = parsedPrompts.length;
         } finally {
             setLoading(false);
             setIsBulkModalOpen(false);
-            fetchPrompts(targetId, selectedDifficulty); // Refresh list
+            // Wait a bit for DB propagation then refresh
+            setTimeout(() => {
+                fetchPrompts(targetId, selectedDifficulty);
+            }, 500);
         }
     };
 
@@ -230,6 +261,13 @@ function LearnContent() {
                 </div>
                 {isAdmin && (
                     <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <button
+                            onClick={() => setIsAIModalOpen(true)}
+                            className="btn"
+                            style={{ padding: '0.75rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'white', border: '1px solid #7c3aed', color: '#7c3aed', whiteSpace: 'nowrap' }}
+                        >
+                            <Sparkles size={18} /> <span className="mobile-hidden">AI 자동 생성</span>
+                        </button>
                         <button
                             onClick={() => setIsBulkModalOpen(true)}
                             className="btn"
@@ -489,6 +527,14 @@ function LearnContent() {
                     </div>
                 </div>
             )}
+            {/* AI Generate Modal Component */}
+            <AIGenerateModal
+                isOpen={isAIModalOpen}
+                onClose={() => setIsAIModalOpen(false)}
+                targetId={targetId}
+                currentDifficulty={selectedDifficulty}
+                onSuccess={handleBulkSuccess}
+            />
             {/* Bulk Upload Modal Component */}
             <BulkUploadModal
                 isOpen={isBulkModalOpen}
