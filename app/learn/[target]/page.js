@@ -107,7 +107,7 @@ function LearnContent() {
         setLoading(true);
         const { data, error } = await supabase
             .from('prompts')
-            .select('id, title, content, expected_answer, difficulty, created_by, view_count, created_at')
+            .select('id, title, content, expected_answer, difficulty, created_by, created_at')
             .eq('target_group', target)
             .eq('difficulty', difficulty)
             .order('created_at', { ascending: false });
