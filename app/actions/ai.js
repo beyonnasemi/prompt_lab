@@ -119,7 +119,7 @@ export async function generatePromptsAction({ model, topic, count, difficulty, t
 
       const client = new OpenAI({ apiKey: key });
       const response = await client.chat.completions.create({
-        model: "gpt-4o",
+        model: "gpt-4o-mini",
         messages: [
           { role: "system", content: "You are a helpful assistant that outputs only valid JSON strings." },
           { role: "user", content: systemPrompt }
