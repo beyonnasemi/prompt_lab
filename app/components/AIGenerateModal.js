@@ -151,7 +151,7 @@ export default function AIGenerateModal({ isOpen, onClose, targetId, currentDiff
                                             cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem'
                                         }}
                                     >
-                                        <Bot size={18} /> GPT-4o
+                                        <Bot size={18} /> GPT-4o mini
                                     </button>
                                     <button
                                         type="button"
