@@ -3,11 +3,11 @@ import AutoLogout from './components/AutoLogout';
 import "./globals.css";
 
 export const metadata = {
-  title: "Prompt Lab",
+  title: "AICEA Prompt Lab",
   description: "Generative AI Education Platform",
   icons: [
-    { rel: 'icon', url: 'https://img.aicec.kr/web_images/logo_aicea.png?v=3' },
-    { rel: 'apple-touch-icon', url: 'https://img.aicec.kr/web_images/logo_aicea.png?v=3' },
+    { rel: 'icon', url: '/favicon.png' },
+    { rel: 'apple-touch-icon', url: '/favicon.png' },
   ],
 };
 
