@@ -6,6 +6,7 @@ import { getLinksAction, saveLinkAction, deleteLinkAction } from '@/app/actions/
 import Image from 'next/image';
 
 const ICON_OPTIONS = [
+    { key: 'auto', label: '자동 (사이트 파비콘)' },
     { key: 'default', label: '기본 (Globe)' },
     { key: 'chatgpt', label: 'ChatGPT' },
     { key: 'gemini', label: 'Gemini' },
@@ -19,7 +20,7 @@ export default function LinkManagerModal({ isOpen, onClose, onUpdate }) {
     const [links, setLinks] = useState([]);
     const [loading, setLoading] = useState(false);
     const [editingId, setEditingId] = useState(null);
-    const [formData, setFormData] = useState({ title: '', url: '', icon_key: 'default', sort_order: 0 });
+    const [formData, setFormData] = useState({ title: '', url: '', icon_key: 'auto', sort_order: 0 });
 
     useEffect(() => {
         if (isOpen) {
@@ -41,7 +42,7 @@ export default function LinkManagerModal({ isOpen, onClose, onUpdate }) {
 
     const handleCancelEdit = () => {
         setEditingId(null);
-        setFormData({ title: '', url: '', icon_key: 'default', sort_order: links.length + 1 });
+        setFormData({ title: '', url: '', icon_key: 'auto', sort_order: links.length + 1 });
     };
 
     const handleDelete = async (id) => {

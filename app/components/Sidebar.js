@@ -152,12 +152,24 @@ export default function Sidebar() {
             links.map(link => {
               // Icon Mapping
               let iconSrc = '/globe.svg';
+              let isAuto = false;
+
               if (link.icon_key === 'chatgpt') iconSrc = '/icons/chatgpt.svg';
               else if (link.icon_key === 'gemini') iconSrc = '/icons/gemini.svg';
               else if (link.icon_key === 'claude') iconSrc = '/icons/claude.svg';
               else if (link.icon_key === 'perplexity') iconSrc = '/icons/perplexity.svg';
               else if (link.icon_key === 'aistudio') iconSrc = '/icons/gemini.svg';
               else if (link.icon_key === 'antigravity') iconSrc = '/favicon.png';
+              else if (link.icon_key === 'auto' || (!link.icon_key && link.url)) {
+                // Use Google S2 Favicon service
+                try {
+                  const domain = new URL(link.url).hostname;
+                  iconSrc = `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
+                  isAuto = true;
+                } catch (e) {
+                  iconSrc = '/globe.svg';
+                }
+              }
 
               return (
                 <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer" className="nav-item" onClick={() => setIsOpen(false)}>
@@ -166,7 +178,7 @@ export default function Sidebar() {
                     alt={link.title}
                     width={16}
                     height={16}
-                    style={{ opacity: link.icon_key === 'default' ? 0.6 : 1, objectFit: 'contain' }}
+                    style={{ opacity: (link.icon_key === 'default' && !isAuto) ? 0.6 : 1, objectFit: 'contain' }}
                   />
                   <span style={{ fontSize: '0.9rem' }}>{link.title}</span>
                 </a>
