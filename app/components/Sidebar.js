@@ -124,6 +124,36 @@ export default function Sidebar() {
           </Link>
         </nav>
 
+        <div style={{ padding: '0 1rem', marginTop: '2rem', marginBottom: '0.5rem', fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          Useful Links
+        </div>
+        <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+          <a href="https://chat.openai.com" target="_blank" rel="noopener noreferrer" className="nav-item" onClick={() => setIsOpen(false)}>
+            <Image src="/globe.svg" alt="web" width={16} height={16} style={{ opacity: 0.6 }} />
+            <span style={{ fontSize: '0.9rem' }}>ChatGPT</span>
+          </a>
+          <a href="https://gemini.google.com" target="_blank" rel="noopener noreferrer" className="nav-item" onClick={() => setIsOpen(false)}>
+            <Image src="/globe.svg" alt="web" width={16} height={16} style={{ opacity: 0.6 }} />
+            <span style={{ fontSize: '0.9rem' }}>Gemini</span>
+          </a>
+          <a href="https://claude.ai" target="_blank" rel="noopener noreferrer" className="nav-item" onClick={() => setIsOpen(false)}>
+            <Image src="/globe.svg" alt="web" width={16} height={16} style={{ opacity: 0.6 }} />
+            <span style={{ fontSize: '0.9rem' }}>Claude</span>
+          </a>
+          <a href="https://www.perplexity.ai" target="_blank" rel="noopener noreferrer" className="nav-item" onClick={() => setIsOpen(false)}>
+            <Image src="/globe.svg" alt="web" width={16} height={16} style={{ opacity: 0.6 }} />
+            <span style={{ fontSize: '0.9rem' }}>Perplexity</span>
+          </a>
+          <a href="https://aistudio.google.com" target="_blank" rel="noopener noreferrer" className="nav-item" onClick={() => setIsOpen(false)}>
+            <Image src="/globe.svg" alt="web" width={16} height={16} style={{ opacity: 0.6 }} />
+            <span style={{ fontSize: '0.9rem' }}>AI Studio</span>
+          </a>
+          <a href="https://antigravity.kr" target="_blank" rel="noopener noreferrer" className="nav-item" onClick={() => setIsOpen(false)}>
+            <Image src="/globe.svg" alt="web" width={16} height={16} style={{ opacity: 0.6 }} />
+            <span style={{ fontSize: '0.9rem' }}>Antigravity</span>
+          </a>
+        </nav>
+
         {session && (
           <div style={{ marginTop: 'auto', paddingTop: '1rem', borderTop: '1px solid #e2e8f0' }}>
             <div style={{

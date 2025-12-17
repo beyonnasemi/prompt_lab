@@ -85,7 +85,7 @@ export async function generatePromptsAction({ model, topic, count, difficulty, t
     [Difficulty: ${currentDifficulty}]
     ${currentDifficulty === 'beginner' ? '- Focus on simple, direct instructions.' : ''}
     ${currentDifficulty === 'intermediate' ? '- Focus on assigning Roles (Persona) and Context.' : ''}
-    ${currentDifficulty === 'advanced' ? '- Focus on complex constraints, output formats, and few-shot examples.' : ''}
+    ${currentDifficulty === 'advanced' ? '- CRITICAL for Advanced: Generate LONG, DETAILED prompts (10-15+ lines). You MUST include [Context], [Role], [Detailed Constraints], [Output Format], and [Few-Shot Example]. Make it complex.' : ''}
     
     [Output Structure]
     Return ONLY a valid JSON array of objects.

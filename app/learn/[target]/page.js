@@ -52,7 +52,7 @@ function LearnContent() {
     const [isAdmin, setIsAdmin] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingPrompt, setEditingPrompt] = useState(null);
-    const [promptForm, setPromptForm] = useState({ title: '', content: '', expected_answer: '' });
+    const [promptForm, setPromptForm] = useState({ title: '', content: '', expected_answer: '', file: null });
     // Bulk Upload & AI State
     const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
     const [isAIModalOpen, setIsAIModalOpen] = useState(false);
@@ -107,7 +107,7 @@ function LearnContent() {
         setLoading(true);
         const { data, error } = await supabase
             .from('prompts')
-            .select('id, title, content, expected_answer, difficulty, created_by, created_at')
+            .select('id, title, content, expected_answer, difficulty, created_by, attachment_url, created_at')
             .eq('target_group', target)
             .eq('difficulty', difficulty)
             .order('created_at', { ascending: false });
@@ -136,7 +136,7 @@ function LearnContent() {
     // Admin Functions
     const handleAddClick = () => {
         setEditingPrompt(null);
-        setPromptForm({ title: '', content: '', expected_answer: '' });
+        setPromptForm({ title: '', content: '', expected_answer: '', file: null });
         setIsModalOpen(true);
     };
 
@@ -145,7 +145,8 @@ function LearnContent() {
         setPromptForm({
             title: prompt.title,
             content: prompt.content,
-            expected_answer: prompt.expected_answer || ''
+            expected_answer: prompt.expected_answer || '',
+            file: null // Edit file upload not fully supported yet efficiently, simplistic reset
         });
         setIsModalOpen(true);
     };
@@ -172,6 +173,21 @@ function LearnContent() {
                 expected_answer: promptForm.expected_answer,
                 created_by: adminAccount?.id
             };
+
+            // File Upload Logic
+            if (promptForm.file) {
+                const fileExt = promptForm.file.name.split('.').pop();
+                const fileName = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
+                const { data: uploadData, error: uploadError } = await supabase.storage
+                    .from('prompt-files')
+                    .upload(fileName, promptForm.file);
+
+                if (uploadError) throw uploadError;
+
+                // Get Public URL
+                const { data: { publicUrl } } = supabase.storage.from('prompt-files').getPublicUrl(fileName);
+                payload.attachment_url = publicUrl;
+            }
 
             if (editingPrompt) {
                 const { error } = await supabase.from('prompts').update(payload).eq('id', editingPrompt.id);
@@ -399,6 +415,26 @@ function LearnContent() {
                                         {copiedId === prompt.id ? <Check size={16} /> : <Copy size={16} />}
                                         {copiedId === prompt.id ? '복사됨!' : '프롬프트 복사'}
                                     </button>
+                                    {prompt.attachment_url && (
+                                        <a
+                                            href={prompt.attachment_url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="btn"
+                                            style={{
+                                                fontSize: '0.9rem',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '0.5rem',
+                                                border: '1px solid #cbd5e1',
+                                                color: '#2563eb',
+                                                marginLeft: '0.5rem',
+                                                textDecoration: 'none'
+                                            }}
+                                        >
+                                            <Upload size={16} style={{ transform: 'rotate(180deg)' }} /> 자료 다운로드
+                                        </a>
+                                    )}
                                 </div>
                             </div>
 
@@ -514,6 +550,15 @@ function LearnContent() {
                                     value={promptForm.expected_answer}
                                     onChange={e => setPromptForm({ ...promptForm, expected_answer: e.target.value })}
                                     style={{ width: '100%', padding: '0.75rem', border: '1px solid #e2e8f0', borderRadius: '0.5rem', minHeight: '100px' }}
+                                />
+                            </div>
+
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>첨부 파일 (선택사항)</label>
+                                <input
+                                    type="file"
+                                    onChange={e => setPromptForm({ ...promptForm, file: e.target.files[0] })}
+                                    style={{ width: '100%', padding: '0.5rem', border: '1px solid #e2e8f0', borderRadius: '0.5rem' }}
                                 />
                             </div>
 
