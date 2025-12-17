@@ -6,12 +6,16 @@ import { Menu, X, Layout, Users, BookOpen, Settings, ShieldCheck, LogOut, User }
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
+import LinkManagerModal from '@/app/components/LinkManagerModal';
+import { getLinksAction } from '@/app/actions/linkActions';
 
 export default function Sidebar() {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   const [session, setSession] = useState(null);
+  const [links, setLinks] = useState([]);
+  const [isLinkManagerOpen, setIsLinkManagerOpen] = useState(false);
 
   const targetNames = {
     'business': '비즈니스',
@@ -45,7 +49,12 @@ export default function Sidebar() {
       }
     };
     checkSession();
+
   }, [pathname]);
+
+  useEffect(() => {
+    getLinksAction().then(setLinks);
+  }, []);
 
   const handleLogout = () => {
     try {
@@ -124,35 +133,57 @@ export default function Sidebar() {
           </Link>
         </nav>
 
-        <div style={{ padding: '0 1rem', marginTop: '2rem', marginBottom: '0.5rem', fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-          Useful Links
+        <div style={{ padding: '0 1rem', marginTop: '2rem', marginBottom: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            Useful Links
+          </span>
+          {session && session.type === 'admin' && (
+            <button
+              onClick={() => setIsLinkManagerOpen(true)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: 0 }}
+              title="링크 관리"
+            >
+              <Settings size={14} />
+            </button>
+          )}
         </div>
         <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-          <a href="https://chat.openai.com" target="_blank" rel="noopener noreferrer" className="nav-item" onClick={() => setIsOpen(false)}>
-            <Image src="/globe.svg" alt="web" width={16} height={16} style={{ opacity: 0.6 }} />
-            <span style={{ fontSize: '0.9rem' }}>ChatGPT</span>
-          </a>
-          <a href="https://gemini.google.com" target="_blank" rel="noopener noreferrer" className="nav-item" onClick={() => setIsOpen(false)}>
-            <Image src="/globe.svg" alt="web" width={16} height={16} style={{ opacity: 0.6 }} />
-            <span style={{ fontSize: '0.9rem' }}>Gemini</span>
-          </a>
-          <a href="https://claude.ai" target="_blank" rel="noopener noreferrer" className="nav-item" onClick={() => setIsOpen(false)}>
-            <Image src="/globe.svg" alt="web" width={16} height={16} style={{ opacity: 0.6 }} />
-            <span style={{ fontSize: '0.9rem' }}>Claude</span>
-          </a>
-          <a href="https://www.perplexity.ai" target="_blank" rel="noopener noreferrer" className="nav-item" onClick={() => setIsOpen(false)}>
-            <Image src="/globe.svg" alt="web" width={16} height={16} style={{ opacity: 0.6 }} />
-            <span style={{ fontSize: '0.9rem' }}>Perplexity</span>
-          </a>
-          <a href="https://aistudio.google.com" target="_blank" rel="noopener noreferrer" className="nav-item" onClick={() => setIsOpen(false)}>
-            <Image src="/globe.svg" alt="web" width={16} height={16} style={{ opacity: 0.6 }} />
-            <span style={{ fontSize: '0.9rem' }}>AI Studio</span>
-          </a>
-          <a href="https://antigravity.kr" target="_blank" rel="noopener noreferrer" className="nav-item" onClick={() => setIsOpen(false)}>
-            <Image src="/globe.svg" alt="web" width={16} height={16} style={{ opacity: 0.6 }} />
-            <span style={{ fontSize: '0.9rem' }}>Antigravity</span>
-          </a>
+          {links.length > 0 ? (
+            links.map(link => {
+              // Icon Mapping
+              let iconSrc = '/globe.svg';
+              if (link.icon_key === 'chatgpt') iconSrc = '/icons/chatgpt.svg';
+              else if (link.icon_key === 'gemini') iconSrc = '/icons/gemini.svg';
+              else if (link.icon_key === 'claude') iconSrc = '/icons/claude.svg';
+              else if (link.icon_key === 'perplexity') iconSrc = '/icons/perplexity.svg';
+              else if (link.icon_key === 'aistudio') iconSrc = '/icons/gemini.svg';
+              else if (link.icon_key === 'antigravity') iconSrc = '/favicon.png';
+
+              return (
+                <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer" className="nav-item" onClick={() => setIsOpen(false)}>
+                  <Image
+                    src={iconSrc}
+                    alt={link.title}
+                    width={16}
+                    height={16}
+                    style={{ opacity: link.icon_key === 'default' ? 0.6 : 1, objectFit: 'contain' }}
+                  />
+                  <span style={{ fontSize: '0.9rem' }}>{link.title}</span>
+                </a>
+              );
+            })
+          ) : (
+            <div style={{ padding: '0 1rem', fontSize: '0.8rem', color: '#cbd5e1' }}>등록된 링크가 없습니다.</div>
+          )}
         </nav>
+
+        <LinkManagerModal
+          isOpen={isLinkManagerOpen}
+          onClose={() => setIsLinkManagerOpen(false)}
+          onUpdate={() => {
+            getLinksAction().then(setLinks);
+          }}
+        />
 
         {session && (
           <div style={{ marginTop: 'auto', paddingTop: '1rem', borderTop: '1px solid #e2e8f0' }}>
