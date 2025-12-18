@@ -1,8 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-
-import { Menu, X, Layout, Users, BookOpen, Settings, ShieldCheck, LogOut, User } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
@@ -78,8 +76,8 @@ export default function Sidebar() {
   return (
     <>
       <div className="mobile-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', position: 'relative', paddingRight: '1.5rem', paddingTop: '0.5rem', paddingBottom: '0.5rem' }}>
-        <button className="btn" onClick={toggleSidebar} style={{ position: 'absolute', left: '1rem' }}>
-          <Menu size={24} />
+        <button className="btn" onClick={toggleSidebar} style={{ position: 'absolute', left: '1rem', border: 'none', background: 'none', fontSize: '1.5rem', cursor: 'pointer' }}>
+          ☰
         </button>
         <Image
           src="https://img.aicec.kr/web_images/prompt_lab_logo_withoutbg.png"
@@ -112,7 +110,7 @@ export default function Sidebar() {
             className={`nav-item ${pathname === '/' ? 'active' : ''}`}
             onClick={() => setIsOpen(false)}
           >
-            <Layout size={20} />
+            <span style={{ fontSize: '1.2rem' }}>🏠</span>
             <span>프롬프트 실습</span>
           </Link>
           <Link
@@ -120,7 +118,7 @@ export default function Sidebar() {
             className={`nav-item ${pathname === '/manual' ? 'active' : ''}`}
             onClick={() => setIsOpen(false)}
           >
-            <BookOpen size={20} />
+            <span style={{ fontSize: '1.2rem' }}>📖</span>
             <span>사용 가이드</span>
           </Link>
           <Link
@@ -128,7 +126,7 @@ export default function Sidebar() {
             className={`nav-item ${pathname.includes('/admin') ? 'active' : ''}`}
             onClick={() => setIsOpen(false)}
           >
-            <Settings size={20} />
+            <span style={{ fontSize: '1.2rem' }}>⚙️</span>
             <span>관리자</span>
           </Link>
         </nav>
@@ -143,7 +141,7 @@ export default function Sidebar() {
               style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: 0 }}
               title="링크 관리"
             >
-              <Settings size={14} />
+              ⚙️
             </button>
           )}
         </div>
@@ -206,7 +204,7 @@ export default function Sidebar() {
               color: session.type === 'admin' ? '#c2410c' : '#1d4ed8',
               borderRadius: '0.5rem', fontSize: '0.9rem', fontWeight: 600
             }}>
-              {session.type === 'admin' ? <ShieldCheck size={16} /> : <User size={16} />}
+              {session.type === 'admin' ? <span>🛡️</span> : <span>👤</span>}
               {session.name}
             </div>
             <button
@@ -217,7 +215,7 @@ export default function Sidebar() {
                 borderRadius: '0.5rem', cursor: 'pointer', color: '#64748b', fontWeight: 500
               }}
             >
-              <LogOut size={18} /> 로그아웃
+              <span>🚪</span> 로그아웃
             </button>
           </div>
         )}

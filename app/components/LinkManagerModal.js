@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Save, Trash2, Plus, GripVertical, Globe } from 'lucide-react';
 import { getLinksAction, saveLinkAction, deleteLinkAction } from '@/app/actions/linkActions';
 import Image from 'next/image';
 
@@ -71,7 +70,7 @@ export default function LinkManagerModal({ isOpen, onClose, onUpdate }) {
             }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
                     <h2 style={{ fontSize: '1.25rem', fontWeight: 700 }}>유용한 링크 관리</h2>
-                    <button onClick={onClose}><X size={24} /></button>
+                    <button onClick={onClose} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: '1.2rem' }}>✖</button>
                 </div>
 
                 {/* Form */}
@@ -99,9 +98,9 @@ export default function LinkManagerModal({ isOpen, onClose, onUpdate }) {
                         />
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-                        {editingId && <button type="button" onClick={handleCancelEdit} className="btn">취소</button>}
+                        {editingId && <button type="button" onClick={handleCancelEdit} className="btn" style={{ background: 'none', border: '1px solid #e2e8f0' }}>취소</button>}
                         <button type="submit" className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                            <Save size={16} /> {editingId ? '수정 저장' : '추가하기'}
+                            <span>💾</span> {editingId ? '수정 저장' : '추가하기'}
                         </button>
                     </div>
                 </form>
@@ -114,13 +113,12 @@ export default function LinkManagerModal({ isOpen, onClose, onUpdate }) {
                             padding: '0.75rem', border: '1px solid #e2e8f0', borderRadius: '0.5rem', background: 'white'
                         }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                <span style={{ color: '#cbd5e1' }}><GripVertical size={16} /></span>
+                                <span style={{ color: '#cbd5e1' }}>⋮⋮</span>
                                 <div style={{ width: 24, height: 24, background: '#f1f5f9', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                     {/* Icon Preview */}
-                                    {(!link.icon_key || link.icon_key === 'default' || link.icon_key === 'auto') ? <Globe size={14} /> :
-                                        <div style={{ width: '100%', height: '100%', position: 'relative' }}>
-                                            {/* If we had Image here it would go here, but for now just show Globe or Letter if key is simple */}
-                                            <Globe size={14} />
+                                    {(!link.icon_key || link.icon_key === 'default' || link.icon_key === 'auto') ? <span>🌐</span> :
+                                        <div style={{ width: '100%', height: '100%', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            <span>🌐</span>
                                         </div>}
                                 </div>
                                 <div>
@@ -129,8 +127,8 @@ export default function LinkManagerModal({ isOpen, onClose, onUpdate }) {
                                 </div>
                             </div>
                             <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                <button onClick={() => handleEdit(link)} style={{ padding: '0.25rem', color: '#64748b' }}>수정</button>
-                                <button onClick={() => handleDelete(link.id)} style={{ padding: '0.25rem', color: '#ef4444' }}>삭제</button>
+                                <button onClick={() => handleEdit(link)} style={{ padding: '0.25rem', color: '#64748b', border: 'none', background: 'none', cursor: 'pointer' }}>✏️</button>
+                                <button onClick={() => handleDelete(link.id)} style={{ padding: '0.25rem', color: '#ef4444', border: 'none', background: 'none', cursor: 'pointer' }}>🗑️</button>
                             </div>
                         </div>
                     ))}

@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { X, Copy, Check, Upload, Pencil, Trash2, Calendar, User, AlignLeft } from 'lucide-react';
 
 export default function PromptDetailPanel({ prompt, isAdmin, onEdit, onDelete, onClose }) {
     const [copiedId, setCopiedId] = useState(null);
@@ -46,8 +45,8 @@ export default function PromptDetailPanel({ prompt, isAdmin, onEdit, onDelete, o
                         <span>⬅️</span> 목록으로
                     </button>
 
-                    <button onClick={onClose} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: '0.5rem', color: '#94a3b8' }} title="닫기">
-                        <X size={24} />
+                    <button onClick={onClose} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: '0.5rem', color: '#94a3b8', fontSize: '1.2rem' }} title="닫기">
+                        ✖
                     </button>
                 </div>
 
@@ -65,11 +64,11 @@ export default function PromptDetailPanel({ prompt, isAdmin, onEdit, onDelete, o
                             {prompt.difficulty === 'beginner' ? '초급' : prompt.difficulty === 'intermediate' ? '중급' : '고급'}
                         </span>
                         <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                            <Calendar size={14} /> {new Date(prompt.created_at).toLocaleDateString()}
+                            <span>📅</span> {new Date(prompt.created_at).toLocaleDateString()}
                         </span>
                         {prompt.accounts?.display_name && (
                             <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                                <User size={14} /> {prompt.accounts.display_name}
+                                <span>👤</span> {prompt.accounts.display_name}
                             </span>
                         )}
                     </div>
@@ -99,7 +98,7 @@ export default function PromptDetailPanel({ prompt, isAdmin, onEdit, onDelete, o
                                 background: 'white'
                             }}
                         >
-                            {copiedId === prompt.id ? <Check size={14} /> : <Copy size={14} />}
+                            {copiedId === prompt.id ? <span>✅</span> : <span>📋</span>}
                             {copiedId === prompt.id ? '복사됨' : '복사하기'}
                         </button>
                     </div>
@@ -163,7 +162,7 @@ export default function PromptDetailPanel({ prompt, isAdmin, onEdit, onDelete, o
                                 fontWeight: 500
                             }}
                         >
-                            <Upload size={18} style={{ transform: 'rotate(180deg)' }} />자료 다운로드
+                            <span>📥</span> 자료 다운로드
                         </a>
                     </div>
                 )}
@@ -193,7 +192,7 @@ export default function PromptDetailPanel({ prompt, isAdmin, onEdit, onDelete, o
                                 fontSize: '0.9rem'
                             }}
                         >
-                            <Pencil size={16} /> 수정
+                            <span>✏️</span> 수정
                         </button>
                         <button
                             onClick={() => {
@@ -214,7 +213,7 @@ export default function PromptDetailPanel({ prompt, isAdmin, onEdit, onDelete, o
                                 fontSize: '0.9rem'
                             }}
                         >
-                            <Trash2 size={16} /> 삭제
+                            <span>🗑️</span> 삭제
                         </button>
                     </div>
                 )}
