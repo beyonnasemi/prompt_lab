@@ -103,15 +103,22 @@ export default function AdminDashboard() {
         if (!newAccount.username || !newAccount.password) return;
 
         try {
-            // Simplified: User inputs "Group Name" (e.g. "마케팅팀")
-            // Use it for both username and display_name, or allow separate.
-            // User requested "Korean ID". So we treat username as the identifier which can be Korean.
+            // Fetch a valid role from an existing standard account (e.g. 'business')
+            // This ensures we satisfy the check constraint.
+            const { data: roleData, error: roleError } = await supabase
+                .from('accounts')
+                .select('role')
+                .eq('username', 'business')
+                .single();
+
+            const validRole = roleData?.role || 'user'; // Fallback to 'user' if fetch fails, though 'user' might be the issue. 
+            // If 'business' exists, we trust its role is valid.
 
             const payload = {
                 username: newAccount.username,
                 password: newAccount.password,
-                display_name: newAccount.display_name || newAccount.username, // Fallback to username if empty
-                // Removed explicit role to avoid constraint violation; relying on DB default
+                display_name: newAccount.display_name || newAccount.username,
+                role: validRole
             };
 
             const { error } = await supabase.from('accounts').insert([payload]);

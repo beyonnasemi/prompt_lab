@@ -66,9 +66,9 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
     const handleFileChange = (e) => {
         if (e.target.files && e.target.files[0]) {
             const selectedFile = e.target.files[0];
-            // 5MB Limit
-            if (selectedFile.size > 5 * 1024 * 1024) {
-                alert("이미지 용량이 너무 큽니다. (5MB 제한)\n더 작은 이미지를 선택해주세요.");
+            // 3MB Limit (Lowered to be safe against server limits)
+            if (selectedFile.size > 3 * 1024 * 1024) {
+                alert("이미지 용량이 너무 큽니다. (3MB 제한)\n더 작은 이미지를 선택해주세요.");
                 e.target.value = ''; // Reset input
                 setFile(null);
                 return;

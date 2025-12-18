@@ -172,14 +172,22 @@ function LearnContent() {
             if (file) {
                 const fileExt = file.name.split('.').pop();
                 const fileName = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
-                const { error: uploadError } = await supabase.storage
-                    .from('prompt-files')
-                    .upload(fileName, file);
 
-                if (uploadError) throw uploadError;
+                try {
+                    const { error: uploadError } = await supabase.storage
+                        .from('prompt-files')
+                        .upload(fileName, file);
 
-                const { data: { publicUrl } } = supabase.storage.from('prompt-files').getPublicUrl(fileName);
-                payload.attachment_url = publicUrl;
+                    if (uploadError) throw uploadError;
+
+                    const { data: { publicUrl } } = supabase.storage.from('prompt-files').getPublicUrl(fileName);
+                    payload.attachment_url = publicUrl;
+                } catch (err) {
+                    if (err.message && err.message.includes('exceeded')) {
+                        throw new Error("이미지 용량이 서버 허용치를 초과했습니다. (더 작은 파일을 사용해주세요)");
+                    }
+                    throw err;
+                }
             } else if (formData.attachment_url) {
                 // Keep existing URL if passed back
                 payload.attachment_url = formData.attachment_url;
