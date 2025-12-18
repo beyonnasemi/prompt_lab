@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase';
 import BulkUploadModal from '@/app/components/BulkUploadModal';
 import AIGenerateModal from '@/app/components/AIGenerateModal';
 import PromptDetailPanel from '@/app/components/PromptDetailPanel';
-import { ChevronRight, Plus, Pencil, Trash2, X, Save, FileText, Sparkles, User, Search, ChevronLeft } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, Save, FileText, Sparkles, User, Search } from 'lucide-react';
 
 const targetNames = {
     'business': '비즈니스',
@@ -508,7 +508,7 @@ function LearnContent() {
                             onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                             style={{ padding: '0.5rem', border: '1px solid #e2e8f0', borderRadius: '0.25rem', background: 'white', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', color: currentPage === 1 ? '#cbd5e1' : '#64748b' }}
                         >
-                            <ChevronLeft size={16} />
+                            <span>◀</span>
                         </button>
 
                         {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
@@ -534,7 +534,7 @@ function LearnContent() {
                             onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                             style={{ padding: '0.5rem', border: '1px solid #e2e8f0', borderRadius: '0.25rem', background: 'white', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', color: currentPage === totalPages ? '#cbd5e1' : '#64748b' }}
                         >
-                            <ChevronRight size={16} />
+                            <span>▶</span>
                         </button>
                     </div>
                 )}
