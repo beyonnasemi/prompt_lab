@@ -142,7 +142,9 @@ export async function generatePromptsAction({ model, topic, count, difficulty, t
 
       const genAI = new GoogleGenerativeAI(key);
       // Use 1.5-flash for better multimodal performance/cost
-      const modelInstance = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const modelName = "gemini-1.5-flash";
+      console.log("Using Gemini Model:", modelName);
+      const modelInstance = genAI.getGenerativeModel({ model: modelName });
 
       let parts = [systemPrompt];
       if (image) {

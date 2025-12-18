@@ -266,10 +266,33 @@ function LearnContent() {
         }
     };
 
-    const handleBulkSuccess = async () => {
-        setTimeout(() => {
+    const handleDataSave = async (dataToSave) => {
+        if (!dataToSave || !Array.isArray(dataToSave) || dataToSave.length === 0) return;
+
+        try {
+            const adminSession = JSON.parse(localStorage.getItem('admin_session') || '{}');
+            const { data: adminAccount } = await supabase.from('accounts').select('id').eq('username', 'admin').single();
+
+            const rows = dataToSave.map(item => ({
+                target_group: targetId,
+                difficulty: item.difficulty || selectedDifficulty,
+                title: item.title,
+                content: item.content,
+                expected_answer: item.expected_answer,
+                created_by: adminAccount?.id
+            }));
+
+            const { error } = await supabase.from('prompts').insert(rows);
+            if (error) throw error;
+
+            alert(`${rows.length}개의 프롬프트가 성공적으로 등록되었습니다.`);
             fetchPrompts(targetId, selectedDifficulty);
-        }, 500);
+            setIsAIModalOpen(false);
+            setIsBulkModalOpen(false);
+        } catch (error) {
+            console.error("Save Error:", error);
+            alert('저장 중 오류가 발생했습니다: ' + error.message);
+        }
     };
 
     if (!userSession) return null;
@@ -623,7 +646,7 @@ function LearnContent() {
                 onClose={() => setIsAIModalOpen(false)}
                 targetId={targetId}
                 currentDifficulty={selectedDifficulty}
-                onSuccess={handleBulkSuccess}
+                onSuccess={handleDataSave}
             />
             {/* Bulk Upload Modal */}
             <BulkUploadModal
@@ -631,7 +654,7 @@ function LearnContent() {
                 onClose={() => setIsBulkModalOpen(false)}
                 targetId={targetId}
                 currentDifficulty={selectedDifficulty}
-                onSuccess={handleBulkSuccess}
+                onSuccess={handleDataSave}
             />
         </div>
     );
