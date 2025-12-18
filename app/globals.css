@@ -238,6 +238,14 @@ body {
   /* Removed specific mobile admin-header styles as it's globally hidden */
 
   .mobile-hidden {
-    display: none;
+    display: none !important;
   }
+
+  .desktop-hidden {
+    display: inline !important;
+  }
+}
+
+.desktop-hidden {
+  display: none;
 }

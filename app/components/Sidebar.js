@@ -147,7 +147,7 @@ export default function Sidebar() {
             </button>
           )}
         </div>
-        <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+        <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', maxHeight: '30vh', overflowY: 'auto' }}>
           {links.length > 0 ? (
             links.map(link => {
               // Icon Mapping

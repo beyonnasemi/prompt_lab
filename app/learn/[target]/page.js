@@ -7,7 +7,8 @@ import { supabase } from '@/lib/supabase';
 import { generatePromptsAction } from '@/app/actions/ai';
 import BulkUploadModal from '@/app/components/BulkUploadModal';
 import AIGenerateModal from '@/app/components/AIGenerateModal';
-import { Copy, Check, ChevronRight, Plus, Pencil, Trash2, X, Save, ShieldCheck, FileText, Sparkles, Bot, Key, ArrowLeft, Filter, Share2, Edit2, Upload } from 'lucide-react';
+import PromptDetailModal from '@/app/components/PromptDetailModal';
+import { Check, Copy, ChevronRight, Plus, Pencil, Trash2, X, Save, ShieldCheck, FileText, Sparkles, Bot, Key, ArrowLeft, Filter, Share2, Edit2, Upload, User, Calendar, Search } from 'lucide-react';
 
 const targetNames = {
     'business': '비즈니스',
@@ -46,22 +47,19 @@ function LearnContent() {
     const [prompts, setPrompts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedDifficulty, setSelectedDifficulty] = useState('beginner');
-    const [copiedId, setCopiedId] = useState(null);
+
+    // Detail Modal State
+    const [detailPrompt, setDetailPrompt] = useState(null);
 
     // Admin State
     const [isAdmin, setIsAdmin] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingPrompt, setEditingPrompt] = useState(null);
     const [promptForm, setPromptForm] = useState({ title: '', content: '', expected_answer: '', file: null });
+
     // Bulk Upload & AI State
     const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
     const [isAIModalOpen, setIsAIModalOpen] = useState(false);
-
-    const difficulties = [
-        { id: 'beginner', label: '초급' },
-        { id: 'intermediate', label: '중급' },
-        { id: 'advanced', label: '고급' },
-    ];
 
     useEffect(() => {
         if (!targetId) return;
@@ -77,7 +75,6 @@ function LearnContent() {
         }
 
         const sessionStr = localStorage.getItem('user_session');
-        // Delay redirect slightly to avoid race conditions or use router.replace
         if (!sessionStr) {
             router.replace(`/login?target=${targetId}`);
             return;
@@ -90,7 +87,6 @@ function LearnContent() {
                 router.replace('/');
                 return;
             }
-            // Normalize session data to handle both key formats
             setUserSession({
                 ...session,
                 display_name: session.display_name || session.displayName || '사용자'
@@ -105,32 +101,37 @@ function LearnContent() {
 
     const fetchPrompts = async (target, difficulty) => {
         setLoading(true);
+        // Try to fetch with author name if relation exists, otherwise fallback is handled gracefully by Supabase usually returning null for relation
+        // NOTE: We assume 'created_by' references 'accounts.id'
         const { data, error } = await supabase
             .from('prompts')
-            .select('id, title, content, expected_answer, difficulty, created_by, attachment_url, created_at')
+            .select(`
+                id, title, content, expected_answer, difficulty, created_by, attachment_url, created_at,
+                accounts:created_by ( display_name )
+            `)
             .eq('target_group', target)
             .eq('difficulty', difficulty)
             .order('created_at', { ascending: false });
 
         if (error) {
             console.error("Fetch Error:", error);
-            alert(`불러오기 실패: ${error.message} (Code: ${error.code})`);
-        } else {
-            console.log("Fetched Data:", data);
-            if (!data || data.length === 0) {
-                // Only alert if we expected to see something (optional, but good for debug)
-                // alert(`데이터가 비어있습니다. (Target: ${target}, Difficulty: ${difficulty})`);
-                console.warn(`데이터가 0건입니다. Target: ${target}, Diff: ${difficulty}`);
+            // If relation fails (e.g., FK not set up exactly as expected), try simple fetch
+            const { data: fallbackData, error: fallbackError } = await supabase
+                .from('prompts')
+                .select('*')
+                .eq('target_group', target)
+                .eq('difficulty', difficulty)
+                .order('created_at', { ascending: false });
+
+            if (fallbackError) {
+                alert(`불러오기 실패: ${fallbackError.message}`);
+            } else {
+                setPrompts(fallbackData || []);
             }
+        } else {
             setPrompts(data || []);
         }
         setLoading(false);
-    };
-
-    const handleCopy = (text, id) => {
-        navigator.clipboard.writeText(text);
-        setCopiedId(id);
-        setTimeout(() => setCopiedId(null), 2000);
     };
 
     // Admin Functions
@@ -146,12 +147,13 @@ function LearnContent() {
             title: prompt.title,
             content: prompt.content,
             expected_answer: prompt.expected_answer || '',
-            file: null // Edit file upload not fully supported yet efficiently, simplistic reset
+            file: null
         });
         setIsModalOpen(true);
     };
 
     const handleDeleteClick = async (id) => {
+        // Confirmation is handled in the modal or directly here if called
         if (!confirm('정말 삭제하시겠습니까?')) return;
         const { error } = await supabase.from('prompts').delete().eq('id', id);
         if (error) alert('삭제 실패: ' + error.message);
@@ -161,7 +163,6 @@ function LearnContent() {
     const handleFormSubmit = async (e) => {
         e.preventDefault();
         try {
-            // Get admin ID
             const adminSession = JSON.parse(localStorage.getItem('admin_session') || '{}');
             const { data: adminAccount } = await supabase.from('accounts').select('id').eq('username', 'admin').single();
 
@@ -174,7 +175,6 @@ function LearnContent() {
                 created_by: adminAccount?.id
             };
 
-            // File Upload Logic
             if (promptForm.file) {
                 const fileExt = promptForm.file.name.split('.').pop();
                 const fileName = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
@@ -184,7 +184,6 @@ function LearnContent() {
 
                 if (uploadError) throw uploadError;
 
-                // Get Public URL
                 const { data: { publicUrl } } = supabase.storage.from('prompt-files').getPublicUrl(fileName);
                 payload.attachment_url = publicUrl;
             }
@@ -203,61 +202,11 @@ function LearnContent() {
         }
     };
 
-    const handleBulkSuccess = async (parsedPrompts) => {
-        setLoading(true); // Use existing loading state for bulk operations
-        let successCount = 0;
-        let failCount = 0;
-
-        try {
-            // 1. Find the account ID for the creator (current target/user)
-            // Try to find the account matching the current targetId first
-            let { data: account } = await supabase.from('accounts').select('id').eq('username', targetId).single();
-
-            // If not found, try 'admin' as fallback
-            if (!account) {
-                const { data: admin } = await supabase.from('accounts').select('id').eq('username', 'admin').single();
-                account = admin;
-            }
-
-            const payload = parsedPrompts.map(item => ({
-                target_group: targetId,
-                // Use the difficulty from the AI item (which comes from the modal selector now), fallback to tab
-                difficulty: item.difficulty || selectedDifficulty,
-                title: item.title,
-                content: item.content,
-                expected_answer: item.expected_answer || '',
-                created_by: account?.id // Use the found account ID
-            }));
-
-            // Validate payload
-            for (const item of payload) {
-                if (!item.title || !item.content) throw new Error('모든 항목에 제목(title)과 내용(content)이 포함되어야 합니다.');
-            }
-
-            const { error } = await supabase.from('prompts').insert(payload);
-            if (error) throw error;
-
-            successCount = payload.length;
-            alert(
-                `${successCount}개의 프롬프트가 성공적으로 등록되었어요!\n` +
-                `[디버깅 정보]\n` +
-                `- 타겟: ${targetId}\n` +
-                `- 난이도: ${payload[0].difficulty}\n` +
-                `- 작성자ID: ${account?.id ? '설정됨' : '없음 (NULL)'}\n` +
-                `*이제 목록이 새로고침됩니다.*`
-            );
-        } catch (e) {
-            console.error(e);
-            alert('등록 실패: ' + e.message + '\n\n올바른 JSON 형식인지 확인해주세요.');
-            failCount = parsedPrompts.length;
-        } finally {
-            setLoading(false);
-            setIsBulkModalOpen(false);
-            // Wait a bit for DB propagation then refresh
-            setTimeout(() => {
-                fetchPrompts(targetId, selectedDifficulty);
-            }, 500);
-        }
+    const handleBulkSuccess = async () => {
+        // Wait a bit for DB propagation then refresh
+        setTimeout(() => {
+            fetchPrompts(targetId, selectedDifficulty);
+        }, 500);
     };
 
     if (!userSession) return null;
@@ -272,7 +221,7 @@ function LearnContent() {
                         {userSession.display_name} 프롬프트 실습
                     </h1>
                     <p style={{ color: '#64748b' }}>
-                        난이도를 선택하고 제공되는 프롬프트를 복사하여 실습해보세요.
+                        난이도를 선택하고 학습 주제를 클릭하여 실습해보세요.
                     </p>
                 </div>
                 {isAdmin && (
@@ -344,135 +293,81 @@ function LearnContent() {
                 </p>
             </div>
 
-            {/* Prompts List View */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                {loading ? (
-                    <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>로딩 중...</div>
-                ) : prompts.length === 0 ? (
-                    <div style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8', background: '#f8fafc', borderRadius: '0.5rem' }}>
-                        등록된 프롬프트가 없습니다.
-                    </div>
-                ) : (
-                    prompts.map((prompt) => (
-                        <div key={prompt.id} style={{
-                            background: 'white',
-                            border: '1px solid #e2e8f0',
-                            borderRadius: '0.5rem',
-                            overflow: 'hidden',
-                            boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
-                        }}>
-                            {/* Prompt Header & Content */}
-                            <div style={{ padding: '1.5rem' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                                    <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#1e293b' }}>{prompt.title}</h3>
-                                    {isAdmin && (
-                                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                            <button
-                                                onClick={() => handleEditClick(prompt)}
-                                                style={{ padding: '0.4rem', borderRadius: '4px', border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', color: '#64748b' }}
-                                                title="수정"
-                                            >
-                                                <Pencil size={16} />
-                                            </button>
-                                            <button
-                                                onClick={() => handleDeleteClick(prompt.id)}
-                                                style={{ padding: '0.4rem', borderRadius: '4px', border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', color: '#ef4444' }}
-                                                title="삭제"
-                                            >
-                                                <Trash2 size={16} />
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div style={{
-                                    background: '#f1f5f9',
-                                    padding: '1.25rem',
-                                    borderRadius: '0.5rem',
-                                    marginBottom: '1rem',
-                                    whiteSpace: 'pre-wrap',
-                                    lineHeight: '1.6',
-                                    color: '#334155',
-                                    fontFamily: 'monospace',
-                                    border: '1px solid #e2e8f0'
-                                }}>
-                                    {prompt.content}
-                                </div>
-
-                                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                                    <button
-                                        onClick={() => handleCopy(prompt.content, prompt.id)}
-                                        className="btn"
-                                        style={{
-                                            fontSize: '0.9rem',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '0.5rem',
-                                            border: '1px solid #cbd5e1',
-                                            color: copiedId === prompt.id ? '#16a34a' : '#475569'
-                                        }}
-                                    >
-                                        {copiedId === prompt.id ? <Check size={16} /> : <Copy size={16} />}
-                                        {copiedId === prompt.id ? '복사됨!' : '프롬프트 복사'}
-                                    </button>
-                                    {prompt.attachment_url && (
-                                        <a
-                                            href={prompt.attachment_url}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="btn"
-                                            style={{
-                                                fontSize: '0.9rem',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: '0.5rem',
-                                                border: '1px solid #cbd5e1',
-                                                color: '#2563eb',
-                                                marginLeft: '0.5rem',
-                                                textDecoration: 'none'
-                                            }}
-                                        >
-                                            <Upload size={16} style={{ transform: 'rotate(180deg)' }} /> 자료 다운로드
-                                        </a>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Expected Answer Toggle */}
-                            <div style={{ borderTop: '1px solid #f1f5f9' }}>
-                                <details style={{ width: '100%' }}>
-                                    <summary style={{
-                                        padding: '1rem 1.5rem',
+            {/* Prompts Bulletin Board (Table Layout) */}
+            <div style={{ background: 'white', borderRadius: '0.5rem', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                    <thead style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                        <tr>
+                            <th style={{ padding: '1rem', width: '80px', textAlign: 'center', color: '#64748b', fontWeight: 600 }}>No.</th>
+                            <th style={{ padding: '1rem', color: '#64748b', fontWeight: 600 }}>주제 (제목)</th>
+                            <th style={{ padding: '1rem', width: '150px', color: '#64748b', fontWeight: 600, display: 'none', smDisplay: 'table-cell' }} className="mobile-hidden">생성자</th>
+                            <th style={{ padding: '1rem', width: '120px', color: '#64748b', fontWeight: 600 }} className="mobile-hidden">등록일</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {loading ? (
+                            <tr>
+                                <td colSpan="4" style={{ padding: '3rem', textAlign: 'center', color: '#64748b' }}>로딩 중...</td>
+                            </tr>
+                        ) : prompts.length === 0 ? (
+                            <tr>
+                                <td colSpan="4" style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8' }}>등록된 프롬프트가 없습니다.</td>
+                            </tr>
+                        ) : (
+                            prompts.map((prompt, index) => (
+                                <tr
+                                    key={prompt.id}
+                                    onClick={() => setDetailPrompt(prompt)}
+                                    style={{
                                         cursor: 'pointer',
-                                        color: '#64748b',
-                                        fontSize: '0.95rem',
-                                        fontWeight: 500,
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '0.5rem',
-                                        listStyle: 'none'
-                                    }}>
-                                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                            👉 예상 답변 확인하기
-                                        </span>
-                                    </summary>
-                                    <div style={{
-                                        padding: '0 1.5rem 1.5rem 1.5rem',
-                                        color: '#475569',
-                                        lineHeight: '1.7',
-                                        borderTop: '1px dashed #e2e8f0',
-                                        marginTop: '-0.5rem',
-                                        paddingTop: '1.5rem',
-                                        whiteSpace: 'pre-wrap'
-                                    }}>
-                                        {prompt.expected_answer || '등록된 예상 답변이 없습니다.'}
-                                    </div>
-                                </details>
-                            </div>
-                        </div>
-                    ))
-                )}
+                                        borderBottom: '1px solid #f1f5f9',
+                                        transition: 'background 0.2s',
+                                        ':hover': { background: '#f8fafc' } // Inline hover not supported in React inline styles, handled with CSS or mouse events if needed, but simple CSS class is better.
+                                    }}
+                                    className="table-row-hover" // We will assume simple global CSS or just accept simple style
+                                    onMouseOver={(e) => e.currentTarget.style.background = '#f8fafc'}
+                                    onMouseOut={(e) => e.currentTarget.style.background = 'white'}
+                                >
+                                    <td style={{ padding: '1rem', textAlign: 'center', color: '#94a3b8' }}>
+                                        {prompts.length - index}
+                                    </td>
+                                    <td style={{ padding: '1rem' }}>
+                                        <div style={{ fontWeight: 600, color: '#334155', marginBottom: '0.25rem' }}>
+                                            {prompt.title}
+                                        </div>
+                                        <div style={{ fontSize: '0.85rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                            {/* Mobile Only Metadata */}
+                                            <span className="desktop-hidden">
+                                                {new Date(prompt.created_at).toLocaleDateString()}
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td style={{ padding: '1rem', color: '#64748b' }} className="mobile-hidden">
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                            <User size={16} color="#cbd5e1" />
+                                            {prompt.accounts?.display_name || '관리자'}
+                                        </div>
+                                    </td>
+                                    <td style={{ padding: '1rem', color: '#94a3b8', fontSize: '0.9rem' }} className="mobile-hidden">
+                                        {new Date(prompt.created_at).toLocaleDateString()}
+                                    </td>
+                                </tr>
+                            ))
+                        )}
+                    </tbody>
+                </table>
             </div>
+
+            {/* Detail Modal */}
+            <PromptDetailModal
+                isOpen={!!detailPrompt}
+                onClose={() => setDetailPrompt(null)}
+                prompt={detailPrompt}
+                isAdmin={isAdmin}
+                onEdit={handleEditClick}
+                onDelete={handleDeleteClick}
+            />
+
             {/* Add/Edit Modal */}
             {isModalOpen && (
                 <div className="mobile-overlay" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60 }}>

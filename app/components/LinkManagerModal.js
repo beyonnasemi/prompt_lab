@@ -5,22 +5,11 @@ import { X, Save, Trash2, Plus, GripVertical, Globe } from 'lucide-react';
 import { getLinksAction, saveLinkAction, deleteLinkAction } from '@/app/actions/linkActions';
 import Image from 'next/image';
 
-const ICON_OPTIONS = [
-    { key: 'auto', label: '자동 (사이트 파비콘)' },
-    { key: 'default', label: '기본 (Globe)' },
-    { key: 'chatgpt', label: 'ChatGPT' },
-    { key: 'gemini', label: 'Gemini' },
-    { key: 'claude', label: 'Claude/Anthropic' },
-    { key: 'perplexity', label: 'Perplexity' },
-    { key: 'aistudio', label: 'AI Studio' },
-    { key: 'antigravity', label: 'Antigravity' },
-];
-
 export default function LinkManagerModal({ isOpen, onClose, onUpdate }) {
     const [links, setLinks] = useState([]);
     const [loading, setLoading] = useState(false);
     const [editingId, setEditingId] = useState(null);
-    const [formData, setFormData] = useState({ title: '', url: '', icon_key: 'auto', sort_order: 0 });
+    const [formData, setFormData] = useState({ title: '', url: '', sort_order: 0 });
 
     useEffect(() => {
         if (isOpen) {
@@ -37,12 +26,12 @@ export default function LinkManagerModal({ isOpen, onClose, onUpdate }) {
 
     const handleEdit = (link) => {
         setEditingId(link.id);
-        setFormData({ title: link.title, url: link.url, icon_key: link.icon_key, sort_order: link.sort_order });
+        setFormData({ title: link.title, url: link.url, sort_order: link.sort_order });
     };
 
     const handleCancelEdit = () => {
         setEditingId(null);
-        setFormData({ title: '', url: '', icon_key: 'auto', sort_order: links.length + 1 });
+        setFormData({ title: '', url: '', sort_order: links.length + 1 });
     };
 
     const handleDelete = async (id) => {
@@ -55,6 +44,8 @@ export default function LinkManagerModal({ isOpen, onClose, onUpdate }) {
     const handleSubmit = async (e) => {
         e.preventDefault();
         const payload = { ...formData };
+        // Clean up payload (backend defaults icon_key to 'auto' if missing)
+
         if (editingId) payload.id = editingId;
 
         const result = await saveLinkAction(payload);
@@ -85,7 +76,7 @@ export default function LinkManagerModal({ isOpen, onClose, onUpdate }) {
 
                 {/* Form */}
                 <form onSubmit={handleSubmit} style={{ background: '#f8fafc', padding: '1rem', borderRadius: '0.5rem', marginBottom: '2rem' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1rem' }}>
                         <div>
                             <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '0.25rem' }}>제목</label>
                             <input
@@ -94,18 +85,6 @@ export default function LinkManagerModal({ isOpen, onClose, onUpdate }) {
                                 onChange={e => setFormData({ ...formData, title: e.target.value })}
                                 style={{ width: '100%', padding: '0.5rem', border: '1px solid #e2e8f0', borderRadius: '0.25rem' }}
                             />
-                        </div>
-                        <div>
-                            <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '0.25rem' }}>아이콘</label>
-                            <select
-                                value={formData.icon_key}
-                                onChange={e => setFormData({ ...formData, icon_key: e.target.value })}
-                                style={{ width: '100%', padding: '0.5rem', border: '1px solid #e2e8f0', borderRadius: '0.25rem' }}
-                            >
-                                {ICON_OPTIONS.map(opt => (
-                                    <option key={opt.key} value={opt.key}>{opt.label}</option>
-                                ))}
-                            </select>
                         </div>
                     </div>
                     <div style={{ marginBottom: '1rem' }}>
@@ -138,8 +117,11 @@ export default function LinkManagerModal({ isOpen, onClose, onUpdate }) {
                                 <span style={{ color: '#cbd5e1' }}><GripVertical size={16} /></span>
                                 <div style={{ width: 24, height: 24, background: '#f1f5f9', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                     {/* Icon Preview */}
-                                    {link.icon_key === 'default' ? <Globe size={14} /> :
-                                        <span style={{ fontSize: '0.7rem' }}>{link.icon_key[0].toUpperCase()}</span>}
+                                    {(!link.icon_key || link.icon_key === 'default' || link.icon_key === 'auto') ? <Globe size={14} /> :
+                                        <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+                                            {/* If we had Image here it would go here, but for now just show Globe or Letter if key is simple */}
+                                            <Globe size={14} />
+                                        </div>}
                                 </div>
                                 <div>
                                     <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{link.title}</div>

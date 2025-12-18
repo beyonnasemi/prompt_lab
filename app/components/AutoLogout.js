@@ -18,13 +18,13 @@ export default function AutoLogout() {
                 localStorage.removeItem('admin_session');
                 localStorage.removeItem('user_session');
                 alert('장시간 미사용으로 인해 자동 로그아웃 되었습니다.');
-                router.push('/');
-                window.location.reload(); // Force refresh to update UI state
+                // Force a hard refresh to clear all application state
+                window.location.href = '/';
             }
         } catch (e) {
             console.error("AutoLogout error:", e);
         }
-    }, [router]);
+    }, []); // Removed router dependency as we use window.location
 
     useEffect(() => {
         let timeoutId;
@@ -34,8 +34,8 @@ export default function AutoLogout() {
             timeoutId = setTimeout(handleLogout, INACTIVITY_LIMIT);
         };
 
-        // Events to monitor
-        const events = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart'];
+        // Events to monitor (added 'click')
+        const events = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart', 'click'];
 
         // Initial timer
         resetTimer();
