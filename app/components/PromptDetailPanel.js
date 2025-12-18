@@ -177,7 +177,13 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                     {prompt.attachment_url && (
                         <div>
                             <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#334155', marginBottom: '0.5rem' }}>💾 첨부 자료</h3>
-                            <a href={prompt.attachment_url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1rem', background: 'white', border: '1px solid #cbd5e1', borderRadius: '0.5rem', textDecoration: 'none', color: '#2563eb' }}>
+                            <a
+                                href={`${prompt.attachment_url}?download=`}
+                                download
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1rem', background: 'white', border: '1px solid #cbd5e1', borderRadius: '0.5rem', textDecoration: 'none', color: '#2563eb' }}
+                            >
                                 <span>📥</span> 자료 다운로드
                             </a>
                         </div>
