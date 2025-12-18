@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { X, Copy, Check, Upload, Pencil, Trash2, Calendar, User, AlignLeft, ChevronLeft } from 'lucide-react';
+import { X, Copy, Check, Upload, Pencil, Trash2, Calendar, User, AlignLeft } from 'lucide-react';
 
 export default function PromptDetailPanel({ prompt, isAdmin, onEdit, onDelete, onClose }) {
     const [copiedId, setCopiedId] = useState(null);
@@ -43,7 +43,7 @@ export default function PromptDetailPanel({ prompt, isAdmin, onEdit, onDelete, o
                             border: '1px solid #e2e8f0'
                         }}
                     >
-                        <ChevronLeft size={16} /> 목록으로
+                        <span>⬅️</span> 목록으로
                     </button>
 
                     <button onClick={onClose} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: '0.5rem', color: '#94a3b8' }} title="닫기">
