@@ -1,20 +1,33 @@
+```
 'use client';
 
 import { useState } from 'react';
 import { generatePromptsAction } from '@/app/actions/ai';
-import { X, Sparkles, Loader2, Save, RefreshCw, Bot, CheckCircle, Circle } from 'lucide-react';
+import { X, Sparkles, Loader2, Save, RefreshCw, Bot, CheckCircle, Circle, Image as ImageIcon } from 'lucide-react';
 
 export default function AIGenerateModal({ isOpen, onClose, targetId, currentDifficulty, onSuccess }) {
     const [topic, setTopic] = useState('');
     const [model, setModel] = useState('gpt'); // 'gpt' or 'gemini'
     const [count, setCount] = useState(3);
-    const [difficulty, setDifficulty] = useState(currentDifficulty || 'beginner'); // Add state
+    const [difficulty, setDifficulty] = useState(currentDifficulty || 'beginner');
+    const [image, setImage] = useState(null); // Image state
     const [loading, setLoading] = useState(false);
     const [generatedPrompts, setGeneratedPrompts] = useState([]);
     const [error, setError] = useState('');
     const [selectedIndices, setSelectedIndices] = useState([]);
 
     if (!isOpen) return null;
+
+    const handleImageChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setImage(reader.result); // Base64 string
+            };
+            reader.readAsDataURL(file);
+        }
+    };
 
     const handleGenerate = async (e) => {
         e.preventDefault();
@@ -28,8 +41,9 @@ export default function AIGenerateModal({ isOpen, onClose, targetId, currentDiff
                 model,
                 topic,
                 count: parseInt(count),
-                difficulty, // Use selected difficulty
-                targetGroup: targetId
+                difficulty,
+                targetGroup: targetId,
+                image // Pass image
             });
 
             if (result && result.error) {
@@ -74,6 +88,7 @@ export default function AIGenerateModal({ isOpen, onClose, targetId, currentDiff
             // Reset state after save
             setGeneratedPrompts([]);
             setTopic('');
+            setImage(null);
             onClose(); // Close only after success
         } catch (e) {
             console.error(e);
@@ -200,6 +215,56 @@ export default function AIGenerateModal({ isOpen, onClose, targetId, currentDiff
                             </select>
                         </div>
 
+                        {/* Image Upload for Vision */}
+                        <div>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#1e293b' }}>
+                                참고 이미지 (선택) - <span style={{ fontSize: '0.85rem', fontWeight: 'normal', color: '#64748b' }}>이미지를 분석하여 프롬프트를 생성합니다.</span>
+                            </label>
+
+                            {image && (
+                                <div style={{ marginBottom: '0.5rem', position: 'relative', display: 'inline-block' }}>
+                                    <img src={image} alt="Preview" style={{ height: '80px', borderRadius: '0.5rem', border: '1px solid #cbd5e1' }} />
+                                    <button
+                                        type="button"
+                                        onClick={() => setImage(null)}
+                                        style={{
+                                            position: 'absolute', top: '-5px', right: '-5px',
+                                            background: '#ef4444', color: 'white', border: 'none', borderRadius: '50%',
+                                            width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            cursor: 'pointer', fontSize: '12px'
+                                        }}
+                                    >
+                                        X
+                                    </button>
+                                </div>
+                            )}
+
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <label
+                                    htmlFor="image-upload"
+                                    style={{
+                                        cursor: 'pointer',
+                                        display: 'flex', alignItems: 'center', gap: '0.5rem',
+                                        padding: '0.75rem 1rem',
+                                        background: 'white', border: '1px solid #cbd5e1', borderRadius: '0.5rem',
+                                        color: '#475569', fontSize: '0.9rem'
+                                    }}
+                                >
+                                    <ImageIcon size={18} /> 이미지 업로드
+                                </label>
+                                <input
+                                    id="image-upload"
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleImageChange}
+                                    style={{ display: 'none' }}
+                                />
+                                <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>
+                                    {image ? "이미지 선택됨" : "선택된 파일 없음"}
+                                </span>
+                            </div>
+                        </div>
+
                         {error && (
                             <div style={{ padding: '1rem', background: '#fef2f2', color: '#b91c1c', borderRadius: '0.5rem', fontSize: '0.9rem' }}>
                                 ⚠️ {error}
@@ -311,6 +376,7 @@ export default function AIGenerateModal({ isOpen, onClose, targetId, currentDiff
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     );
 }
+```

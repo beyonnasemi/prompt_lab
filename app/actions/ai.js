@@ -13,7 +13,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
  * @param {string} params.targetGroup - e.g. 'business', 'univ'
  * @param {string} [params.apiKey] - Optional API key if not in env
  */
-export async function generatePromptsAction({ model, topic, count, difficulty, targetGroup, apiKey }) {
+export async function generatePromptsAction({ model, topic, count, difficulty, targetGroup, apiKey, image }) {
   if (!topic) throw new Error("주제(Topic)를 입력해주세요.");
 
   const promptCount = count || 3;
@@ -67,12 +67,14 @@ export async function generatePromptsAction({ model, topic, count, difficulty, t
 
   const targetInfo = contextMap[targetGroup] || contextMap['business'];
 
+  // Enhanced System Prompt for Vision
   const systemPrompt = `
     You are a ${targetInfo.role} and an expert AI Prompt Engineer in Korea.
     
     [Goal]
     Generate ${promptCount} highly practical "Educational AI Prompts" for users in ${targetInfo.context}.
     The goal is to TEACH users how to write good prompts to automate their work.
+    ${image ? 'IMPORTANT: The user has provided an image. Use the image as context to generate relevant prompts (e.g. "Draft an email based on this image", "Summarize this document").' : ''}
     
     [User Input Topic]
     ${topic}
@@ -98,16 +100,8 @@ export async function generatePromptsAction({ model, topic, count, difficulty, t
     3. "expected_answer": A concrete example of what the AI would generate from that prompt. Show the user the potential result.
     4. "difficulty": "${currentDifficulty}"
     
-    [Example Item for 'public' (Intermediate)]
-    {
-      "title": "공문서 초안 자동 작성",
-      "content": "역할: 10년 차 행정 전문관\n상황: 다음 달 '디지털 역량 강화 교육'을 엽니다.\n요청: 산하 기관에 보낼 협조 공문의 초안을 작성해주세요. 날짜는 미정이며, 필요성은 강조하되 정중한 어조를 사용하세요.",
-      "expected_answer": "1. 제목: 디지털 역량 강화 교육 개최 협조 요청\n2. 귀 기관의 무궁한 발전을 기원합니다...\n(공문 양식 예시 output)",
-      "difficulty": "intermediate"
-    }
-    
     Now generate ${promptCount} items for the topic: "${topic}".
-    Ensure the JSON is valid.
+    Ensure the JSON is valid. Do not use markdown code blocks.
   `;
 
   try {
@@ -118,12 +112,26 @@ export async function generatePromptsAction({ model, topic, count, difficulty, t
       if (!key) throw new Error("OpenAI API Key provided via input or environment variables.");
 
       const client = new OpenAI({ apiKey: key });
+
+      const messages = [
+        { role: "system", content: "You are a helpful assistant that outputs only valid JSON strings. Do not use markdown." }
+      ];
+
+      if (image) {
+        messages.push({
+          role: "user",
+          content: [
+            { type: "text", text: systemPrompt },
+            { type: "image_url", image_url: { url: image } }
+          ]
+        });
+      } else {
+        messages.push({ role: "user", content: systemPrompt });
+      }
+
       const response = await client.chat.completions.create({
         model: "gpt-4o-mini",
-        messages: [
-          { role: "system", content: "You are a helpful assistant that outputs only valid JSON strings." },
-          { role: "user", content: systemPrompt }
-        ],
+        messages: messages,
         temperature: 0.7,
       });
       resultText = response.choices[0].message.content;
@@ -133,9 +141,24 @@ export async function generatePromptsAction({ model, topic, count, difficulty, t
       if (!key) throw new Error("Gemini API Key not provided via input or environment variables.");
 
       const genAI = new GoogleGenerativeAI(key);
-      const modelInstance = genAI.getGenerativeModel({ model: "gemini-pro" });
+      // Use 1.5-flash for better multimodal performance/cost
+      const modelInstance = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-      const result = await modelInstance.generateContent(systemPrompt);
+      let parts = [systemPrompt];
+      if (image) {
+        // image is "data:image/png;base64,..."
+        const mimeType = image.match(/data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+).*,.*/)[1];
+        const base64Data = image.split(',')[1];
+
+        parts.push({
+          inlineData: {
+            data: base64Data,
+            mimeType: mimeType
+          }
+        });
+      }
+
+      const result = await modelInstance.generateContent(parts);
       const response = await result.response;
       resultText = response.text();
 

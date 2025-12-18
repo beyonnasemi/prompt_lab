@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { Users, Building2, GraduationCap, School, Baby, User, ShieldCheck, KeyRound, LogOut, ChevronRight } from 'lucide-react';
+import { Users, Building2, GraduationCap, School, Baby, User, ShieldCheck, KeyRound, LogOut, ChevronRight, Eye, EyeOff, Plus, Trash2 } from 'lucide-react';
 
 export default function AdminDashboard() {
     const router = useRouter();
@@ -13,6 +13,11 @@ export default function AdminDashboard() {
     const [accounts, setAccounts] = useState([]);
     const [loadingAccounts, setLoadingAccounts] = useState(false);
     const [passwords, setPasswords] = useState({}); // Stores input password for each user id
+    const [showPasswords, setShowPasswords] = useState({}); // Stores visibility state for each user id
+
+    // Create Account State
+    const [isCreating, setIsCreating] = useState(false);
+    const [newAccount, setNewAccount] = useState({ username: '', password: '', display_name: '' });
 
     const targets = [
         { id: 'business', name: '비즈니스', icon: <Building2 size={32} /> },
@@ -23,6 +28,8 @@ export default function AdminDashboard() {
         { id: 'high', name: '고등학교', icon: <School size={32} /> },
         { id: 'adult', name: '일반성인 (기초)', icon: <User size={32} /> },
     ];
+
+    const targetNameMap = targets.reduce((acc, t) => ({ ...acc, [t.id]: t.name }), {});
 
     useEffect(() => {
         const checkAdmin = () => {
@@ -43,8 +50,14 @@ export default function AdminDashboard() {
 
     const fetchAccounts = async () => {
         setLoadingAccounts(true);
-        const { data, error } = await supabase.from('accounts').select('id, username, created_at, role').neq('role', 'admin').order('created_at');
-        if (!error) setAccounts(data || []);
+        const { data, error } = await supabase.from('accounts').select('*').neq('role', 'admin').order('created_at');
+        if (!error) {
+            setAccounts(data || []);
+            // Initialize passwords with current values
+            const initialPasswords = {};
+            data?.forEach(acc => initialPasswords[acc.id] = acc.password);
+            setPasswords(initialPasswords);
+        }
         setLoadingAccounts(false);
     };
 
@@ -62,7 +75,41 @@ export default function AdminDashboard() {
             alert('변경 실패: ' + error.message);
         } else {
             alert('비밀번호가 성공적으로 변경되었습니다.');
-            setPasswords(prev => ({ ...prev, [userId]: '' })); // Clear input
+        }
+    };
+
+    const handleDeleteAccount = async (userId, username) => {
+        if (!confirm(`정말로 '${username}' 계정을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`)) return;
+
+        const { error } = await supabase.from('accounts').delete().eq('id', userId);
+        if (error) {
+            alert("삭제 실패: " + error.message);
+        } else {
+            alert("계정이 삭제되었습니다.");
+            fetchAccounts();
+        }
+    };
+
+    const handleCreateAccount = async (e) => {
+        e.preventDefault();
+        if (!newAccount.username || !newAccount.password) return;
+
+        try {
+            const { error } = await supabase.from('accounts').insert([{
+                username: newAccount.username,
+                password: newAccount.password,
+                display_name: newAccount.display_name || targetNameMap[newAccount.username] || newAccount.username,
+                role: 'user'
+            }]);
+
+            if (error) throw error;
+
+            alert("새로운 계정이 생성되었습니다.");
+            setIsCreating(false);
+            setNewAccount({ username: '', password: '', display_name: '' });
+            fetchAccounts();
+        } catch (e) {
+            alert("생성 실패: " + e.message);
         }
     };
 
@@ -83,7 +130,7 @@ export default function AdminDashboard() {
             console.error("Local storage error:", e);
             alert("관리자 세션 정보를 불러오는 중 오류가 발생했습니다.");
         }
-    }
+    };
 
     return (
         <div className="centered-container" style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 2rem', paddingBottom: '4rem' }}>
@@ -195,7 +242,7 @@ export default function AdminDashboard() {
             {activeTab === 'accounts' && (
                 <div>
                     {/* Admin Password Change Card */}
-                    <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '0.5rem', padding: '1.5rem', marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '0.5rem', padding: '1.5rem', marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
                         <div>
                             <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e293b', marginBottom: '0.25rem' }}>관리자 계정 설정</h3>
                             <p style={{ color: '#64748b', fontSize: '0.9rem' }}>관리자 계정의 비밀번호를 안전하게 관리하세요.</p>
@@ -220,39 +267,116 @@ export default function AdminDashboard() {
                         </button>
                     </div>
 
+                    <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'flex-end' }}>
+                        <button
+                            onClick={() => setIsCreating(!isCreating)}
+                            className="btn btn-primary"
+                            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                        >
+                            <Plus size={18} /> 그룹(계정) 추가
+                        </button>
+                    </div>
+
+                    {/* Create Account Form */}
+                    {isCreating && (
+                        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', p: '1.5rem', borderRadius: '0.5rem', marginBottom: '2rem', padding: '1.5rem' }}>
+                            <h4 style={{ marginBottom: '1rem', fontWeight: 600 }}>새 그룹 추가</h4>
+                            <form onSubmit={handleCreateAccount} style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'end' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '0.25rem', color: '#64748b' }}>아이디 (영어)</label>
+                                    <input
+                                        type="text"
+                                        value={newAccount.username}
+                                        onChange={(e) => setNewAccount({ ...newAccount, username: e.target.value })}
+                                        placeholder="business"
+                                        required
+                                        style={{ padding: '0.5rem', border: '1px solid #cbd5e1', borderRadius: '0.25rem' }}
+                                    />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '0.25rem', color: '#64748b' }}>표시 이름 (한글)</label>
+                                    <input
+                                        type="text"
+                                        value={newAccount.display_name}
+                                        onChange={(e) => setNewAccount({ ...newAccount, display_name: e.target.value })}
+                                        placeholder="비즈니스 (공란시 자동 매핑)"
+                                        style={{ padding: '0.5rem', border: '1px solid #cbd5e1', borderRadius: '0.25rem', minWidth: '200px' }}
+                                    />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '0.25rem', color: '#64748b' }}>비밀번호</label>
+                                    <input
+                                        type="text"
+                                        value={newAccount.password}
+                                        onChange={(e) => setNewAccount({ ...newAccount, password: e.target.value })}
+                                        required
+                                        style={{ padding: '0.5rem', border: '1px solid #cbd5e1', borderRadius: '0.25rem' }}
+                                    />
+                                </div>
+                                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                    <button type="submit" className="btn btn-primary" style={{ padding: '0.5rem 1rem' }}>생성</button>
+                                    <button type="button" onClick={() => setIsCreating(false)} className="btn" style={{ background: 'white', border: '1px solid #cbd5e1', padding: '0.5rem 1rem' }}>취소</button>
+                                </div>
+                            </form>
+                        </div>
+                    )}
+
                     <div style={{ overflowX: 'auto' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', background: 'white', borderRadius: '0.5rem', overflow: 'hidden', border: '1px solid #e2e8f0' }}>
                             <thead style={{ background: '#f8fafc' }}>
                                 <tr>
-                                    <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '1px solid #e2e8f0', width: '20%' }}>아이디 (그룹)</th>
-                                    <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '1px solid #e2e8f0', width: '30%' }}>표시 이름</th>
-                                    <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '1px solid #e2e8f0', width: '50%' }}>비밀번호 변경</th>
+                                    <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '1px solid #e2e8f0', width: '20%', color: '#64748b', fontWeight: 600 }}>아이디 (그룹)</th>
+                                    <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '1px solid #e2e8f0', width: '25%', color: '#64748b', fontWeight: 600 }}>표시 이름</th>
+                                    <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '1px solid #e2e8f0', width: '40%', color: '#64748b', fontWeight: 600 }}>비밀번호 관리</th>
+                                    <th style={{ padding: '1rem', textAlign: 'center', borderBottom: '1px solid #e2e8f0', width: '15%', color: '#64748b', fontWeight: 600 }}>작업</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {loadingAccounts ? (
-                                    <tr><td colSpan="3" style={{ padding: '2rem', textAlign: 'center' }}>로딩 중...</td></tr>
+                                    <tr><td colSpan="4" style={{ padding: '2rem', textAlign: 'center' }}>데이터를 불러오는 중...</td></tr>
                                 ) : accounts.map((account) => (
                                     <tr key={account.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                        <td style={{ padding: '1rem', fontWeight: 500 }}>{account.username}</td>
-                                        <td style={{ padding: '1rem', color: '#64748b' }}>{account.display_name}</td>
+                                        <td style={{ padding: '1rem', fontWeight: 500, color: '#334155' }}>{account.username}</td>
+                                        <td style={{ padding: '1rem', color: '#64748b' }}>
+                                            {account.display_name || targetNameMap[account.username] || account.username}
+                                        </td>
                                         <td style={{ padding: '1rem' }}>
-                                            <div style={{ display: 'flex', gap: '0.5rem', maxWidth: '300px' }}>
-                                                <input
-                                                    type="text"
-                                                    placeholder="비밀번호"
-                                                    value={passwords[account.id] !== undefined ? passwords[account.id] : account.password}
-                                                    onChange={(e) => setPasswords({ ...passwords, [account.id]: e.target.value })}
-                                                    style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #cbd5e1', width: '100%' }}
-                                                />
+                                            <div style={{ display: 'flex', gap: '0.5rem', maxWidth: '300px', alignItems: 'center' }}>
+                                                <div style={{ position: 'relative', flex: 1 }}>
+                                                    <input
+                                                        type={showPasswords[account.id] ? "text" : "password"}
+                                                        placeholder="비밀번호"
+                                                        value={passwords[account.id] !== undefined ? passwords[account.id] : account.password}
+                                                        onChange={(e) => setPasswords({ ...passwords, [account.id]: e.target.value })}
+                                                        style={{ padding: '0.5rem', paddingRight: '2.5rem', borderRadius: '4px', border: '1px solid #cbd5e1', width: '100%' }}
+                                                    />
+                                                    <button
+                                                        onClick={() => setShowPasswords(prev => ({ ...prev, [account.id]: !prev[account.id] }))}
+                                                        style={{
+                                                            position: 'absolute', right: '0.5rem', top: '50%', transform: 'translateY(-50%)',
+                                                            background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', display: 'flex'
+                                                        }}
+                                                    >
+                                                        {showPasswords[account.id] ? <EyeOff size={16} /> : <Eye size={16} />}
+                                                    </button>
+                                                </div>
                                                 <button
                                                     onClick={() => handlePasswordChange(account.id)}
                                                     className="btn"
-                                                    style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', whiteSpace: 'nowrap' }}
+                                                    style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', whiteSpace: 'nowrap', padding: '0.5rem 0.75rem', fontSize: '0.9rem' }}
                                                 >
                                                     변경
                                                 </button>
                                             </div>
+                                        </td>
+                                        <td style={{ padding: '1rem', textAlign: 'center' }}>
+                                            <button
+                                                onClick={() => handleDeleteAccount(account.id, account.username)}
+                                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', padding: '0.5rem' }}
+                                                title="계정 삭제"
+                                            >
+                                                <Trash2 size={20} />
+                                            </button>
                                         </td>
                                     </tr>
                                 ))}

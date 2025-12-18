@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { X, Copy, Check, Upload, Pencil, Trash2, Calendar, User, AlignLeft } from 'lucide-react';
+import { X, Copy, Check, Upload, Pencil, Trash2, Calendar, User, AlignLeft, ChevronLeft } from 'lucide-react';
 
 export default function PromptDetailPanel({ prompt, isAdmin, onEdit, onDelete, onClose }) {
     const [copiedId, setCopiedId] = useState(null);
@@ -25,10 +25,38 @@ export default function PromptDetailPanel({ prompt, isAdmin, onEdit, onDelete, o
             boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
             transition: 'all 0.3s ease'
         }}>
-            {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '1rem' }}>
-                <div style={{ paddingRight: '1rem', flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+            {/* Header Area */}
+            <div style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '1.5rem', marginBottom: '1.5rem' }}>
+                {/* Navigation Row */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <button
+                        onClick={onClose}
+                        className="btn"
+                        style={{
+                            padding: '0.5rem 0.75rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.25rem',
+                            fontSize: '0.9rem',
+                            color: '#64748b',
+                            background: '#f8fafc',
+                            border: '1px solid #e2e8f0'
+                        }}
+                    >
+                        <ChevronLeft size={16} /> 목록으로
+                    </button>
+
+                    <button onClick={onClose} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: '0.5rem', color: '#94a3b8' }} title="닫기">
+                        <X size={24} />
+                    </button>
+                </div>
+
+                {/* Title & Metadata Row */}
+                <div>
+                    <h2 style={{ fontSize: '1.75rem', fontWeight: 700, color: '#1e293b', lineHeight: 1.3, marginBottom: '0.75rem' }}>
+                        {prompt.title}
+                    </h2>
+                    <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', fontSize: '0.9rem', color: '#64748b' }}>
                         <span style={{
                             background: prompt.difficulty === 'beginner' ? '#dbeafe' : prompt.difficulty === 'intermediate' ? '#fce7f3' : '#ffedd5',
                             color: prompt.difficulty === 'beginner' ? '#1e40af' : prompt.difficulty === 'intermediate' ? '#9d174d' : '#9a3412',
@@ -36,31 +64,19 @@ export default function PromptDetailPanel({ prompt, isAdmin, onEdit, onDelete, o
                         }}>
                             {prompt.difficulty === 'beginner' ? '초급' : prompt.difficulty === 'intermediate' ? '중급' : '고급'}
                         </span>
-                        <span style={{ fontSize: '0.85rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                            <Calendar size={12} /> {new Date(prompt.created_at).toLocaleDateString()}
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                            <Calendar size={14} /> {new Date(prompt.created_at).toLocaleDateString()}
                         </span>
+                        {prompt.accounts?.display_name && (
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                <User size={14} /> {prompt.accounts.display_name}
+                            </span>
+                        )}
                     </div>
-                    <h2 style={{ fontSize: '1.75rem', fontWeight: 700, color: '#1e293b', lineHeight: 1.3 }}>
-                        {prompt.title}
-                    </h2>
-                    {prompt.accounts?.display_name && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.5rem', color: '#64748b', fontSize: '0.9rem' }}>
-                            <User size={14} /> 작성자: {prompt.accounts.display_name}
-                        </div>
-                    )}
-                </div>
-
-                {/* Close/Action Buttons */}
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    {onClose && (
-                        <button onClick={onClose} style={{ padding: '0.5rem', borderRadius: '0.25rem', color: '#94a3b8', cursor: 'pointer', background: 'none', border: 'none' }} title="닫기">
-                            <X size={24} />
-                        </button>
-                    )}
                 </div>
             </div>
 
-            {/* Content */}
+            {/* Content Area */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
 
                 {/* Prompt Box */}
@@ -179,7 +195,6 @@ export default function PromptDetailPanel({ prompt, isAdmin, onEdit, onDelete, o
                         >
                             <Pencil size={16} /> 수정
                         </button>
-                        {/* Single delete button in detail view is optional if we have bulk delete, but good to keep */}
                         <button
                             onClick={() => {
                                 if (confirm('정말 삭제하시겠습니까?')) {
