@@ -1,7 +1,7 @@
 'use client';
 
+// ... (imports)
 import { useState } from 'react';
-import { X, FileText, Sparkles, Bot, Key } from 'lucide-react';
 import { generatePromptsAction } from '@/app/actions/ai';
 
 export default function BulkUploadModal({ isOpen, onClose, targetId, currentDifficulty, onSuccess }) {
@@ -49,7 +49,7 @@ export default function BulkUploadModal({ isOpen, onClose, targetId, currentDiff
                     <h2 style={{ fontSize: '1.25rem', fontWeight: 700 }}>
                         📂 프롬프트 대량 등록
                     </h2>
-                    <button onClick={onClose} style={{ border: 'none', background: 'none', cursor: 'pointer' }}><X size={24} /></button>
+                    <button onClick={onClose} style={{ border: 'none', background: 'none', cursor: 'pointer' }}><span>✖</span></button>
                 </div>
 
                 <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid #e2e8f0', marginBottom: '1.5rem' }}>
@@ -76,7 +76,7 @@ export default function BulkUploadModal({ isOpen, onClose, targetId, currentDiff
                             display: 'flex', alignItems: 'center', gap: '0.25rem'
                         }}
                     >
-                        <Sparkles size={16} /> AI 자동 생성
+                        <span>✨</span> AI 자동 생성
                     </button>
                 </div>
 
@@ -112,7 +112,7 @@ export default function BulkUploadModal({ isOpen, onClose, targetId, currentDiff
                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
                             <button onClick={onClose} className="btn" style={{ border: '1px solid #e2e8f0' }}>취소</button>
                             <button onClick={handleBulkSubmit} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                <FileText size={18} /> 일괄 등록하기
+                                <span>📄</span> 일괄 등록하기
                             </button>
                         </div>
                     </>
@@ -120,7 +120,7 @@ export default function BulkUploadModal({ isOpen, onClose, targetId, currentDiff
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                         <div style={{ background: '#f5f3ff', padding: '1rem', borderRadius: '0.5rem', border: '1px solid #ddd6fe' }}>
                             <h4 style={{ color: '#5b21b6', fontWeight: 600, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                <Bot size={18} /> AI 프롬프트 생성기
+                                <span>🤖</span> AI 프롬프트 생성기
                             </h4>
                             <p style={{ fontSize: '0.9rem', color: '#4c1d95' }}>
                                 원하는 주제를 입력하면 AI가 자동으로 교육용 프롬프트를 생성해줍니다.<br />
@@ -166,7 +166,7 @@ export default function BulkUploadModal({ isOpen, onClose, targetId, currentDiff
                         <div>
                             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>API Key (Optional)</label>
                             <div style={{ position: 'relative' }}>
-                                <Key size={16} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                                <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }}>🔑</span>
                                 <input
                                     type="password"
                                     placeholder="환경변수가 설정되어 있다면 비워두세요"
@@ -196,7 +196,7 @@ export default function BulkUploadModal({ isOpen, onClose, targetId, currentDiff
                                 {isGenerating ? (
                                     <>⏳ 생성 중...</>
                                 ) : (
-                                    <><Sparkles size={18} /> 생성하기</>
+                                    <><span>✨</span> 생성하기</>
                                 )}
                             </button>
                         </div>
