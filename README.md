@@ -1,39 +1,52 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Prompt Lab (프롬프트 랩)
 
-## Live Site
-[https://prompt-lab-three.vercel.app/](https://prompt-lab-three.vercel.app/)
+**Prompt Lab**은 사용자가 다양한 상황별 프롬프트를 학습하고 생성할 수 있는 인터랙티브 웹 애플리케이션입니다. 관리자는 그룹(계정)을 관리하고 프롬프트 DB를 구축할 수 있습니다.
 
-## Getting Started
+## ✨ 주요 기능 (Key Features)
 
-First, run the development server:
+### 1. 🤖 AI 프롬프트 생성 (AI Image Generation)
+- **멀티모달 지원**: 텍스트 주제뿐만 아니라 **이미지**를 업로드하여 AI가 이를 분석하고 교육용 프롬프트를 자동 생성합니다.
+- **최신 모델**: Google **Gemini 1.5 Flash** 모델을 사용하여 빠르고 정확한 결과를 제공합니다.
+- **자동 저장**: 생성된 프롬프트는 즉시 데이터베이스에 저장되어 목록에서 바로 확인할 수 있습니다.
+
+### 2. 🛡️ 관리자 대시보드 (Admin Dashboard)
+- **그룹 관리 (CRUD)**:
+    - 새로운 그룹(계정)을 추가, 수정, 삭제할 수 있습니다.
+    - **표시 이름 한글화**: `business`, `public` 등의 ID 대신 `비즈니스`, `공공기관` 등 친숙한 한글 이름으로 표시됩니다.
+- **보안 기능**:
+    - 비밀번호 확인 시 **눈 모양 아이콘(👁️)**을 사용하여 숨김/표시를 토글할 수 있습니다.
+
+### 3. 📚 학습 및 실습 (Learn & Practice)
+- **단계별 학습**: 초급, 중급, 고급 난이도별로 프롬프트를 학습할 수 있습니다.
+- **다양한 분야**: 비즈니스, 공공기관, 학교(초/중/고/대), 일반 성인 등 대상별 커리큘럼을 제공합니다.
+- **편의 기능**:
+    - **페이징(Pagination)**: 프롬프트 목록을 페이지 단위로 탐색할 수 있습니다.
+    - **대량 등록**: JSON 형식 또는 AI 생성을 통해 프롬프트를 일괄 등록할 수 있습니다.
+
+## 🚀 시작하기 (Getting Started)
+
+### 설치 및 실행
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 환경 변수 (.env)
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+프로젝트 루트에 `.env` 파일을 생성하고 다음 키를 설정해야 합니다.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_key
+GEMINI_API_KEY=your_gemini_api_key
+OPENAI_API_KEY=your_openai_api_key (Optional)
+```
 
-## Learn More
+## 🛠️ 기술 스택 (Tech Stack)
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Framework**: Next.js 14+ (App Router)
+- **Database**: Supabase (PostgreSQL)
+- **Styling**: CSS Modules / Global CSS
+- **AI**: Google Generative AI (Gemini), OpenAI API
+- **Icons**: Lucide React
