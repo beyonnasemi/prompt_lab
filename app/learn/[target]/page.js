@@ -6,7 +6,6 @@ import { supabase } from '@/lib/supabase';
 import BulkUploadModal from '@/app/components/BulkUploadModal';
 import AIGenerateModal from '@/app/components/AIGenerateModal';
 import PromptDetailPanel from '@/app/components/PromptDetailPanel';
-import { Plus, Pencil, Trash2, X, Save, FileText, Sparkles, User, Search } from 'lucide-react';
 
 const targetNames = {
     'business': '비즈니스',
@@ -35,8 +34,6 @@ const difficultyGuides = {
         features: "핵심 특징: 예시 제공(Few-shot), 출력 형식 지정(Format), 단계별 사고 유도"
     }
 };
-
-
 
 function LearnContent() {
     const params = useParams();
@@ -318,14 +315,14 @@ function LearnContent() {
                             className="btn"
                             style={{ padding: '0.6rem 0.8rem', display: 'flex', alignItems: 'center', gap: '0.3rem', background: 'white', border: '1px solid #7c3aed', color: '#7c3aed', fontSize: '0.9rem' }}
                         >
-                            <Sparkles size={16} /> AI생성
+                            <span>✨</span> AI생성
                         </button>
                         <button
                             onClick={() => setIsBulkModalOpen(true)}
                             className="btn"
                             style={{ padding: '0.6rem 0.8rem', display: 'flex', alignItems: 'center', gap: '0.3rem', background: 'white', border: '1px solid #e2e8f0', color: '#475569', fontSize: '0.9rem' }}
                         >
-                            <FileText size={16} /> 대량등록
+                            <span>📄</span> 대량등록
                         </button>
 
                         {/* Consistent Buttons: Delete Selected & Create */}
@@ -335,7 +332,7 @@ function LearnContent() {
                                 className="btn"
                                 style={{ padding: '0.6rem 1rem', display: 'flex', alignItems: 'center', gap: '0.3rem', background: '#fef2f2', border: '1px solid #fca5a5', color: '#dc2626', fontSize: '0.9rem' }}
                             >
-                                <Trash2 size={16} /> 선택 삭제 ({checkedIds.length})
+                                <span>🗑️</span> 선택 삭제 ({checkedIds.length})
                             </button>
                         )}
                         <button
@@ -343,7 +340,7 @@ function LearnContent() {
                             className="btn btn-primary"
                             style={{ padding: '0.6rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', whiteSpace: 'nowrap' }}
                         >
-                            <Plus size={18} /> 프롬프트 추가
+                            <span>➕</span> 프롬프트 추가
                         </button>
                     </div>
                 )}
@@ -374,11 +371,6 @@ function LearnContent() {
 
             {/* Top Section: Guide Box + Detail View */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
-                {/* Guide (Smaller) */}
-                {/* <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '0.5rem', padding: '1rem' }}>
-                    <p style={{ color: '#475569', fontSize: '0.9rem' }}>💡 {currentGuide.features}</p>
-                </div> */}
-
                 {/* Detail Panel */}
                 {selectedPrompt && (
                     <PromptDetailPanel
@@ -396,7 +388,7 @@ function LearnContent() {
                 {/* Search Bar */}
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
                     <div style={{ position: 'relative', maxWidth: '300px', width: '100%' }}>
-                        <Search size={18} color="#94a3b8" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+                        <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }}>🔍</span>
                         <input
                             type="text"
                             placeholder="주제(제목) 검색..."
@@ -409,7 +401,7 @@ function LearnContent() {
                                 onClick={() => setSearchQuery('')}
                                 style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', border: 'none', background: 'none', cursor: 'pointer', color: '#94a3b8' }}
                             >
-                                <X size={14} />
+                                <span>✖</span>
                             </button>
                         )}
                     </div>
@@ -485,7 +477,7 @@ function LearnContent() {
                                             </td>
                                             <td style={{ padding: '1rem', color: '#64748b' }} className="mobile-hidden">
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                    <User size={16} color="#cbd5e1" />
+                                                    <span>👤</span>
                                                     {prompt.accounts?.display_name || '관리자'}
                                                 </div>
                                             </td>
@@ -568,11 +560,11 @@ function LearnContent() {
                                             gap: '0.25rem'
                                         }}
                                     >
-                                        <FileText size={14} /> JSON으로 대량 등록하기 (클릭)
+                                        <span>📄</span> JSON으로 대량 등록하기 (클릭)
                                     </button>
                                 )}
                             </div>
-                            <button onClick={() => setIsModalOpen(false)} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: '0.5rem' }}><X size={24} /></button>
+                            <button onClick={() => setIsModalOpen(false)} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: '0.5rem' }}><span>✖</span></button>
                         </div>
 
                         <form onSubmit={handleFormSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -632,15 +624,13 @@ function LearnContent() {
                             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '1rem' }}>
                                 <button type="button" onClick={() => setIsModalOpen(false)} className="btn" style={{ border: '1px solid #e2e8f0' }}>취소</button>
                                 <button type="submit" className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                    <Save size={18} /> 저장하기
+                                    <span>💾</span> 저장하기
                                 </button>
                             </div>
                         </form>
                     </div>
                 </div>
             )}
-
-            {/* AI Generate Modal */}
             <AIGenerateModal
                 isOpen={isAIModalOpen}
                 onClose={() => setIsAIModalOpen(false)}
@@ -648,7 +638,6 @@ function LearnContent() {
                 currentDifficulty={selectedDifficulty}
                 onSuccess={handleDataSave}
             />
-            {/* Bulk Upload Modal */}
             <BulkUploadModal
                 isOpen={isBulkModalOpen}
                 onClose={() => setIsBulkModalOpen(false)}
