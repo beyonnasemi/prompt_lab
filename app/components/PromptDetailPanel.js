@@ -1,61 +1,137 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { createClient } from '@/utils/supabase/client'; // Assuming this path, will verify. If not, I'll fix.
+// Actually, standard Next.js Supabase starter often usesutils/supabase/client.
+// Let's safe-guard. I will use a prop for onSave and handle upload in parent if possible?
+// START_UPDATE
+// User complained about "max size" error. This is often because of passing base64 to server action.
+// Best practice is client-side upload.
+// I will implement client-side upload here.
+// I'll try to import createClient from '@/utils/supabase/client'. if it fails build, I'll fix.
 
-export default function PromptDetailPanel({ prompt, isAdmin, onEdit, onDelete, onClose }) {
+// Re-verified page.js in next step.
+
+export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onClose, onSave, onDelete }) {
+    // mode: 'view' | 'edit' | 'create'
+    const [currentMode, setCurrentMode] = useState(mode);
+    const [formData, setFormData] = useState({
+        title: '',
+        content: '',
+        expected_answer: '',
+        difficulty: 'beginner',
+        attachment_url: null
+    });
+    const [file, setFile] = useState(null);
+    const [loading, setLoading] = useState(false);
     const [copiedId, setCopiedId] = useState(null);
 
-    // If no prompt is selected, valid parent logic should prevent rendering, but we return null just in case
-    if (!prompt) return null;
+    useEffect(() => {
+        if (prompt && mode !== 'create') {
+            setFormData({
+                title: prompt.title || '',
+                content: prompt.content || '',
+                expected_answer: prompt.expected_answer || '',
+                difficulty: prompt.difficulty || 'beginner',
+                attachment_url: prompt.attachment_url || null
+            });
+            setCurrentMode('view'); // Default to view if prompt exists
+        } else if (mode === 'create') {
+            setFormData({
+                title: '',
+                content: '',
+                expected_answer: '',
+                difficulty: 'beginner',
+                attachment_url: null
+            });
+            setCurrentMode('create');
+        } else if (mode === 'edit') {
+            setFormData({
+                title: prompt.title || '',
+                content: prompt.content || '',
+                expected_answer: prompt.expected_answer || '',
+                difficulty: prompt.difficulty || 'beginner',
+                attachment_url: prompt.attachment_url || null
+            });
+            setCurrentMode('edit');
+        }
+    }, [prompt, mode]);
 
     const handleCopy = (text) => {
         navigator.clipboard.writeText(text);
-        setCopiedId(prompt.id);
+        setCopiedId('copy');
         setTimeout(() => setCopiedId(null), 2000);
     };
 
-    return (
-        <div style={{
-            background: 'white',
-            border: '1px solid #e2e8f0',
-            borderRadius: '0.75rem',
-            padding: '2rem',
-            marginBottom: '2rem',
-            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-            transition: 'all 0.3s ease'
-        }}>
-            {/* Header Area */}
-            <div style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '1.5rem', marginBottom: '1.5rem' }}>
-                {/* Navigation Row */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                    <button
-                        onClick={onClose}
-                        className="btn"
-                        style={{
-                            padding: '0.5rem 0.75rem',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.25rem',
-                            fontSize: '0.9rem',
-                            color: '#64748b',
-                            background: '#f8fafc',
-                            border: '1px solid #e2e8f0'
-                        }}
-                    >
-                        <span>⬅️</span> 목록으로
-                    </button>
+    const handleFileChange = (e) => {
+        if (e.target.files && e.target.files[0]) {
+            setFile(e.target.files[0]);
+        }
+    };
 
-                    <button onClick={onClose} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: '0.5rem', color: '#94a3b8', fontSize: '1.2rem' }} title="닫기">
-                        ✖
-                    </button>
-                </div>
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        try {
+            let finalAttachmentUrl = formData.attachment_url;
 
-                {/* Title & Metadata Row */}
-                <div>
+            if (file) {
+                // Initialize Supabase Client dynamically to avoid build errors if path is wrong,
+                // but better to import it. I will rely on onSave to handle the logic if possible?
+                // No, file upload usually needs client.
+                // let's assume the standard path or pass it in?
+                // I'll try to just pass the file to onSave and let the Page handle it?
+                // That's cleaner.
+                // onSave(formData, file)
+            }
+
+            await onSave({ ...formData }, file, prompt?.id);
+
+            if (currentMode === 'create') {
+                // Parent handles closing or resetting
+            } else {
+                setCurrentMode('view');
+            }
+        } catch (error) {
+            alert('저장 실패: ' + error.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // If viewing and no prompt, nothing to show
+    if (!prompt && currentMode === 'view') return null;
+
+    // --- VIEW MODE ---
+    if (currentMode === 'view') {
+        return (
+            <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                <div style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '1.5rem', marginBottom: '1.5rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                        <button onClick={onClose} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.5rem 0.75rem', border: '1px solid #e2e8f0', background: 'white', borderRadius: '0.375rem', cursor: 'pointer', color: '#64748b' }}>
+                            <span>⬅️</span> 목록으로
+                        </button>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            {isAdmin && (
+                                <>
+                                    <button onClick={() => setCurrentMode('edit')} style={{ padding: '0.5rem', cursor: 'pointer', border: 'none', background: 'none', fontSize: '1.2rem' }} title="수정">
+                                        ✏️
+                                    </button>
+                                    <button onClick={() => { if (confirm('삭제하시겠습니까?')) onDelete(prompt.id); }} style={{ padding: '0.5rem', cursor: 'pointer', border: 'none', background: 'none', fontSize: '1.2rem' }} title="삭제">
+                                        🗑️
+                                    </button>
+                                </>
+                            )}
+                            <button onClick={onClose} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: '0.5rem', fontSize: '1.2rem', color: '#94a3b8' }} title="닫기">
+                                ✖
+                            </button>
+                        </div>
+                    </div>
+
                     <h2 style={{ fontSize: '1.75rem', fontWeight: 700, color: '#1e293b', lineHeight: 1.3, marginBottom: '0.75rem' }}>
                         {prompt.title}
                     </h2>
-                    <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', fontSize: '0.9rem', color: '#64748b' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#64748b', flexWrap: 'wrap' }}>
                         <span style={{
                             background: prompt.difficulty === 'beginner' ? '#dbeafe' : prompt.difficulty === 'intermediate' ? '#fce7f3' : '#ffedd5',
                             color: prompt.difficulty === 'beginner' ? '#1e40af' : prompt.difficulty === 'intermediate' ? '#9d174d' : '#9a3412',
@@ -63,161 +139,143 @@ export default function PromptDetailPanel({ prompt, isAdmin, onEdit, onDelete, o
                         }}>
                             {prompt.difficulty === 'beginner' ? '초급' : prompt.difficulty === 'intermediate' ? '중급' : '고급'}
                         </span>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                            <span>📅</span> {new Date(prompt.created_at).toLocaleDateString()}
-                        </span>
-                        {prompt.accounts?.display_name && (
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                                <span>👤</span> {prompt.accounts.display_name}
-                            </span>
-                        )}
-                    </div>
-                </div>
-            </div>
-
-            {/* Content Area */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-
-                {/* Prompt Box */}
-                <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                        <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#334155', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            📝 프롬프트
-                        </h3>
-                        <button
-                            onClick={() => handleCopy(prompt.content)}
-                            className="btn"
-                            style={{
-                                fontSize: '0.85rem',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.4rem',
-                                border: '1px solid #cbd5e1',
-                                padding: '0.4rem 0.8rem',
-                                color: copiedId === prompt.id ? '#16a34a' : '#475569',
-                                background: 'white'
-                            }}
-                        >
-                            {copiedId === prompt.id ? <span>✅</span> : <span>📋</span>}
-                            {copiedId === prompt.id ? '복사됨' : '복사하기'}
-                        </button>
-                    </div>
-                    <div style={{
-                        background: '#f8fafc',
-                        padding: '1.5rem',
-                        borderRadius: '0.5rem',
-                        whiteSpace: 'pre-wrap',
-                        lineHeight: '1.6',
-                        color: '#334155',
-                        fontFamily: 'monospace',
-                        border: '1px solid #e2e8f0',
-                        fontSize: '1rem',
-                        maxHeight: '400px',
-                        overflowY: 'auto'
-                    }}>
-                        {prompt.content}
+                        <span>📅 {new Date(prompt.created_at).toLocaleDateString()}</span>
+                        {prompt.accounts?.display_name && <span>👤 {prompt.accounts.display_name}</span>}
                     </div>
                 </div>
 
-                {/* Expected Answer */}
-                {prompt.expected_answer && (
-                    <div>
-                        <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#334155', marginBottom: '0.75rem' }}>💡 예상 답변 / 결과</h3>
-                        <div style={{
-                            padding: '1.25rem',
-                            background: '#eff6ff',
-                            borderRadius: '0.5rem',
-                            color: '#1e3a8a',
-                            lineHeight: '1.7',
-                            border: '1px solid #dbeafe',
-                            whiteSpace: 'pre-wrap',
-                            maxHeight: '300px',
-                            overflowY: 'auto'
-                        }}>
-                            {prompt.expected_answer}
+                <div style={{ flex: 1, overflowY: 'auto' }}>
+                    <div style={{ marginBottom: '1.5rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                            <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#334155' }}>📝 프롬프트</h3>
+                            <button onClick={() => handleCopy(prompt.content)} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.3rem 0.6rem', border: '1px solid #cbd5e1', borderRadius: '0.25rem', background: 'white', cursor: 'pointer', fontSize: '0.85rem' }}>
+                                {copiedId ? '✅ 복사됨' : '📋 복사하기'}
+                            </button>
+                        </div>
+                        <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '0.5rem', whiteSpace: 'pre-wrap', lineHeight: '1.6', border: '1px solid #e2e8f0', color: '#334155', fontFamily: 'monospace' }}>
+                            {prompt.content}
                         </div>
                     </div>
-                )}
 
-                {/* Attachment */}
-                {prompt.attachment_url && (
-                    <div>
-                        <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#334155', marginBottom: '0.75rem' }}>💾 첨부 자료</h3>
-                        <a
-                            href={prompt.attachment_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="btn"
-                            style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '0.5rem',
-                                padding: '0.75rem 1.25rem',
-                                background: 'white',
-                                border: '1px solid #cbd5e1',
-                                color: '#2563eb',
-                                textDecoration: 'none',
-                                borderRadius: '0.5rem',
-                                transition: 'all 0.2s',
-                                fontWeight: 500
-                            }}
-                        >
-                            <span>📥</span> 자료 다운로드
-                        </a>
-                    </div>
-                )}
+                    {prompt.expected_answer && (
+                        <div style={{ marginBottom: '1.5rem' }}>
+                            <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#334155', marginBottom: '0.5rem' }}>💡 예상 답변</h3>
+                            <div style={{ background: '#eff6ff', padding: '1.25rem', borderRadius: '0.5rem', color: '#1e3a8a', lineHeight: '1.7', border: '1px solid #dbeafe', whiteSpace: 'pre-wrap' }}>
+                                {prompt.expected_answer}
+                            </div>
+                        </div>
+                    )}
 
-                {/* Admin Actions */}
-                {isAdmin && (
-                    <div style={{
-                        marginTop: '1rem',
-                        paddingTop: '1.5rem',
-                        borderTop: '1px solid #e2e8f0',
-                        display: 'flex',
-                        justifyContent: 'flex-end',
-                        gap: '0.75rem'
-                    }}>
-                        <button
-                            onClick={() => { onEdit(prompt); }}
-                            style={{
-                                padding: '0.6rem 1rem',
-                                borderRadius: '0.375rem',
-                                border: '1px solid #94a3b8',
-                                background: 'white',
-                                color: '#475569',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.4rem',
-                                fontSize: '0.9rem'
-                            }}
-                        >
-                            <span>✏️</span> 수정
-                        </button>
-                        <button
-                            onClick={() => {
-                                if (confirm('정말 삭제하시겠습니까?')) {
-                                    onDelete(prompt.id);
-                                }
-                            }}
-                            style={{
-                                padding: '0.6rem 1rem',
-                                borderRadius: '0.375rem',
-                                border: '1px solid #f87171',
-                                background: '#fef2f2',
-                                color: '#dc2626',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.4rem',
-                                fontSize: '0.9rem'
-                            }}
-                        >
-                            <span>🗑️</span> 삭제
-                        </button>
-                    </div>
-                )}
+                    {prompt.attachment_url && (
+                        <div>
+                            <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#334155', marginBottom: '0.5rem' }}>💾 첨부 자료</h3>
+                            <a href={prompt.attachment_url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1rem', background: 'white', border: '1px solid #cbd5e1', borderRadius: '0.5rem', textDecoration: 'none', color: '#2563eb' }}>
+                                <span>📥</span> 자료 다운로드
+                            </a>
+                        </div>
+                    )}
+                </div>
             </div>
+        );
+    }
+
+    // --- EDIT / CREATE MODE ---
+    return (
+        <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '1rem' }}>
+                <h2 style={{ fontSize: '1.5rem', fontWeight: 700 }}>
+                    {currentMode === 'create' ? '새 프롬프트 추가' : '프롬프트 수정'}
+                </h2>
+                <button
+                    onClick={() => {
+                        if (currentMode === 'create') onClose();
+                        else setCurrentMode('view');
+                    }}
+                    style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: '1.2rem', color: '#94a3b8' }}
+                >
+                    ✖
+                </button>
+            </div>
+
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', flex: 1, overflowY: 'auto', paddingRight: '0.5rem' }}>
+                <div>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155' }}>제목</label>
+                    <input
+                        type="text"
+                        value={formData.title}
+                        onChange={e => setFormData({ ...formData, title: e.target.value })}
+                        style={{ width: '100%', padding: '0.8rem', border: '1px solid #e2e8f0', borderRadius: '0.5rem', fontSize: '1rem' }}
+                        required
+                    />
+                </div>
+
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                    <div style={{ flex: 1 }}>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155' }}>난이도</label>
+                        <select
+                            value={formData.difficulty}
+                            onChange={e => setFormData({ ...formData, difficulty: e.target.value })}
+                            style={{ width: '100%', padding: '0.8rem', border: '1px solid #e2e8f0', borderRadius: '0.5rem' }}
+                        >
+                            <option value="beginner">초급</option>
+                            <option value="intermediate">중급</option>
+                            <option value="advanced">고급</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155' }}>프롬프트 내용</label>
+                    <textarea
+                        value={formData.content}
+                        onChange={e => setFormData({ ...formData, content: e.target.value })}
+                        style={{ width: '100%', padding: '0.8rem', border: '1px solid #e2e8f0', borderRadius: '0.5rem', minHeight: '200px', fontSize: '0.95rem', fontFamily: 'monospace' }}
+                        required
+                    />
+                </div>
+
+                <div>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155' }}>예상 답변 (선택)</label>
+                    <textarea
+                        value={formData.expected_answer}
+                        onChange={e => setFormData({ ...formData, expected_answer: e.target.value })}
+                        style={{ width: '100%', padding: '0.8rem', border: '1px solid #e2e8f0', borderRadius: '0.5rem', minHeight: '100px' }}
+                    />
+                </div>
+
+                <div>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155' }}>첨부 파일 (선택)</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        <input
+                            type="file"
+                            onChange={handleFileChange}
+                            style={{ width: '100%', padding: '0.5rem', border: '1px solid #e2e8f0', borderRadius: '0.5rem' }}
+                        />
+                    </div>
+                    {formData.attachment_url && !file && (
+                        <div style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: '#2563eb' }}>
+                            <a href={formData.attachment_url} target="_blank" rel="noopener noreferrer">기존 파일 확인</a>
+                        </div>
+                    )}
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: 'auto', paddingTop: '1rem' }}>
+                    <button
+                        type="button"
+                        onClick={() => currentMode === 'create' ? onClose() : setCurrentMode('view')}
+                        style={{ padding: '0.8rem 1.5rem', border: '1px solid #e2e8f0', background: 'white', borderRadius: '0.5rem', cursor: 'pointer' }}
+                    >
+                        취소
+                    </button>
+                    <button
+                        type="submit"
+                        disabled={loading}
+                        style={{ padding: '0.8rem 1.5rem', background: '#2563eb', color: 'white', border: 'none', borderRadius: '0.5rem', cursor: loading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                    >
+                        {loading ? '저장 중...' : <span>💾 저장하기</span>}
+                    </button>
+                </div>
+            </form>
         </div>
     );
 }

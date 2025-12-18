@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { Users, Building2, GraduationCap, School, Baby, User, ShieldCheck, KeyRound, LogOut, ChevronRight, Eye, EyeOff, Plus, Trash2 } from 'lucide-react';
 
 export default function AdminDashboard() {
     const router = useRouter();
@@ -19,14 +18,15 @@ export default function AdminDashboard() {
     const [isCreating, setIsCreating] = useState(false);
     const [newAccount, setNewAccount] = useState({ username: '', password: '', display_name: '' });
 
+    // Initial targets (legacy/default list)
     const targets = [
-        { id: 'business', name: '비즈니스', icon: <Building2 size={32} /> },
-        { id: 'public', name: '공공기관', icon: <Users size={32} /> },
-        { id: 'univ', name: '대학', icon: <GraduationCap size={32} /> },
-        { id: 'elem', name: '초등학교', icon: <Baby size={32} /> },
-        { id: 'middle', name: '중학교', icon: <School size={32} /> },
-        { id: 'high', name: '고등학교', icon: <School size={32} /> },
-        { id: 'adult', name: '일반성인 (기초)', icon: <User size={32} /> },
+        { id: 'business', name: '비즈니스' },
+        { id: 'public', name: '공공기관' },
+        { id: 'univ', name: '대학' },
+        { id: 'elem', name: '초등학교' },
+        { id: 'middle', name: '중학교' },
+        { id: 'high', name: '고등학교' },
+        { id: 'adult', name: '일반성인 (기초)' },
     ];
 
     const targetNameMap = targets.reduce((acc, t) => ({ ...acc, [t.id]: t.name }), {});
@@ -95,21 +95,27 @@ export default function AdminDashboard() {
         if (!newAccount.username || !newAccount.password) return;
 
         try {
-            const { error } = await supabase.from('accounts').insert([{
+            // Simplified: User inputs "Group Name" (e.g. "마케팅팀")
+            // Use it for both username and display_name, or allow separate.
+            // User requested "Korean ID". So we treat username as the identifier which can be Korean.
+
+            const payload = {
                 username: newAccount.username,
                 password: newAccount.password,
-                display_name: newAccount.display_name || targetNameMap[newAccount.username] || newAccount.username,
-                role: 'user'
-            }]);
+                display_name: newAccount.display_name || newAccount.username, // Fallback to username if empty
+                role: 'user' // Assuming check constraint allows 'user'. 
+            };
+
+            const { error } = await supabase.from('accounts').insert([payload]);
 
             if (error) throw error;
 
-            alert("새로운 계정이 생성되었습니다.");
+            alert("새로운 그룹(계정)이 생성되었습니다.");
             setIsCreating(false);
             setNewAccount({ username: '', password: '', display_name: '' });
             fetchAccounts();
         } catch (e) {
-            alert("생성 실패: " + e.message);
+            alert("생성 실패: " + e.message + "\n(ID 중복 혹은 시스템 오류)");
         }
     };
 
@@ -137,7 +143,7 @@ export default function AdminDashboard() {
             <div style={{ marginBottom: '3rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
                 <div>
                     <h1 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <ShieldCheck size={32} color="#2563eb" /> 관리자 대시보드
+                        <span>🛡️</span> 관리자 대시보드
                     </h1>
                     <p style={{ color: '#64748b' }}>프롬프트 및 사용자 계정을 관리합니다.</p>
                 </div>
@@ -177,7 +183,7 @@ export default function AdminDashboard() {
                 </button>
             </div>
 
-            {/* Prompt Management Tab (New Grid Layout) */}
+            {/* Prompt Management Tab */}
             {activeTab === 'prompts' && (
                 <div>
                     <div style={{ background: '#eff6ff', border: '1px solid #dbeafe', borderRadius: '0.5rem', padding: '1.5rem', marginBottom: '2rem' }}>
@@ -195,6 +201,7 @@ export default function AdminDashboard() {
                         gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
                         gap: '1.5rem'
                     }}>
+                        {/* Default Targets */}
                         {targets.map((target) => (
                             <div
                                 key={target.id}
@@ -212,33 +219,31 @@ export default function AdminDashboard() {
                                     transition: 'all 0.2s',
                                     boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
                                 }}
-                                onMouseOver={(e) => {
-                                    e.currentTarget.style.transform = 'translateY(-4px)';
-                                    e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)';
-                                    e.currentTarget.style.borderColor = '#3b82f6';
-                                }}
-                                onMouseOut={(e) => {
-                                    e.currentTarget.style.transform = 'none';
-                                    e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.05)';
-                                    e.currentTarget.style.borderColor = '#e2e8f0';
-                                }}
                             >
-                                <div style={{ color: '#3b82f6', marginBottom: '1rem' }}>
-                                    {target.icon}
+                                <div style={{ fontSize: '2rem', marginBottom: '1rem', color: '#3b82f6' }}>
+                                    🏢 {/* Placeholder Emoji */}
                                 </div>
                                 <h3 style={{ fontSize: '1.2rem', fontWeight: 600, color: '#1e293b', marginBottom: '0.5rem' }}>
                                     {target.name}
                                 </h3>
                                 <p style={{ fontSize: '0.9rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                                    관리하기 <ChevronRight size={14} />
+                                    관리하기 <span>➡️</span>
                                 </p>
                             </div>
                         ))}
                     </div>
+
+                    {/* Note: User created accounts also appear here? 
+                        Originally they are just targets. 
+                        If accounts are groups, we should list accounts too?
+                        The original code only listed hardcoded targets.
+                        I will stick to hardcoded + maybe dynamic?
+                        For now, leaving as is to fix errors first.
+                    */}
                 </div>
             )}
 
-            {/* Account Management Tab (Existing Logic) */}
+            {/* Account Management Tab */}
             {activeTab === 'accounts' && (
                 <div>
                     {/* Admin Password Change Card */}
@@ -263,7 +268,7 @@ export default function AdminDashboard() {
                                 fontWeight: 500
                             }}
                         >
-                            <KeyRound size={16} /> 관리자 비밀번호 변경
+                            <span>🔑</span> 관리자 비밀번호 변경
                         </button>
                     </div>
 
@@ -273,34 +278,31 @@ export default function AdminDashboard() {
                             className="btn btn-primary"
                             style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
                         >
-                            <Plus size={18} /> 그룹(계정) 추가
+                            <span>➕</span> 그룹(계정) 추가
                         </button>
                     </div>
 
                     {/* Create Account Form */}
                     {isCreating && (
                         <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', p: '1.5rem', borderRadius: '0.5rem', marginBottom: '2rem', padding: '1.5rem' }}>
-                            <h4 style={{ marginBottom: '1rem', fontWeight: 600 }}>새 그룹 추가</h4>
+                            <h4 style={{ marginBottom: '1rem', fontWeight: 600 }}>새 그룹(계정) 생성</h4>
+                            <p style={{ fontSize: '0.9rem', color: '#64748b', marginBottom: '1rem' }}>
+                                영문/한글 ID 사용이 가능합니다. 주소창에 입력할 ID로 사용됩니다.<br />
+                                (예: '영업팀' 생성 시 -&gt; /learn/영업팀)
+                            </p>
                             <form onSubmit={handleCreateAccount} style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'end' }}>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '0.25rem', color: '#64748b' }}>아이디 (영어)</label>
+                                    <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '0.25rem', color: '#64748b' }}>그룹 ID (이름)</label>
                                     <input
                                         type="text"
                                         value={newAccount.username}
-                                        onChange={(e) => setNewAccount({ ...newAccount, username: e.target.value })}
-                                        placeholder="business"
+                                        onChange={(e) => {
+                                            setNewAccount({ ...newAccount, username: e.target.value });
+                                            // Optional: Auto-fill display name?
+                                        }}
+                                        placeholder="예: 영업팀"
                                         required
-                                        style={{ padding: '0.5rem', border: '1px solid #cbd5e1', borderRadius: '0.25rem' }}
-                                    />
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '0.25rem', color: '#64748b' }}>표시 이름 (한글)</label>
-                                    <input
-                                        type="text"
-                                        value={newAccount.display_name}
-                                        onChange={(e) => setNewAccount({ ...newAccount, display_name: e.target.value })}
-                                        placeholder="비즈니스 (공란시 자동 매핑)"
-                                        style={{ padding: '0.5rem', border: '1px solid #cbd5e1', borderRadius: '0.25rem', minWidth: '200px' }}
+                                        style={{ padding: '0.5rem', border: '1px solid #cbd5e1', borderRadius: '0.25rem', minWidth: '150px' }}
                                     />
                                 </div>
                                 <div>
@@ -314,7 +316,7 @@ export default function AdminDashboard() {
                                     />
                                 </div>
                                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                    <button type="submit" className="btn btn-primary" style={{ padding: '0.5rem 1rem' }}>생성</button>
+                                    <button type="submit" className="btn btn-primary" style={{ padding: '0.5rem 1rem' }}>생성하기</button>
                                     <button type="button" onClick={() => setIsCreating(false)} className="btn" style={{ background: 'white', border: '1px solid #cbd5e1', padding: '0.5rem 1rem' }}>취소</button>
                                 </div>
                             </form>
@@ -325,8 +327,8 @@ export default function AdminDashboard() {
                         <table style={{ width: '100%', borderCollapse: 'collapse', background: 'white', borderRadius: '0.5rem', overflow: 'hidden', border: '1px solid #e2e8f0' }}>
                             <thead style={{ background: '#f8fafc' }}>
                                 <tr>
-                                    <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '1px solid #e2e8f0', width: '20%', color: '#64748b', fontWeight: 600 }}>아이디 (그룹)</th>
-                                    <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '1px solid #e2e8f0', width: '25%', color: '#64748b', fontWeight: 600 }}>표시 이름</th>
+                                    <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '1px solid #e2e8f0', width: '25%', color: '#64748b', fontWeight: 600 }}>아이디 (그룹명)</th>
+                                    <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '1px solid #e2e8f0', width: '20%', color: '#64748b', fontWeight: 600 }}>표시 이름</th>
                                     <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '1px solid #e2e8f0', width: '40%', color: '#64748b', fontWeight: 600 }}>비밀번호 관리</th>
                                     <th style={{ padding: '1rem', textAlign: 'center', borderBottom: '1px solid #e2e8f0', width: '15%', color: '#64748b', fontWeight: 600 }}>작업</th>
                                 </tr>
@@ -336,9 +338,11 @@ export default function AdminDashboard() {
                                     <tr><td colSpan="4" style={{ padding: '2rem', textAlign: 'center' }}>데이터를 불러오는 중...</td></tr>
                                 ) : accounts.map((account) => (
                                     <tr key={account.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                        <td style={{ padding: '1rem', fontWeight: 500, color: '#334155' }}>{account.username}</td>
+                                        <td style={{ padding: '1rem', fontWeight: 500, color: '#334155' }}>
+                                            {account.username}
+                                        </td>
                                         <td style={{ padding: '1rem', color: '#64748b' }}>
-                                            {account.display_name || targetNameMap[account.username] || account.username}
+                                            {account.display_name}
                                         </td>
                                         <td style={{ padding: '1rem' }}>
                                             <div style={{ display: 'flex', gap: '0.5rem', maxWidth: '300px', alignItems: 'center' }}>
@@ -357,7 +361,7 @@ export default function AdminDashboard() {
                                                             background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', display: 'flex'
                                                         }}
                                                     >
-                                                        {showPasswords[account.id] ? <EyeOff size={16} /> : <Eye size={16} />}
+                                                        {showPasswords[account.id] ? <span>🙈</span> : <span>👁️</span>}
                                                     </button>
                                                 </div>
                                                 <button
@@ -375,7 +379,7 @@ export default function AdminDashboard() {
                                                 style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', padding: '0.5rem' }}
                                                 title="계정 삭제"
                                             >
-                                                <Trash2 size={20} />
+                                                🗑️
                                             </button>
                                         </td>
                                     </tr>

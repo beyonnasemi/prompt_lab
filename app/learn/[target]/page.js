@@ -3,8 +3,8 @@
 import { useState, useEffect, Suspense, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import BulkUploadModal from '@/app/components/BulkUploadModal';
-import AIGenerateModal from '@/app/components/AIGenerateModal';
+import BulkUploadPanel from '@/app/components/BulkUploadPanel';
+import AIGeneratePanel from '@/app/components/AIGeneratePanel';
 import PromptDetailPanel from '@/app/components/PromptDetailPanel';
 
 const targetNames = {
@@ -45,28 +45,22 @@ function LearnContent() {
     const [loading, setLoading] = useState(true);
     const [selectedDifficulty, setSelectedDifficulty] = useState('beginner');
 
-    // Selection & Detail Panel State
+    // State for Right Panel
+    // 'none' (or 'placeholder'), 'detail', 'create', 'edit', 'ai', 'bulk'
+    const [activePanel, setActivePanel] = useState('none');
+
+    // Selection State
     const [selectedPrompt, setSelectedPrompt] = useState(null);
     const [checkedIds, setCheckedIds] = useState([]);
 
     // Search & Pagination State
     const [searchQuery, setSearchQuery] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
-
-    // Admin State
     const [isAdmin, setIsAdmin] = useState(false);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingPrompt, setEditingPrompt] = useState(null);
-    const [promptForm, setPromptForm] = useState({ title: '', content: '', expected_answer: '', file: null });
-
-    // Bulk Upload & AI State
-    const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
-    const [isAIModalOpen, setIsAIModalOpen] = useState(false);
 
     useEffect(() => {
         if (!targetId) return;
 
-        // 1. Auth Check
         const adminSessionStr = localStorage.getItem('admin_session');
         if (adminSessionStr) {
             const targetName = targetNames[targetId] || targetId;
@@ -103,8 +97,11 @@ function LearnContent() {
 
     const fetchPrompts = async (target, difficulty) => {
         setLoading(true);
-        setSelectedPrompt(null);
         setCheckedIds([]);
+        // We do NOT reset selectedPrompt here to preserve view if refreshing, 
+        // but if difficulty changes, the prompt works might be filtered out? 
+        // For now let's keep it.
+
         const { data, error } = await supabase
             .from('prompts')
             .select(`
@@ -116,7 +113,6 @@ function LearnContent() {
             .order('created_at', { ascending: false });
 
         if (error) {
-            console.error("Fetch Error:", error);
             // Fallback fetch
             const { data: fallbackData } = await supabase.from('prompts').select('*').eq('target_group', target).eq('difficulty', difficulty).order('created_at', { ascending: false });
             setPrompts(fallbackData || []);
@@ -126,144 +122,95 @@ function LearnContent() {
         setLoading(false);
     };
 
-    // --- Computed Data: Search & Pagination ---
-    const itemsPerPage = selectedPrompt ? 5 : 10;
-
+    // --- Search & Pagination ---
     const filteredPrompts = useMemo(() => {
         if (!searchQuery) return prompts;
         return prompts.filter(p => p.title.toLowerCase().includes(searchQuery.toLowerCase()));
     }, [prompts, searchQuery]);
 
+    const itemsPerPage = 8; // Adjust for layout
     const totalPages = Math.ceil(filteredPrompts.length / itemsPerPage);
     const displayedPrompts = useMemo(() => {
         const start = (currentPage - 1) * itemsPerPage;
         return filteredPrompts.slice(start, start + itemsPerPage);
     }, [filteredPrompts, currentPage, itemsPerPage]);
 
-    // Reset page on search or category change
     useEffect(() => {
         setCurrentPage(1);
     }, [selectedDifficulty, searchQuery]);
 
-    // Auto-switch page to find the selected item is tricky because "selected" might not be in the new filtered list or might be on a diff page.
-    // For now, simpler UX: If I select an item, I stay on the same page index (User might lose sight of the item if it moves to next page due to resizing 10->5).
-    // Let's implement auto-page logic when selecting.
-    useEffect(() => {
-        if (selectedPrompt) {
-            const index = filteredPrompts.findIndex(p => p.id === selectedPrompt.id);
-            if (index !== -1) {
-                const newPage = Math.ceil((index + 1) / 5); // When selecting, size becomes 5
-                if (newPage !== currentPage) setCurrentPage(newPage);
-            }
-        }
-    }, [selectedPrompt]);
-
 
     // --- Handlers ---
 
-    // Admin Functions
+    const handlePromptClick = (prompt) => {
+        setSelectedPrompt(prompt);
+        setActivePanel('detail');
+    };
+
     const handleAddClick = () => {
-        setEditingPrompt(null);
-        setPromptForm({ title: '', content: '', expected_answer: '', file: null });
-        setIsModalOpen(true);
+        setSelectedPrompt(null);
+        setActivePanel('create');
     };
 
-    const handleEditClick = (prompt) => {
-        setEditingPrompt(prompt);
-        setPromptForm({
-            title: prompt.title,
-            content: prompt.content,
-            expected_answer: prompt.expected_answer || '',
-            file: null
-        });
-        setIsModalOpen(true);
-    };
-
-    const handleDeleteClick = async (id) => {
-        if (!confirm('정말 삭제하시겠습니까?')) return;
-        const { error } = await supabase.from('prompts').delete().eq('id', id);
-        if (error) alert('삭제 실패: ' + error.message);
-        else fetchPrompts(targetId, selectedDifficulty);
-    };
-
-    const handleBulkDelete = async () => {
-        if (checkedIds.length === 0) return;
-        if (!confirm(`선택한 ${checkedIds.length}개의 프롬프트를 삭제하시겠습니까?`)) return;
-
-        const { error } = await supabase.from('prompts').delete().in('id', checkedIds);
-        if (error) {
-            alert('일괄 삭제 실패: ' + error.message);
-        } else {
-            alert('삭제되었습니다.');
-            fetchPrompts(targetId, selectedDifficulty);
-        }
-    };
-
-    const handleCheckAll = (e) => {
-        if (e.target.checked) {
-            const allIds = displayedPrompts.map(p => p.id);
-            setCheckedIds(allIds);
-        } else {
-            setCheckedIds([]);
-        }
-    };
-
-    const handleCheck = (e, id) => {
-        e.stopPropagation(); // prevent row click
-        if (e.target.checked) {
-            setCheckedIds(prev => [...prev, id]);
-        } else {
-            setCheckedIds(prev => prev.filter(item => item !== id));
-        }
-    };
-
-    const handleFormSubmit = async (e) => {
-        e.preventDefault();
+    // This handles single prompt save (create/edit)
+    // Updated signature: payload (data), file (object, optional), id (optional)
+    const handleSavePrompt = async (formData, file, id) => {
         try {
             const adminSession = JSON.parse(localStorage.getItem('admin_session') || '{}');
             const { data: adminAccount } = await supabase.from('accounts').select('id').eq('username', 'admin').single();
 
             const payload = {
                 target_group: targetId,
-                difficulty: selectedDifficulty,
-                title: promptForm.title,
-                content: promptForm.content,
-                expected_answer: promptForm.expected_answer,
+                difficulty: formData.difficulty || selectedDifficulty,
+                title: formData.title,
+                content: formData.content,
+                expected_answer: formData.expected_answer,
                 created_by: adminAccount?.id
             };
 
-            if (promptForm.file) {
-                const fileExt = promptForm.file.name.split('.').pop();
+            // File Upload Logic
+            if (file) {
+                const fileExt = file.name.split('.').pop();
                 const fileName = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
-                const { data: uploadData, error: uploadError } = await supabase.storage
+                const { error: uploadError } = await supabase.storage
                     .from('prompt-files')
-                    .upload(fileName, promptForm.file);
+                    .upload(fileName, file);
 
                 if (uploadError) throw uploadError;
 
                 const { data: { publicUrl } } = supabase.storage.from('prompt-files').getPublicUrl(fileName);
                 payload.attachment_url = publicUrl;
+            } else if (formData.attachment_url) {
+                // Keep existing URL if passed back
+                payload.attachment_url = formData.attachment_url;
             }
 
-            if (editingPrompt) {
-                const { error } = await supabase.from('prompts').update(payload).eq('id', editingPrompt.id);
+            if (id) {
+                // Update
+                const { error } = await supabase.from('prompts').update(payload).eq('id', id);
                 if (error) throw error;
-                // If we edited the currently selected prompt, update it in view too
-                if (selectedPrompt?.id === editingPrompt.id) {
+                // Update local state if needed
+                if (selectedPrompt?.id === id) {
                     setSelectedPrompt({ ...selectedPrompt, ...payload });
                 }
             } else {
+                // Insert
                 const { error } = await supabase.from('prompts').insert([payload]);
                 if (error) throw error;
             }
-            setIsModalOpen(false);
+
             fetchPrompts(targetId, selectedDifficulty);
+            if (id) setActivePanel('detail');
+            else setActivePanel('none'); // Or back to list
+
         } catch (error) {
-            alert('저장 실패: ' + error.message);
+            console.error("Save failed", error);
+            throw error; // Re-throw for component to handle alert
         }
     };
 
-    const handleDataSave = async (dataToSave) => {
+    // This handles bulk save
+    const handleBulkSave = async (dataToSave) => {
         if (!dataToSave || !Array.isArray(dataToSave) || dataToSave.length === 0) return;
 
         try {
@@ -284,367 +231,209 @@ function LearnContent() {
 
             alert(`${rows.length}개의 프롬프트가 성공적으로 등록되었습니다.`);
             fetchPrompts(targetId, selectedDifficulty);
-            setIsAIModalOpen(false);
-            setIsBulkModalOpen(false);
+            setActivePanel('none');
         } catch (error) {
             console.error("Save Error:", error);
             alert('저장 중 오류가 발생했습니다: ' + error.message);
         }
     };
 
+    const handleDeleteClick = async (id) => {
+        if (!confirm('정말 삭제하시겠습니까?')) return;
+        const { error } = await supabase.from('prompts').delete().eq('id', id);
+        if (error) alert('삭제 실패: ' + error.message);
+        else {
+            fetchPrompts(targetId, selectedDifficulty);
+            if (selectedPrompt?.id === id) {
+                setSelectedPrompt(null);
+                setActivePanel('none');
+            }
+        }
+    };
+
+    const handleBulkDelete = async () => {
+        if (checkedIds.length === 0) return;
+        if (!confirm(`선택한 ${checkedIds.length}개의 프롬프트를 삭제하시겠습니까?`)) return;
+
+        const { error } = await supabase.from('prompts').delete().in('id', checkedIds);
+        if (error) {
+            alert('일괄 삭제 실패: ' + error.message);
+        } else {
+            alert('삭제되었습니다.');
+            fetchPrompts(targetId, selectedDifficulty);
+            setCheckedIds([]);
+        }
+    };
+
+    const handleCheck = (e, id) => {
+        e.stopPropagation();
+        if (e.target.checked) setCheckedIds(prev => [...prev, id]);
+        else setCheckedIds(prev => prev.filter(item => item !== id));
+    };
+
+    const handleCheckAll = (e) => {
+        if (e.target.checked) setCheckedIds(displayedPrompts.map(p => p.id));
+        else setCheckedIds([]);
+    };
+
     if (!userSession) return null;
 
-    const currentGuide = difficultyGuides[selectedDifficulty] || difficultyGuides['beginner'];
-
     return (
-        <div className="centered-container" style={{ maxWidth: '1200px', margin: '0 auto', paddingBottom: '4rem' }}>
+        <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '1rem', height: 'calc(100vh - 80px)', display: 'flex', flexDirection: 'column' }}>
             {/* Header */}
-            <div className="learn-header" style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '1rem' }}>
-                <div style={{ flex: 1, minWidth: '300px' }}>
-                    <h1 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '0.5rem' }}>
+            <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                    <h1 style={{ fontSize: '1.8rem', fontWeight: 700, color: '#1e293b' }}>
                         {userSession.display_name} 프롬프트 실습
                     </h1>
-                    <p style={{ color: '#64748b' }}>
-                        난이도를 선택하고 학습 주제를 클릭하여 내용을 확인하세요.
-                    </p>
-                </div>
-                {isAdmin && (
-                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                        <button
-                            onClick={() => setIsAIModalOpen(true)}
-                            className="btn"
-                            style={{ padding: '0.6rem 0.8rem', display: 'flex', alignItems: 'center', gap: '0.3rem', background: 'white', border: '1px solid #7c3aed', color: '#7c3aed', fontSize: '0.9rem' }}
-                        >
-                            <span>✨</span> AI생성
-                        </button>
-                        <button
-                            onClick={() => setIsBulkModalOpen(true)}
-                            className="btn"
-                            style={{ padding: '0.6rem 0.8rem', display: 'flex', alignItems: 'center', gap: '0.3rem', background: 'white', border: '1px solid #e2e8f0', color: '#475569', fontSize: '0.9rem' }}
-                        >
-                            <span>📄</span> 대량등록
-                        </button>
-
-                        {/* Consistent Buttons: Delete Selected & Create */}
-                        {checkedIds.length > 0 && (
+                    <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
+                        {['beginner', 'intermediate', 'advanced'].map((level) => (
                             <button
-                                onClick={handleBulkDelete}
-                                className="btn"
-                                style={{ padding: '0.6rem 1rem', display: 'flex', alignItems: 'center', gap: '0.3rem', background: '#fef2f2', border: '1px solid #fca5a5', color: '#dc2626', fontSize: '0.9rem' }}
+                                key={level}
+                                onClick={() => setSelectedDifficulty(level)}
+                                style={{
+                                    fontWeight: 600,
+                                    color: selectedDifficulty === level ? '#2563eb' : '#94a3b8',
+                                    background: 'none', border: 'none', cursor: 'pointer',
+                                    padding: 0,
+                                    fontSize: '1rem'
+                                }}
                             >
-                                <span>🗑️</span> 선택 삭제 ({checkedIds.length})
+                                {level === 'beginner' ? '초급' : level === 'intermediate' ? '중급' : '고급'}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                {isAdmin && (
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        {checkedIds.length > 0 && (
+                            <button onClick={handleBulkDelete} className="btn" style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fca5a5' }}>
+                                🗑️ 선택 삭제
                             </button>
                         )}
-                        <button
-                            onClick={handleAddClick}
-                            className="btn btn-primary"
-                            style={{ padding: '0.6rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', whiteSpace: 'nowrap' }}
-                        >
-                            <span>➕</span> 프롬프트 추가
-                        </button>
+                        <button onClick={() => setActivePanel('ai')} className="btn" style={{ background: 'white', border: '1px solid #7c3aed', color: '#7c3aed' }}>✨ AI 생성</button>
+                        <button onClick={() => setActivePanel('bulk')} className="btn" style={{ background: 'white', border: '1px solid #e2e8f0' }}>📄 대량 등록</button>
+                        <button onClick={handleAddClick} className="btn btn-primary">➕ 추가</button>
                     </div>
                 )}
             </div>
 
-            {/* Difficulty Tabs */}
-            <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '1px' }}>
-                {['beginner', 'intermediate', 'advanced'].map((level) => (
-                    <button
-                        key={level}
-                        onClick={() => setSelectedDifficulty(level)}
-                        style={{
-                            padding: '0.75rem 1.5rem',
-                            fontWeight: 600,
-                            color: selectedDifficulty === level ? '#2563eb' : '#64748b',
-                            borderBottom: selectedDifficulty === level ? '2px solid #2563eb' : 'none',
-                            background: 'none',
-                            border: 'none',
-                            cursor: 'pointer',
-                            borderBottomWidth: selectedDifficulty === level ? '2px' : '0',
-                            marginBottom: '-1px'
-                        }}
-                    >
-                        {level === 'beginner' ? '초급' : level === 'intermediate' ? '중급' : '고급'}
-                    </button>
-                ))}
-            </div>
+            {/* Split Layout */}
+            <div style={{ display: 'flex', gap: '2rem', flex: 1, overflow: 'hidden' }}>
 
-            {/* Top Section: Guide Box + Detail View */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
-                {/* Detail Panel */}
-                {selectedPrompt && (
-                    <PromptDetailPanel
-                        prompt={selectedPrompt}
-                        isAdmin={isAdmin}
-                        onEdit={handleEditClick}
-                        onDelete={handleDeleteClick}
-                        onClose={() => setSelectedPrompt(null)}
-                    />
-                )}
-            </div>
-
-            {/* Bottom Section: Search & List Table */}
-            <div>
-                {/* Search Bar */}
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
-                    <div style={{ position: 'relative', maxWidth: '300px', width: '100%' }}>
-                        <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }}>🔍</span>
+                {/* LEFT COLUMN: List */}
+                <div style={{ flex: '1 1 60%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                    {/* Search */}
+                    <div style={{ marginBottom: '1rem' }}>
                         <input
                             type="text"
-                            placeholder="주제(제목) 검색..."
+                            placeholder="주제 검색..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            style={{ width: '100%', padding: '0.6rem 0.6rem 0.6rem 2.5rem', border: '1px solid #e2e8f0', borderRadius: '0.5rem' }}
+                            style={{ width: '100%', padding: '0.8rem', border: '1px solid #e2e8f0', borderRadius: '0.5rem' }}
                         />
-                        {searchQuery && (
-                            <button
-                                onClick={() => setSearchQuery('')}
-                                style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', border: 'none', background: 'none', cursor: 'pointer', color: '#94a3b8' }}
-                            >
-                                <span>✖</span>
-                            </button>
-                        )}
                     </div>
-                </div>
 
-                {/* Table */}
-                <div style={{ background: 'white', borderRadius: '0.5rem', border: '1px solid #e2e8f0', overflow: 'hidden', minHeight: '300px' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                        <thead style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                            <tr>
-                                {isAdmin && (
-                                    <th style={{ padding: '1rem', width: '50px', textAlign: 'center' }}>
-                                        <input
-                                            type="checkbox"
-                                            onChange={handleCheckAll}
-                                            checked={displayedPrompts.length > 0 && checkedIds.length === displayedPrompts.length}
-                                        />
-                                    </th>
-                                )}
-                                <th style={{ padding: '1rem', width: '60px', textAlign: 'center', color: '#64748b', fontWeight: 600 }}>No.</th>
-                                <th style={{ padding: '1rem', color: '#64748b', fontWeight: 600 }}>주제 (제목)</th>
-                                <th style={{ padding: '1rem', width: '120px', color: '#64748b', fontWeight: 600 }} className="mobile-hidden">생성자</th>
-                                <th style={{ padding: '1rem', width: '100px', color: '#64748b', fontWeight: 600 }} className="mobile-hidden">등록일</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {loading ? (
+                    {/* Table */}
+                    <div style={{ flex: 1, overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '0.5rem', background: 'white' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                            <thead style={{ position: 'sticky', top: 0, background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
                                 <tr>
-                                    <td colSpan={isAdmin ? 5 : 4} style={{ padding: '3rem', textAlign: 'center', color: '#64748b' }}>로딩 중...</td>
+                                    {isAdmin && <th style={{ padding: '0.75rem' }}><input type="checkbox" onChange={handleCheckAll} checked={displayedPrompts.length > 0 && checkedIds.length === displayedPrompts.length} /></th>}
+                                    <th style={{ padding: '0.75rem', textAlign: 'left', color: '#64748b' }}>No.</th>
+                                    <th style={{ padding: '0.75rem', textAlign: 'left', color: '#64748b' }}>주제</th>
+                                    <th style={{ padding: '0.75rem', textAlign: 'left', color: '#64748b' }}>등록일</th>
                                 </tr>
-                            ) : displayedPrompts.length === 0 ? (
-                                <tr>
-                                    <td colSpan={isAdmin ? 5 : 4} style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8' }}>
-                                        {searchQuery ? '검색 결과가 없습니다.' : '등록된 프롬프트가 없습니다.'}
-                                    </td>
-                                </tr>
-                            ) : (
-                                displayedPrompts.map((prompt, index) => {
-                                    const realIndex = filteredPrompts.length - ((currentPage - 1) * itemsPerPage) - index;
-                                    return (
+                            </thead>
+                            <tbody>
+                                {loading ? (
+                                    <tr><td colSpan="4" style={{ padding: '2rem', textAlign: 'center' }}>로딩 중...</td></tr>
+                                ) : displayedPrompts.length === 0 ? (
+                                    <tr><td colSpan="4" style={{ padding: '2rem', textAlign: 'center' }}>데이터가 없습니다.</td></tr>
+                                ) : (
+                                    displayedPrompts.map((prompt, idx) => (
                                         <tr
                                             key={prompt.id}
-                                            onClick={() => setSelectedPrompt(prompt)}
+                                            onClick={() => handlePromptClick(prompt)}
                                             style={{
                                                 cursor: 'pointer',
-                                                borderBottom: '1px solid #f1f5f9',
-                                                background: selectedPrompt?.id === prompt.id ? '#eff6ff' : 'white', // Highlight selected
-                                                transition: 'background 0.2s',
+                                                background: selectedPrompt?.id === prompt.id ? '#eff6ff' : 'white',
+                                                borderBottom: '1px solid #f1f5f9'
                                             }}
-                                            className="table-row-hover"
                                         >
                                             {isAdmin && (
-                                                <td style={{ padding: '1rem', textAlign: 'center' }} onClick={e => e.stopPropagation()}>
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={checkedIds.includes(prompt.id)}
-                                                        onChange={(e) => handleCheck(e, prompt.id)}
-                                                    />
+                                                <td style={{ padding: '0.75rem' }} onClick={e => e.stopPropagation()}>
+                                                    <input type="checkbox" checked={checkedIds.includes(prompt.id)} onChange={e => handleCheck(e, prompt.id)} />
                                                 </td>
                                             )}
-                                            <td style={{ padding: '1rem', textAlign: 'center', color: '#94a3b8' }}>
-                                                {realIndex}
+                                            <td style={{ padding: '0.75rem', color: '#94a3b8' }}>
+                                                {filteredPrompts.length - ((currentPage - 1) * itemsPerPage) - idx}
                                             </td>
-                                            <td style={{ padding: '1rem' }}>
-                                                <div style={{ fontWeight: 600, color: '#334155', marginBottom: '0.25rem' }}>
-                                                    {prompt.title}
-                                                </div>
-                                                <div style={{ fontSize: '0.85rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                    <span className="desktop-hidden">
-                                                        {new Date(prompt.created_at).toLocaleDateString()}
-                                                    </span>
-                                                </div>
+                                            <td style={{ padding: '0.75rem', fontWeight: 600, color: '#334155' }}>
+                                                {prompt.title}
                                             </td>
-                                            <td style={{ padding: '1rem', color: '#64748b' }} className="mobile-hidden">
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                    <span>👤</span>
-                                                    {prompt.accounts?.display_name || '관리자'}
-                                                </div>
-                                            </td>
-                                            <td style={{ padding: '1rem', color: '#94a3b8', fontSize: '0.9rem' }} className="mobile-hidden">
+                                            <td style={{ padding: '0.75rem', color: '#94a3b8', fontSize: '0.9rem' }}>
                                                 {new Date(prompt.created_at).toLocaleDateString()}
                                             </td>
                                         </tr>
-                                    );
-                                })
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-
-                {/* Pagination Controls */}
-                {totalPages > 1 && (
-                    <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', marginTop: '1.5rem' }}>
-                        <button
-                            disabled={currentPage === 1}
-                            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                            style={{ padding: '0.5rem', border: '1px solid #e2e8f0', borderRadius: '0.25rem', background: 'white', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', color: currentPage === 1 ? '#cbd5e1' : '#64748b' }}
-                        >
-                            <span>◀</span>
-                        </button>
-
-                        {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                            <button
-                                key={page}
-                                onClick={() => setCurrentPage(page)}
-                                style={{
-                                    padding: '0.5rem 1rem',
-                                    border: page === currentPage ? '1px solid #2563eb' : '1px solid #e2e8f0',
-                                    borderRadius: '0.25rem',
-                                    background: page === currentPage ? '#2563eb' : 'white',
-                                    color: page === currentPage ? 'white' : '#64748b',
-                                    cursor: 'pointer',
-                                    fontWeight: page === currentPage ? '600' : '400'
-                                }}
-                            >
-                                {page}
-                            </button>
-                        ))}
-
-                        <button
-                            disabled={currentPage === totalPages}
-                            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                            style={{ padding: '0.5rem', border: '1px solid #e2e8f0', borderRadius: '0.25rem', background: 'white', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', color: currentPage === totalPages ? '#cbd5e1' : '#64748b' }}
-                        >
-                            <span>▶</span>
-                        </button>
-                    </div>
-                )}
-            </div>
-
-            {/* Add/Edit Modal (Can be kept as modal for editing) */}
-            {isModalOpen && (
-                <div className="mobile-overlay" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60 }}>
-                    <div style={{ background: 'white', padding: '2rem', borderRadius: '0.5rem', width: '100%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
-                            <div>
-                                <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem' }}>
-                                    {editingPrompt ? '프롬프트 수정' : '새 프롬프트 추가'}
-                                </h2>
-                                {!editingPrompt && (
-                                    <button
-                                        onClick={() => {
-                                            setIsModalOpen(false);
-                                            setIsBulkModalOpen(true);
-                                        }}
-                                        style={{
-                                            fontSize: '0.85rem',
-                                            color: '#2563eb',
-                                            background: 'none',
-                                            border: 'none',
-                                            padding: 0,
-                                            cursor: 'pointer',
-                                            textDecoration: 'underline',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '0.25rem'
-                                        }}
-                                    >
-                                        <span>📄</span> JSON으로 대량 등록하기 (클릭)
-                                    </button>
+                                    ))
                                 )}
-                            </div>
-                            <button onClick={() => setIsModalOpen(false)} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: '0.5rem' }}><span>✖</span></button>
-                        </div>
-
-                        <form onSubmit={handleFormSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                            <div style={{ display: 'flex', gap: '1rem' }}>
-                                <div style={{ flex: 1 }}>
-                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>제목</label>
-                                    <input
-                                        type="text"
-                                        value={promptForm.title}
-                                        onChange={e => setPromptForm({ ...promptForm, title: e.target.value })}
-                                        style={{ width: '100%', padding: '0.75rem', border: '1px solid #e2e8f0', borderRadius: '0.5rem' }}
-                                        required
-                                    />
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>난이도</label>
-                                    <select
-                                        value={selectedDifficulty}
-                                        disabled
-                                        style={{ width: '100%', padding: '0.75rem', border: '1px solid #e2e8f0', borderRadius: '0.5rem', background: '#f1f5f9' }}
-                                    >
-                                        <option value="beginner">초급</option>
-                                        <option value="intermediate">중급</option>
-                                        <option value="advanced">고급</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div>
-                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>프롬프트 내용</label>
-                                <textarea
-                                    value={promptForm.content}
-                                    onChange={e => setPromptForm({ ...promptForm, content: e.target.value })}
-                                    style={{ width: '100%', padding: '0.75rem', border: '1px solid #e2e8f0', borderRadius: '0.5rem', minHeight: '150px' }}
-                                    required
-                                />
-                            </div>
-
-                            <div>
-                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>예상 답변 (선택사항)</label>
-                                <textarea
-                                    value={promptForm.expected_answer}
-                                    onChange={e => setPromptForm({ ...promptForm, expected_answer: e.target.value })}
-                                    style={{ width: '100%', padding: '0.75rem', border: '1px solid #e2e8f0', borderRadius: '0.5rem', minHeight: '100px' }}
-                                />
-                            </div>
-
-                            <div>
-                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>첨부 파일 (선택사항)</label>
-                                <input
-                                    type="file"
-                                    onChange={e => setPromptForm({ ...promptForm, file: e.target.files[0] })}
-                                    style={{ width: '100%', padding: '0.5rem', border: '1px solid #e2e8f0', borderRadius: '0.5rem' }}
-                                />
-                            </div>
-
-                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '1rem' }}>
-                                <button type="button" onClick={() => setIsModalOpen(false)} className="btn" style={{ border: '1px solid #e2e8f0' }}>취소</button>
-                                <button type="submit" className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                    <span>💾</span> 저장하기
-                                </button>
-                            </div>
-                        </form>
+                            </tbody>
+                        </table>
                     </div>
+
+                    {/* Pagination */}
+                    {totalPages > 1 && (
+                        <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', marginTop: '1rem' }}>
+                            <button disabled={currentPage === 1} onClick={() => setCurrentPage(c => c - 1)} className="btn" style={{ border: '1px solid #e2e8f0' }}>◀</button>
+                            <span style={{ display: 'flex', alignItems: 'center', color: '#64748b' }}>{currentPage} / {totalPages}</span>
+                            <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(c => c + 1)} className="btn" style={{ border: '1px solid #e2e8f0' }}>▶</button>
+                        </div>
+                    )}
                 </div>
-            )}
-            <AIGenerateModal
-                isOpen={isAIModalOpen}
-                onClose={() => setIsAIModalOpen(false)}
-                targetId={targetId}
-                currentDifficulty={selectedDifficulty}
-                onSuccess={handleDataSave}
-            />
-            <BulkUploadModal
-                isOpen={isBulkModalOpen}
-                onClose={() => setIsBulkModalOpen(false)}
-                targetId={targetId}
-                currentDifficulty={selectedDifficulty}
-                onSuccess={handleDataSave}
-            />
+
+                {/* RIGHT COLUMN: Panels */}
+                <div style={{ flex: '0 0 400px', maxWidth: '40%', borderLeft: '1px solid #e2e8f0', paddingLeft: '2rem', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                    {activePanel === 'none' && (
+                        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', flexDirection: 'column', gap: '1rem' }}>
+                            <div style={{ fontSize: '3rem' }}>👈</div>
+                            <p>좌측 목록에서 주제를 선택하거나<br />우측 상단 버튼을 눌러 작업을 시작하세요.</p>
+                        </div>
+                    )}
+
+                    {(activePanel === 'detail' || activePanel === 'edit' || activePanel === 'create') && (
+                        <PromptDetailPanel
+                            prompt={selectedPrompt}
+                            mode={activePanel === 'detail' ? 'view' : activePanel}
+                            // Maps 'detail'->'view', 'create'->'create', 'edit'->'edit'
+                            isAdmin={isAdmin}
+                            onClose={() => setActivePanel('none')}
+                            onSave={handleSavePrompt}
+                            onDelete={handleDeleteClick}
+                        />
+                    )}
+
+                    {activePanel === 'ai' && (
+                        <AIGeneratePanel
+                            targetId={targetId}
+                            currentDifficulty={selectedDifficulty}
+                            onSuccess={handleBulkSave}
+                            onClose={() => setActivePanel('none')}
+                        />
+                    )}
+
+                    {activePanel === 'bulk' && (
+                        <BulkUploadPanel
+                            targetId={targetId}
+                            currentDifficulty={selectedDifficulty}
+                            onSuccess={handleBulkSave}
+                            onClose={() => setActivePanel('none')}
+                        />
+                    )}
+                </div>
+
+            </div>
         </div>
     );
 }
