@@ -79,13 +79,21 @@ export default function AdminDashboard() {
     };
 
     const handleDeleteAccount = async (userId, username) => {
-        if (!confirm(`정말로 '${username}' 계정을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`)) return;
+        if (!confirm(`정말로 '${username}' 그룹을 삭제하시겠습니까?\n\n※ 주의: 해당 그룹에 속한 모든 프롬프트가 함께 영구 삭제됩니다.`)) return;
 
+        // 1. Delete associated prompts first
+        const { error: promptError } = await supabase.from('prompts').delete().eq('target_group', username);
+        if (promptError) {
+            alert("그룹 프롬프트 삭제 실패: " + promptError.message);
+            return;
+        }
+
+        // 2. Delete the account
         const { error } = await supabase.from('accounts').delete().eq('id', userId);
         if (error) {
-            alert("삭제 실패: " + error.message);
+            alert("계정 삭제 실패: " + error.message);
         } else {
-            alert("계정이 삭제되었습니다.");
+            alert("그룹 및 관련 프롬프트가 모두 삭제되었습니다.");
             fetchAccounts();
         }
     };
@@ -103,7 +111,7 @@ export default function AdminDashboard() {
                 username: newAccount.username,
                 password: newAccount.password,
                 display_name: newAccount.display_name || newAccount.username, // Fallback to username if empty
-                role: 'user' // Assuming check constraint allows 'user'. 
+                // Removed explicit role to avoid constraint violation; relying on DB default
             };
 
             const { error } = await supabase.from('accounts').insert([payload]);
