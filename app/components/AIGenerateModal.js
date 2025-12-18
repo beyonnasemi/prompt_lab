@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import { generatePromptsAction } from '@/app/actions/ai';
-import { X, Sparkles, Loader2, Save, RefreshCw, Bot, CheckCircle, Circle, Image as ImageIcon } from 'lucide-react';
+import { X, Sparkles, Loader2, Save, RefreshCw, Bot, CheckCircle, Circle, FileImage } from 'lucide-react';
 
 export default function AIGenerateModal({ isOpen, onClose, targetId, currentDifficulty, onSuccess }) {
     const [topic, setTopic] = useState('');
@@ -250,7 +250,7 @@ export default function AIGenerateModal({ isOpen, onClose, targetId, currentDiff
                                         color: '#475569', fontSize: '0.9rem'
                                     }}
                                 >
-                                    <ImageIcon size={18} /> 이미지 업로드
+                                    <FileImage size={18} /> 이미지 업로드
                                 </label>
                                 <input
                                     id="image-upload"
