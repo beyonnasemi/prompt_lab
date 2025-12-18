@@ -425,7 +425,7 @@ function LearnContent() {
                                 </tr>
                             ) : (
                                 displayedPrompts.map((prompt, index) => {
-                                    const realIndex = filteredPrompts.length - ((currentPage - 1) * ITEMS_PER_PAGE) - index;
+                                    const realIndex = filteredPrompts.length - ((currentPage - 1) * itemsPerPage) - index;
                                     return (
                                         <tr
                                             key={prompt.id}
