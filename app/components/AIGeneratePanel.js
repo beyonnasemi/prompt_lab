@@ -152,13 +152,11 @@ export default function AIGeneratePanel({ targetId, currentDifficulty, onSuccess
                 </div>
 
 
-    {
-                error && (
-                    <div style={{ padding: '1rem', background: '#fef2f2', color: '#b91c1c', borderRadius: '0.5rem', fontSize: '0.9rem' }}>
-                        ⚠️ {error}
-                    </div>
-                )
-            }
+                {error && (
+                <div style={{ padding: '1rem', background: '#fef2f2', color: '#b91c1c', borderRadius: '0.5rem', fontSize: '0.9rem' }}>
+                    ⚠️ {error}
+                </div>
+            )}
 
             <div style={{ marginTop: 'auto', paddingTop: '1rem' }}>
                 <button
