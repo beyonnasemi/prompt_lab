@@ -17,11 +17,11 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
     const [currentMode, setCurrentMode] = useState(mode);
     const [sessionHistory, setSessionHistory] = useState([]); // For continuous creation "cards"
     const [formData, setFormData] = useState({
-        title: prompt?.title || '',
-        content: prompt?.content || '',
-        expected_answer: prompt?.expected_answer || '',
+        title: mode === 'create' ? '' : (prompt?.title || ''),
+        content: mode === 'create' ? '' : (prompt?.content || ''),
+        expected_answer: mode === 'create' ? '' : (prompt?.expected_answer || ''),
         difficulty: prompt?.difficulty || 'beginner',
-        attachment_url: prompt?.attachment_url || null
+        attachment_url: mode === 'create' ? null : (prompt?.attachment_url || null)
     });
     const [loading, setLoading] = useState(false);
     const [file, setFile] = useState(null);
