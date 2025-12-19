@@ -116,9 +116,12 @@ function LearnContent() {
         if (error) {
             // Fallback fetch
             const { data: fallbackData } = await supabase.from('prompts').select('*').eq('target_group', target).eq('difficulty', difficulty).order('created_at', { ascending: false });
-            setPrompts(fallbackData || []);
+            const filteredFallback = (fallbackData || []).filter(p => !p.expected_answer?.includes('<!--THREAD-->'));
+            setPrompts(filteredFallback);
         } else {
-            setPrompts(data || []);
+            // Safety Filter: Ensure threaded prompts are removed before setting state
+            const filteredData = (data || []).filter(p => !p.expected_answer?.includes('<!--THREAD-->'));
+            setPrompts(filteredData);
         }
         setLoading(false);
     };
