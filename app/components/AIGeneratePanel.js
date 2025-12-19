@@ -34,20 +34,35 @@ export default function AIGeneratePanel({ targetId, currentDifficulty, onSuccess
         setGeneratedPrompts([]);
 
         try {
+            // Optimization: Resize image if too large (simple max width/height)
+            let finalImage = image;
+            if (image && image.length > 1000000) { // If > ~1MB base64
+                // Basic client-side resizing logic could go here, or we just warn.
+                // For now, let's just try sending. If it fails, catch it.
+                console.log("Image size:", image.length);
+            }
+
             // Updated to pass all parameters as an object
             const result = await generatePromptsAction({
                 targetGroup: targetId,
                 difficulty,
                 topic,
-                image,
+                image: finalImage,
                 model: selectedModel,
                 count
             });
+
             if (!result.success) throw new Error(result.error);
             setGeneratedPrompts(result.data);
             setSelectedIndices(result.data.map((_, i) => i)); // Select all by default
         } catch (err) {
-            setError(err.message || "생성 실패. 다시 시도해주세요.");
+            console.error("Generate Error:", err);
+            let msg = err.message || "생성 실패. 다시 시도해주세요.";
+            if (msg.includes("Server Components render")) {
+                msg = "이미지 용량이 너무 큽니다. 더 작은 이미지를 사용하거나 이미지를 제거해주세요.";
+            }
+            if (err.digest) console.log("Error Digest:", err.digest);
+            setError(msg);
         } finally {
             setLoading(false);
         }

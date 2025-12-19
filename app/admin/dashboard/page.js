@@ -111,9 +111,11 @@ export default function AdminDashboard() {
                 username: newAccount.username,
                 password: newAccount.password,
                 display_name: newAccount.display_name || newAccount.username,
-                role: 'user' // Explicitly set role to 'user' to satisfy constraint
+                display_name: newAccount.display_name || newAccount.username
+                // role: 'user' REMOVED: Rely on DB default to avoid check constraint error
             };
 
+            console.log("Creating account with payload:", payload);
             const { error } = await supabase.from('accounts').insert([payload]);
 
             if (error) {
