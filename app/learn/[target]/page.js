@@ -300,52 +300,73 @@ function LearnContent() {
     return (
         <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '1rem', height: 'calc(100vh - 80px)', display: 'flex', flexDirection: 'column' }}>
             {/* Header */}
-            <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                    <h1 style={{ fontSize: '1.8rem', fontWeight: 700, color: '#1e293b' }}>
+            <div style={{ marginBottom: '2rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                    <h1 style={{ fontSize: '1.8rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>
                         {userSession.display_name} 프롬프트 실습
                     </h1>
-                    <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
+                    {isAdmin && (
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            {checkedIds.length > 0 && (
+                                <button onClick={handleBulkDelete} className="btn" style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fca5a5', padding: '0.5rem 1rem', borderRadius: '0.375rem', cursor: 'pointer' }}>
+                                    🗑️ 선택 삭제 ({checkedIds.length})
+                                </button>
+                            )}
+                        </div>
+                    )}
+                </div>
+
+                {/* Difficulty Tabs */}
+                <div style={{ marginBottom: '1rem' }}>
+                    <div style={{ display: 'flex', gap: '0.5rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem' }}>
                         {['beginner', 'intermediate', 'advanced'].map((level) => (
                             <button
                                 key={level}
                                 onClick={() => setSelectedDifficulty(level)}
                                 style={{
+                                    padding: '0.75rem 1.5rem',
+                                    borderRadius: '0.5rem 0.5rem 0 0',
                                     fontWeight: 600,
-                                    color: selectedDifficulty === level ? '#2563eb' : '#94a3b8',
-                                    background: 'none', border: 'none', cursor: 'pointer',
-                                    padding: 0,
-                                    fontSize: '1rem'
+                                    fontSize: '1rem',
+                                    cursor: 'pointer',
+                                    border: 'none',
+                                    borderBottom: selectedDifficulty === level ? '3px solid #2563eb' : '3px solid transparent',
+                                    color: selectedDifficulty === level ? '#2563eb' : '#64748b',
+                                    background: selectedDifficulty === level ? '#eff6ff' : 'transparent',
+                                    transition: 'all 0.2s'
                                 }}
                             >
-                                {level === 'beginner' ? '초급' : level === 'intermediate' ? '중급' : '고급'}
+                                {level === 'beginner' ? '🌱 초급' : level === 'intermediate' ? '🌿 중급' : '🌳 고급'}
                             </button>
                         ))}
                     </div>
                 </div>
 
-                <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0', marginTop: '1rem', width: '100%', maxWidth: '800px' }}>
-                    <div style={{ fontWeight: 600, color: '#334155', marginBottom: '0.25rem' }}>
-                        {difficultyGuides[selectedDifficulty].title}
+                {/* Difficulty Description Box */}
+                <div style={{
+                    background: '#f8fafc',
+                    padding: '1.25rem',
+                    borderRadius: '0 0.5rem 0.5rem 0.5rem', // Connect visually with active tab if possible, or just rounded
+                    border: '1px solid #e2e8f0',
+                    marginBottom: '1rem',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.75rem', marginBottom: '0.5rem' }}>
+                        <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>
+                            {difficultyGuides[selectedDifficulty].title}
+                        </h3>
+                        <span style={{ fontSize: '0.9rem', color: '#2563eb', fontWeight: 600, background: '#dbeafe', padding: '0.1rem 0.5rem', borderRadius: '4px' }}>
+                            {selectedDifficulty === 'beginner' ? 'Beginner' : selectedDifficulty === 'intermediate' ? 'Intermediate' : 'Advanced'}
+                        </span>
                     </div>
-                    <div style={{ fontSize: '0.9rem', color: '#64748b', marginBottom: '0.25rem' }}>
+                    <p style={{ fontSize: '0.95rem', color: '#475569', marginBottom: '0.5rem', lineHeight: '1.5' }}>
                         {difficultyGuides[selectedDifficulty].desc}
-                    </div>
-                    <div style={{ fontSize: '0.85rem', color: '#2563eb', fontWeight: 500 }}>
+                    </p>
+                    <div style={{ fontSize: '0.9rem', color: '#0f766e', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span>� 핵심 특징:</span>
                         {difficultyGuides[selectedDifficulty].features}
                     </div>
                 </div>
-
-                {isAdmin && (
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        {checkedIds.length > 0 && (
-                            <button onClick={handleBulkDelete} className="btn" style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fca5a5' }}>
-                                🗑️ 선택 삭제
-                            </button>
-                        )}
-                        {/* Old Buttons Removed: AI, Bulk, Add */}
-                    </div>
-                )}
             </div>
 
             {/* MAIN CONTENT AREA */}
