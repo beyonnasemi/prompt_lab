@@ -309,6 +309,32 @@ function LearnContent() {
                     </h1>
                     {isAdmin && (
                         <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            {/* NEW: Admin Actions */}
+                            <button
+                                onClick={() => setActivePanel('create')}
+                                className="btn"
+                                style={{ background: '#2563eb', color: 'white', border: 'none', padding: '0.6rem 1rem', borderRadius: '0.375rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600 }}
+                            >
+                                <span>➕</span> 새 프롬프트
+                            </button>
+                            <button
+                                onClick={() => setActivePanel('ai')}
+                                className="btn"
+                                style={{ background: 'linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)', color: 'white', border: 'none', padding: '0.6rem 1rem', borderRadius: '0.375rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600 }}
+                            >
+                                <span>✨</span> AI 자동 생성
+                            </button>
+                            <button
+                                onClick={() => setActivePanel('bulk')}
+                                className="btn"
+                                style={{ background: 'white', color: '#475569', border: '1px solid #cbd5e1', padding: '0.6rem 1rem', borderRadius: '0.375rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600 }}
+                            >
+                                <span>📂</span> 대량 등록
+                            </button>
+
+                            {/* Separator */}
+                            <div style={{ width: '1px', height: '24px', background: '#e2e8f0', margin: '0 0.5rem' }}></div>
+
                             {checkedIds.length > 0 && (
                                 <button onClick={handleBulkDelete} className="btn" style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fca5a5', padding: '0.5rem 1rem', borderRadius: '0.375rem', cursor: 'pointer' }}>
                                     🗑️ 선택 삭제 ({checkedIds.length})
@@ -372,7 +398,46 @@ function LearnContent() {
             </div>
 
             {/* MAIN CONTENT AREA */}
-            <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+
+                {/* MODE: AI GENERATE PANEL */}
+                {activePanel === 'ai' && (
+                    <div style={{ position: 'absolute', inset: 0, background: 'white', zIndex: 20, overflow: 'hidden' }}>
+                        <AIGeneratePanel
+                            targetId={targetId}
+                            currentDifficulty={selectedDifficulty}
+                            onSuccess={handleBulkSave}
+                            onClose={() => setActivePanel('none')}
+                        />
+                    </div>
+                )}
+
+                {/* MODE: BULK UPLOAD PANEL */}
+                {activePanel === 'bulk' && (
+                    <div style={{ position: 'absolute', inset: 0, background: 'white', zIndex: 20, overflow: 'hidden' }}>
+                        <BulkUploadPanel
+                            targetId={targetId}
+                            onSave={handleBulkSave}
+                            onClose={() => setActivePanel('none')}
+                        />
+                    </div>
+                )}
+
+                {/* MODE: CREATE STANDALONE PANEL (Optional: if we want full screen create) */}
+                {/* For consistency with 'New Prompt' button, let's treat 'create' as a mode masking the list, 
+                    OR we just use the selectedPrompt view logic? 
+                    Let's use a standalone view for 'create' triggered from header. */}
+                {activePanel === 'create' && (
+                    <div style={{ position: 'absolute', inset: 0, background: 'white', zIndex: 20, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                        {/* We reuse PromptDetailPanel logic */}
+                        <PromptDetailPanel
+                            mode="create"
+                            isAdmin={true}
+                            onSave={handleSavePrompt}
+                            onClose={() => setActivePanel('none')}
+                        />
+                    </div>
+                )}
 
                 {/* MODE: LIST VIEW */}
                 {!selectedPrompt && (
