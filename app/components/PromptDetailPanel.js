@@ -125,7 +125,7 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                                     <button onClick={() => setCurrentMode('edit')} style={{ padding: '0.5rem', cursor: 'pointer', border: 'none', background: 'none', fontSize: '1.2rem' }} title="수정">
                                         ✏️
                                     </button>
-                                    <button onClick={() => { if (confirm('삭제하시겠습니까?')) onDelete(prompt.id); }} style={{ padding: '0.5rem', cursor: 'pointer', border: 'none', background: 'none', fontSize: '1.2rem' }} title="삭제">
+                                    <button onClick={() => onDelete(prompt.id)} style={{ padding: '0.5rem', cursor: 'pointer', border: 'none', background: 'none', fontSize: '1.2rem' }} title="삭제">
                                         🗑️
                                     </button>
                                 </>
