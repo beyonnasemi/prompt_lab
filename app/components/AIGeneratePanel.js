@@ -33,8 +33,14 @@ export default function AIGeneratePanel({ targetId, currentDifficulty, onSuccess
         setGeneratedPrompts([]);
 
         try {
-            // Updated to pass all parameters including model and difficulty
-            const result = await generatePromptsAction(targetId, difficulty, topic, image, selectedModel);
+            // Updated to pass all parameters as an object
+            const result = await generatePromptsAction({
+                targetGroup: targetId,
+                difficulty,
+                topic,
+                image,
+                model: selectedModel
+            });
             if (!result.success) throw new Error(result.error);
             setGeneratedPrompts(result.data);
             setSelectedIndices(result.data.map((_, i) => i)); // Select all by default
@@ -98,7 +104,7 @@ export default function AIGeneratePanel({ targetId, currentDifficulty, onSuccess
                                 style={{ width: '100%', padding: '0.8rem', border: '1px solid #cbd5e1', borderRadius: '0.5rem', fontSize: '0.95rem' }}
                             >
                                 <option value="gemini">Google Gemini 1.5 Flash</option>
-                                <option value="gpt">OpenAI GPT-4o (비활성)</option>
+                                <option value="gpt">OpenAI GPT-4o</option>
                             </select>
                         </div>
                         <div style={{ flex: 1 }}>

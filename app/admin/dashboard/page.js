@@ -103,16 +103,9 @@ export default function AdminDashboard() {
         if (!newAccount.username || !newAccount.password) return;
 
         try {
-            // Fetch a valid role from an existing standard account (e.g. 'business')
-            // This ensures we satisfy the check constraint.
-            const { data: roleData, error: roleError } = await supabase
-                .from('accounts')
-                .select('role')
-                .eq('username', 'business')
-                .single();
-
-            const validRole = roleData?.role || 'user'; // Fallback to 'user' if fetch fails, though 'user' might be the issue. 
-            // If 'business' exists, we trust its role is valid.
+            // Fixed Role Assignment Logic
+            // Default to 'user', which should be a valid role in the check constraint.
+            const validRole = 'user';
 
             const payload = {
                 username: newAccount.username,

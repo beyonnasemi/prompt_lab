@@ -177,6 +177,18 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                     {prompt.attachment_url && (
                         <div>
                             <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#334155', marginBottom: '0.5rem' }}>💾 첨부 자료</h3>
+
+                            {/* Image Preview */}
+                            {/\.(jpg|jpeg|png|gif|webp)$/i.test(prompt.attachment_url) && (
+                                <div style={{ marginBottom: '1rem', border: '1px solid #e2e8f0', borderRadius: '0.5rem', overflow: 'hidden' }}>
+                                    <img
+                                        src={prompt.attachment_url}
+                                        alt="첨부 이미지"
+                                        style={{ maxWidth: '100%', height: 'auto', display: 'block' }}
+                                    />
+                                </div>
+                            )}
+
                             <a
                                 href={`${prompt.attachment_url}?download=`}
                                 download
