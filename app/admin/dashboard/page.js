@@ -105,14 +105,14 @@ export default function AdminDashboard() {
         try {
             // Fixed Role Assignment Logic
             // Default to 'user', which should be a valid role in the check constraint.
-            const validRole = 'user';
+
 
             const payload = {
                 username: newAccount.username,
                 password: newAccount.password,
                 display_name: newAccount.display_name || newAccount.username,
-                display_name: newAccount.display_name || newAccount.username
-                // role: 'user' REMOVED: Rely on DB default to avoid check constraint error
+
+                role: 'student' // Fixed: DB requires 'student' or 'admin'
             };
 
             console.log("Creating account with payload:", payload);

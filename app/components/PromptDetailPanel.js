@@ -352,6 +352,5 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
             </div>
         </div>
     );
-        </div >
-    );
+
 }
