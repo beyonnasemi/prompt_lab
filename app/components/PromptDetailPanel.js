@@ -30,7 +30,9 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
     // Reset history when mode changes away from create, OR keep it? 
     // User wants "continuously connected". Let's keep it until explicitly closed or mode changed.
     useEffect(() => {
-        if (currentMode !== 'create') {
+        // Only clear history if we leave both create AND continuous modes
+        // e.g. when switching to 'view' or 'edit'
+        if (currentMode !== 'create' && currentMode !== 'continuous') {
             setSessionHistory([]);
         }
     }, [currentMode]);
