@@ -62,6 +62,7 @@ function LearnContent() {
         if (!targetId) return;
 
         const adminSessionStr = localStorage.getItem('admin_session');
+        console.log("PromptLab Version: ThreadFix_v2");
         if (adminSessionStr) {
             const targetName = targetNames[targetId] || targetId;
             setUserSession({ display_name: targetName, username: targetId, role: 'admin' });
