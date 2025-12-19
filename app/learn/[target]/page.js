@@ -190,14 +190,19 @@ function LearnContent() {
                         .from('prompt-files')
                         .upload(fileName, file);
 
-                    if (uploadError) throw uploadError;
+                    if (uploadError) {
+                        console.error("Upload error detail:", uploadError);
+                        throw new Error(`이미지 업로드 실패: ${uploadError.message || '권한 부족 또는 네트워크 오류'}`);
+                    }
 
                     const { data: { publicUrl } } = supabase.storage.from('prompt-files').getPublicUrl(fileName);
                     payload.attachment_url = publicUrl;
                 } catch (err) {
+                    // Specific handling for common upload errors
                     if (err.message && err.message.includes('exceeded')) {
-                        throw new Error("이미지 용량이 서버 허용치를 초과했습니다. (더 작은 파일을 사용해주세요)");
+                        throw new Error("이미지 용량이 서버 허용치를 초과했습니다.");
                     }
+                    // Re-throw to block save, because user expects image
                     throw err;
                 }
             } else if (formData.attachment_url) {
