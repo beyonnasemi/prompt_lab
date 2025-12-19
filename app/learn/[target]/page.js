@@ -137,7 +137,8 @@ function LearnContent() {
 
     useEffect(() => {
         setCurrentPage(1);
-        setSelectedPrompt(null); // Fix: Reset view on tab change
+        setSelectedPrompt(null);
+        setActivePanel('none'); // Also reset activePanel
     }, [selectedDifficulty, searchQuery]);
 
 
@@ -476,9 +477,37 @@ function LearnContent() {
                             boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)'
                         }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '1.5rem' }}>
-                                <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#1e293b', lineHeight: 1.3 }}>
-                                    {selectedPrompt.title}
-                                </h2>
+                                <div>
+                                    <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#1e293b', lineHeight: 1.3 }}>
+                                        {selectedPrompt.title}
+                                    </h2>
+                                    {isAdmin && (
+                                        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                                            <button
+                                                onClick={() => setActivePanel('edit')}
+                                                style={{
+                                                    fontSize: '0.85rem', padding: '0.3rem 0.6rem',
+                                                    background: 'white', border: '1px solid #cbd5e1',
+                                                    borderRadius: '0.25rem', cursor: 'pointer',
+                                                    color: '#475569', display: 'flex', alignItems: 'center', gap: '0.3rem'
+                                                }}
+                                            >
+                                                ✏️ 수정
+                                            </button>
+                                            <button
+                                                onClick={() => handleDeleteClick(selectedPrompt.id)}
+                                                style={{
+                                                    fontSize: '0.85rem', padding: '0.3rem 0.6rem',
+                                                    background: '#fef2f2', border: '1px solid #fca5a5',
+                                                    borderRadius: '0.25rem', cursor: 'pointer',
+                                                    color: '#dc2626', display: 'flex', alignItems: 'center', gap: '0.3rem'
+                                                }}
+                                            >
+                                                🗑️ 삭제
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
                                 <span style={{
                                     background: '#f1f5f9', color: '#64748b', padding: '0.25rem 0.75rem',
                                     borderRadius: '9999px', fontSize: '0.85rem', fontWeight: 600, flexShrink: 0
@@ -521,23 +550,26 @@ function LearnContent() {
                         <div style={{ marginBottom: '2rem' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
                                 <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#1e293b' }}>
-                                    ➕ 새로운 프롬프트 추가
+                                    {activePanel === 'edit' ? '✏️ 프롬프트 수정' : '➕ 새로운 프롬프트 추가'}
                                 </h3>
                                 <p style={{ fontSize: '0.9rem', color: '#64748b' }}>
-                                    위 내용을 참고하여 이어서 작성할 수 있습니다.
+                                    {activePanel === 'edit' ? '내용을 수정한 후 저장하세요.' : '위 내용을 참고하여 이어서 작성할 수 있습니다.'}
                                 </p>
                             </div>
                             <div style={{ background: 'white', borderRadius: '1rem', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
                                 <PromptDetailPanel
-                                    prompt={null} // Always fresh for creation below
-                                    mode="create"
-                                    isAdmin={true} // Allow creation by default in this view? Yes, logic in dashboard says admin only, but here users might create?
-                                    // Actually, page logic says isAdmin checks localstorage.
-                                    // But typically only admins can create. 
-                                    // Assuming isAdmin is true if user can see this page or check 'isAdmin' state.
-                                    // Let's pass the 'isAdmin' state variable.
+                                    prompt={activePanel === 'edit' ? selectedPrompt : null}
+                                    mode={activePanel === 'edit' ? 'edit' : 'create'}
+                                    isAdmin={true} // Logic handles auth internally, and this page is protected or checks admin
                                     onSave={handleSavePrompt}
-                                    onClose={() => { setSelectedPrompt(null); setActivePanel('none'); }}
+                                    onClose={() => {
+                                        if (activePanel === 'edit') {
+                                            setActivePanel('detail'); // Go back to detail view if cancelling edit
+                                        } else {
+                                            setSelectedPrompt(null);
+                                            setActivePanel('none');
+                                        }
+                                    }}
                                 />
                             </div>
                         </div>
