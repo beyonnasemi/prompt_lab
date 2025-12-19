@@ -18,18 +18,9 @@ export default function AdminDashboard() {
     const [isCreating, setIsCreating] = useState(false);
     const [newAccount, setNewAccount] = useState({ username: '', password: '', display_name: '' });
 
-    // Initial targets (legacy/default list)
-    const targets = [
-        { id: 'business', name: '비즈니스' },
-        { id: 'public', name: '공공기관' },
-        { id: 'univ', name: '대학' },
-        { id: 'elem', name: '초등학교' },
-        { id: 'middle', name: '중학교' },
-        { id: 'high', name: '고등학교' },
-        { id: 'adult', name: '일반성인 (기초)' },
-    ];
-
-    const targetNameMap = targets.reduce((acc, t) => ({ ...acc, [t.id]: t.name }), {});
+    // Initial targets (legacy/default list) - NOW REPLACED BY ACCOUNTS
+    // const targets = [ ... ];
+    // const targetNameMap = ...;
 
     useEffect(() => {
         const checkAdmin = () => {
@@ -220,36 +211,42 @@ export default function AdminDashboard() {
                         gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
                         gap: '1.5rem'
                     }}>
-                        {/* Default Targets */}
-                        {targets.map((target) => (
-                            <div
-                                key={target.id}
-                                onClick={() => router.push(`/learn/${target.id}`)}
-                                style={{
-                                    background: 'white',
-                                    border: '1px solid #e2e8f0',
-                                    borderRadius: '0.75rem',
-                                    padding: '2rem',
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    alignItems: 'center',
-                                    textAlign: 'center',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.2s',
-                                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
-                                }}
-                            >
-                                <div style={{ fontSize: '2rem', marginBottom: '1rem', color: '#3b82f6' }}>
-                                    🏢 {/* Placeholder Emoji */}
+                        {/* Dynamic Targets from Accounts */}
+                        {loadingAccounts ? (
+                            <div style={{ colSpan: 3, textAlign: 'center', color: '#64748b' }}>그룹 정보를 불러오는 중...</div>
+                        ) : accounts.length === 0 ? (
+                            <div style={{ colSpan: 3, textAlign: 'center', color: '#64748b' }}>생성된 그룹이 없습니다. 계정 관리에서 그룹을 추가해주세요.</div>
+                        ) : (
+                            accounts.map((account) => (
+                                <div
+                                    key={account.id}
+                                    onClick={() => router.push(`/learn/${account.username}`)}
+                                    style={{
+                                        background: 'white',
+                                        border: '1px solid #e2e8f0',
+                                        borderRadius: '0.75rem',
+                                        padding: '2rem',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        textAlign: 'center',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s',
+                                        boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                                    }}
+                                >
+                                    <div style={{ fontSize: '2rem', marginBottom: '1rem', color: '#3b82f6' }}>
+                                        🏢 {/* Placeholder Emoji */}
+                                    </div>
+                                    <h3 style={{ fontSize: '1.2rem', fontWeight: 600, color: '#1e293b', marginBottom: '0.5rem' }}>
+                                        {account.display_name}
+                                    </h3>
+                                    <p style={{ fontSize: '0.9rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                        관리하기 <span>➡️</span>
+                                    </p>
                                 </div>
-                                <h3 style={{ fontSize: '1.2rem', fontWeight: 600, color: '#1e293b', marginBottom: '0.5rem' }}>
-                                    {target.name}
-                                </h3>
-                                <p style={{ fontSize: '0.9rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                                    관리하기 <span>➡️</span>
-                                </p>
-                            </div>
-                        ))}
+                            ))
+                        )}
                     </div>
 
                     {/* Note: User created accounts also appear here? 

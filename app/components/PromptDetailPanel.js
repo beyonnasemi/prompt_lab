@@ -233,7 +233,7 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
         <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '1rem', flexShrink: 0 }}>
                 <h2 style={{ fontSize: '1.5rem', fontWeight: 700 }}>
-                    {(currentMode === 'create' || currentMode === 'continuous') ? '새 프롬프트 (연속 작성)' : '프롬프트 수정'}
+                    {(currentMode === 'create' || currentMode === 'continuous') ? '새 프롬프트 등록' : '프롬프트 수정'}
                 </h2>
                 <button
                     onClick={() => {
@@ -288,7 +288,7 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <span style={{ fontSize: '1.5rem' }}>✍️</span>
                         <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#334155' }}>
-                            {sessionHistory.length > 0 ? '이어서 작성하기' : '작성하기'}
+                            {sessionHistory.length > 0 ? '새 프롬프트 작성' : '작성하기'}
                         </h3>
                     </div>
 
@@ -356,7 +356,7 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                             disabled={loading}
                             style={{ padding: '0.8rem 1.5rem', background: '#2563eb', color: 'white', border: 'none', borderRadius: '0.5rem', cursor: loading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', width: '100%', justifyContent: 'center', fontSize: '1.05rem', fontWeight: 600 }}
                         >
-                            {loading ? '저장 중...' : <span>⬆️ 작성 완료 및 계속하기</span>}
+                            {loading ? '저장 중...' : <span>⬆️ 등록하기</span>}
                         </button>
                     </div>
                 </form>
