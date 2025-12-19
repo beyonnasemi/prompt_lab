@@ -653,6 +653,7 @@ function LearnContent() {
                                         onSave={handleSavePrompt}
                                         onClose={() => { }} // No-op for inline form
                                         isThread={true}
+                                        prompt={selectedPrompt}
                                         initialDifficulty={selectedDifficulty}
                                     />
                                 </div>
