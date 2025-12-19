@@ -111,12 +111,15 @@ export default function AdminDashboard() {
                 username: newAccount.username,
                 password: newAccount.password,
                 display_name: newAccount.display_name || newAccount.username,
-                role: validRole
+                role: 'user' // Explicitly set role to 'user' to satisfy constraint
             };
 
             const { error } = await supabase.from('accounts').insert([payload]);
 
-            if (error) throw error;
+            if (error) {
+                console.error("Account Creation Error:", error);
+                throw error;
+            }
 
             alert("새로운 그룹(계정)이 생성되었습니다.");
             setIsCreating(false);

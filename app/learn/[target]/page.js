@@ -324,6 +324,18 @@ function LearnContent() {
                     </div>
                 </div>
 
+                <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0', marginTop: '1rem', width: '100%', maxWidth: '800px' }}>
+                    <div style={{ fontWeight: 600, color: '#334155', marginBottom: '0.25rem' }}>
+                        {difficultyGuides[selectedDifficulty].title}
+                    </div>
+                    <div style={{ fontSize: '0.9rem', color: '#64748b', marginBottom: '0.25rem' }}>
+                        {difficultyGuides[selectedDifficulty].desc}
+                    </div>
+                    <div style={{ fontSize: '0.85rem', color: '#2563eb', fontWeight: 500 }}>
+                        {difficultyGuides[selectedDifficulty].features}
+                    </div>
+                </div>
+
                 {isAdmin && (
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
                         {checkedIds.length > 0 && (

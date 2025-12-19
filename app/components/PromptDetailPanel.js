@@ -87,23 +87,28 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
             // Pass to parent
             const savedPrompt = await onSave({ ...formData }, file, prompt?.id);
 
-            if (currentMode === 'create') {
+            if (currentMode === 'create' || currentMode === 'continuous') {
                 // Continuous Flow: Add to ID-less session history or use returned object
                 // We assume parent returns the saved object. If not, use formData.
                 const historyItem = savedPrompt || { ...formData, created_at: new Date().toISOString() };
+
+                // Add to history
                 setSessionHistory(prev => [...prev, historyItem]);
 
-                // Clear form for next input
-                setFormData({
+                // Clear form for next input, but keep difficulty/mode
+                setFormData(prev => ({
                     title: '',
                     content: '',
                     expected_answer: '',
-                    difficulty: 'beginner',
+                    difficulty: prev.difficulty,
                     attachment_url: null
-                });
+                }));
                 setFile(null);
-                // Do NOT close.
-                alert("저장되었습니다. 다음 내용을 계속 작성할 수 있습니다.");
+
+                // Stay in create mode (effectively continuous)
+                if (currentMode !== 'continuous') setCurrentMode('continuous');
+
+                // Scroll to bottom of history (optional, handled by react rendering usually)
             } else {
                 setCurrentMode('view');
             }
@@ -212,16 +217,16 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
         );
     }
 
-    // --- EDIT / CREATE MODE ---
+    // --- EDIT / CREATE / CONTINUOUS MODE ---
     return (
         <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '1rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '1rem', flexShrink: 0 }}>
                 <h2 style={{ fontSize: '1.5rem', fontWeight: 700 }}>
-                    {currentMode === 'create' ? '새 프롬프트 추가' : '프롬프트 수정'}
+                    {(currentMode === 'create' || currentMode === 'continuous') ? '새 프롬프트 (연속 작성)' : '프롬프트 수정'}
                 </h2>
                 <button
                     onClick={() => {
-                        if (currentMode === 'create') onClose();
+                        if (currentMode === 'create' || currentMode === 'continuous') onClose();
                         else setCurrentMode('view');
                     }}
                     style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: '1.2rem', color: '#94a3b8' }}
@@ -230,101 +235,123 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                 </button>
             </div>
 
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', flex: 1, overflowY: 'auto', paddingRight: '0.5rem' }}>
+            <div style={{ flex: 1, overflowY: 'auto', paddingRight: '0.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
 
-                {/* Session History Cards */}
-                {currentMode === 'create' && sessionHistory.length > 0 && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1rem', borderBottom: '2px dashed #e2e8f0', paddingBottom: '1rem' }}>
-                        <h4 style={{ color: '#94a3b8', fontSize: '0.9rem', fontWeight: 600 }}>🌟 방금 작성한 프롬프트</h4>
+                {/* Session History Cards (Chat Style) */}
+                {(currentMode === 'create' || currentMode === 'continuous') && sessionHistory.length > 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', paddingBottom: '1rem' }}>
                         {sessionHistory.map((historyItem, idx) => (
-                            <div key={idx} style={{ background: '#f8fafc', padding: '1rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1' }}>
-                                <div style={{ fontWeight: 600, color: '#334155', marginBottom: '0.5rem' }}>{historyItem.title}</div>
-                                <div style={{ fontSize: '0.9rem', color: '#64748b', whiteSpace: 'pre-wrap', maxHeight: '100px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            <div key={idx} style={{
+                                alignSelf: 'flex-end',
+                                width: '90%',
+                                background: '#eff6ff',
+                                border: '1px solid #dbeafe',
+                                borderRadius: '1rem 1rem 0 1rem',
+                                padding: '1.25rem',
+                                position: 'relative'
+                            }}>
+                                <div style={{ fontWeight: 600, color: '#1e3a8a', marginBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
+                                    <span>#{idx + 1} {historyItem.title}</span>
+                                    <span style={{ fontSize: '0.8rem', fontWeight: 400, color: '#60a5fa' }}>방금 전</span>
+                                </div>
+                                <div style={{ fontSize: '0.95rem', color: '#334155', whiteSpace: 'pre-wrap', lineHeight: '1.5' }}>
                                     {historyItem.content}
+                                </div>
+                                <div style={{ marginTop: '0.75rem', display: 'flex', gap: '0.5rem' }}>
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormData(prev => ({ ...prev, content: historyItem.content }))}
+                                        style={{ fontSize: '0.8rem', color: '#2563eb', background: 'white', border: '1px solid #bfdbfe', padding: '0.2rem 0.5rem', borderRadius: '4px', cursor: 'pointer' }}
+                                    >
+                                        ↪️ 인용하기
+                                    </button>
                                 </div>
                             </div>
                         ))}
                     </div>
                 )}
 
-                <div>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155' }}>제목</label>
-                    <input
-                        type="text"
-                        value={formData.title}
-                        onChange={e => setFormData({ ...formData, title: e.target.value })}
-                        style={{ width: '100%', padding: '0.8rem', border: '1px solid #e2e8f0', borderRadius: '0.5rem', fontSize: '1rem' }}
-                        required
-                    />
-                </div>
+                {/* Input Form */}
+                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', background: (currentMode === 'continuous' || sessionHistory.length > 0) ? '#f8fafc' : 'transparent', padding: (currentMode === 'continuous' || sessionHistory.length > 0) ? '1rem' : '0', borderRadius: '0.5rem', border: (currentMode === 'continuous' || sessionHistory.length > 0) ? '1px solid #e2e8f0' : 'none' }}>
 
-                <div style={{ display: 'flex', gap: '1rem' }}>
-                    <div style={{ flex: 1 }}>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155' }}>난이도</label>
-                        <select
-                            value={formData.difficulty}
-                            onChange={e => setFormData({ ...formData, difficulty: e.target.value })}
-                            style={{ width: '100%', padding: '0.8rem', border: '1px solid #e2e8f0', borderRadius: '0.5rem' }}
-                        >
-                            <option value="beginner">초급</option>
-                            <option value="intermediate">중급</option>
-                            <option value="advanced">고급</option>
-                        </select>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ fontSize: '1.5rem' }}>✍️</span>
+                        <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#334155' }}>
+                            {sessionHistory.length > 0 ? '이어서 작성하기' : '작성하기'}
+                        </h3>
                     </div>
-                </div>
 
-                <div>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155' }}>프롬프트 내용</label>
-                    <textarea
-                        value={formData.content}
-                        onChange={e => setFormData({ ...formData, content: e.target.value })}
-                        style={{ width: '100%', padding: '0.8rem', border: '1px solid #e2e8f0', borderRadius: '0.5rem', minHeight: '200px', fontSize: '0.95rem', fontFamily: 'monospace' }}
-                        required
-                    />
-                </div>
-
-                <div>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155' }}>예상 답변 (선택)</label>
-                    <textarea
-                        value={formData.expected_answer}
-                        onChange={e => setFormData({ ...formData, expected_answer: e.target.value })}
-                        style={{ width: '100%', padding: '0.8rem', border: '1px solid #e2e8f0', borderRadius: '0.5rem', minHeight: '100px' }}
-                    />
-                </div>
-
-                <div>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155' }}>첨부 파일 (선택)</label>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155' }}>제목</label>
                         <input
-                            type="file"
-                            onChange={handleFileChange}
-                            style={{ width: '100%', padding: '0.5rem', border: '1px solid #e2e8f0', borderRadius: '0.5rem' }}
+                            type="text"
+                            value={formData.title}
+                            onChange={e => setFormData({ ...formData, title: e.target.value })}
+                            placeholder="이번 단계의 주제는 무엇인가요?"
+                            style={{ width: '100%', padding: '0.8rem', border: '1px solid #e2e8f0', borderRadius: '0.5rem', fontSize: '1rem' }}
+                            required
                         />
                     </div>
-                    {formData.attachment_url && !file && (
-                        <div style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: '#2563eb' }}>
-                            <a href={formData.attachment_url} target="_blank" rel="noopener noreferrer">기존 파일 확인</a>
-                        </div>
-                    )}
-                </div>
 
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: 'auto', paddingTop: '1rem' }}>
-                    <button
-                        type="button"
-                        onClick={() => currentMode === 'create' ? onClose() : setCurrentMode('view')}
-                        style={{ padding: '0.8rem 1.5rem', border: '1px solid #e2e8f0', background: 'white', borderRadius: '0.5rem', cursor: 'pointer' }}
-                    >
-                        취소
-                    </button>
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        style={{ padding: '0.8rem 1.5rem', background: '#2563eb', color: 'white', border: 'none', borderRadius: '0.5rem', cursor: loading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-                    >
-                        {loading ? '저장 중...' : <span>💾 저장하기</span>}
-                    </button>
-                </div>
-            </form>
+                    <div style={{ display: 'flex', gap: '1rem' }}>
+                        <div style={{ flex: 1 }}>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155' }}>난이도</label>
+                            <select
+                                value={formData.difficulty}
+                                onChange={e => setFormData({ ...formData, difficulty: e.target.value })}
+                                style={{ width: '100%', padding: '0.8rem', border: '1px solid #e2e8f0', borderRadius: '0.5rem' }}
+                            >
+                                <option value="beginner">초급</option>
+                                <option value="intermediate">중급</option>
+                                <option value="advanced">고급</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155' }}>프롬프트 내용</label>
+                        <textarea
+                            value={formData.content}
+                            onChange={e => setFormData({ ...formData, content: e.target.value })}
+                            placeholder="프롬프트 내용을 작성하세요..."
+                            style={{ width: '100%', padding: '0.8rem', border: '1px solid #e2e8f0', borderRadius: '0.5rem', minHeight: '200px', fontSize: '0.95rem', fontFamily: 'monospace' }}
+                            required
+                        />
+                    </div>
+
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155' }}>예상 답변 (선택)</label>
+                        <textarea
+                            value={formData.expected_answer}
+                            onChange={e => setFormData({ ...formData, expected_answer: e.target.value })}
+                            style={{ width: '100%', padding: '0.8rem', border: '1px solid #e2e8f0', borderRadius: '0.5rem', minHeight: '100px' }}
+                        />
+                    </div>
+
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155' }}>첨부 파일 (선택)</label>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                            <input
+                                type="file"
+                                onChange={handleFileChange}
+                                style={{ width: '100%', padding: '0.5rem', border: '1px solid #e2e8f0', borderRadius: '0.5rem' }}
+                            />
+                        </div>
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: 'auto', paddingTop: '1rem' }}>
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            style={{ padding: '0.8rem 1.5rem', background: '#2563eb', color: 'white', border: 'none', borderRadius: '0.5rem', cursor: loading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', width: '100%', justifyContent: 'center', fontSize: '1.05rem', fontWeight: 600 }}
+                        >
+                            {loading ? '저장 중...' : <span>⬆️ 작성 완료 및 계속하기</span>}
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
+    );
+        </div >
     );
 }
