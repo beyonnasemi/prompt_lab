@@ -138,7 +138,7 @@ export default function AIGeneratePanel({ targetId, currentDifficulty, onSuccess
                         </div>
                     </div>
 
-                    <div style={{ width: '100px' }}>
+                    <div style={{ marginTop: '1rem', width: '100px' }}>
                         <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155' }}>생성 개수</label>
                         <input
                             type="number"
@@ -149,128 +149,127 @@ export default function AIGeneratePanel({ targetId, currentDifficulty, onSuccess
                             style={{ width: '100%', padding: '0.8rem', border: '1px solid #cbd5e1', borderRadius: '0.5rem', fontSize: '0.95rem' }}
                         />
                     </div>
-                </div>
 
 
-                {error && (
-                <div style={{ padding: '1rem', background: '#fef2f2', color: '#b91c1c', borderRadius: '0.5rem', fontSize: '0.9rem' }}>
-                    ⚠️ {error}
-                </div>
-            )}
+                    {error && (
+                        <div style={{ padding: '1rem', background: '#fef2f2', color: '#b91c1c', borderRadius: '0.5rem', fontSize: '0.9rem' }}>
+                            ⚠️ {error}
+                        </div>
+                    )}
 
-            <div style={{ marginTop: 'auto', paddingTop: '1rem' }}>
-                <button
-                    type="submit"
-                    disabled={loading}
-                    className="btn btn-primary"
-                    style={{
-                        width: '100%',
-                        padding: '1rem',
-                        fontSize: '1.1rem',
-                        display: 'flex',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        gap: '0.5rem',
-                        background: loading ? '#94a3b8' : 'linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)',
-                        border: 'none',
-                        borderRadius: '0.5rem',
-                        color: 'white',
-                        cursor: loading ? 'not-allowed' : 'pointer',
-                        boxShadow: '0 4px 6px -1px rgba(124, 58, 237, 0.3)'
-                    }}
-                >
-                    {loading ? <><span>⏳</span> 생성 중...</> : <><span>✨</span> 교육 과정 설계하기</>}
-                </button>
-            </div>
-        </form >
-    ) : (
-        /* PREVIEW RESULT */
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', flex: 1, overflowY: 'hidden' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#1e293b' }}>
-                    ✨ {generatedPrompts.length}개의 결과
-                </h3>
-                <button
-                    onClick={() => setGeneratedPrompts([])}
-                    style={{
-                        display: 'flex', alignItems: 'center', gap: '0.4rem',
-                        padding: '0.5rem 0.75rem', fontSize: '0.9rem',
-                        background: 'white', border: '1px solid #e2e8f0', borderRadius: '0.5rem',
-                        color: '#64748b', cursor: 'pointer'
-                    }}
-                >
-                    <span>🔄</span> 다시 만들기
-                </button>
-            </div>
-
-            <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem', paddingRight: '0.5rem' }}>
-                {generatedPrompts.map((item, idx) => {
-                    const isSelected = selectedIndices.includes(idx);
-                    return (
-                        <div
-                            key={idx}
-                            onClick={() => toggleSelection(idx)}
+                    <div style={{ marginTop: 'auto', paddingTop: '1rem' }}>
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className="btn btn-primary"
                             style={{
-                                background: isSelected ? '#f5f3ff' : '#f8fafc',
-                                border: isSelected ? '2px solid #7c3aed' : '1px solid #e2e8f0',
-                                borderRadius: '0.75rem',
-                                padding: '1.25rem',
-                                cursor: 'pointer',
-                                transition: 'all 0.2s',
-                                position: 'relative'
+                                width: '100%',
+                                padding: '1rem',
+                                fontSize: '1.1rem',
+                                display: 'flex',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                gap: '0.5rem',
+                                background: loading ? '#94a3b8' : 'linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)',
+                                border: 'none',
+                                borderRadius: '0.5rem',
+                                color: 'white',
+                                cursor: loading ? 'not-allowed' : 'pointer',
+                                boxShadow: '0 4px 6px -1px rgba(124, 58, 237, 0.3)'
                             }}
                         >
-                            <div style={{ position: 'absolute', top: '1rem', right: '1rem', color: isSelected ? '#7c3aed' : '#cbd5e1' }}>
-                                {isSelected ? <span>✅</span> : <span>⚪</span>}
-                            </div>
+                            {loading ? <><span>⏳</span> 생성 중...</> : <><span>✨</span> 교육 과정 설계하기</>}
+                        </button>
+                    </div>
+                </form >
+            ) : (
+                /* PREVIEW RESULT */
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', flex: 1, overflowY: 'hidden' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
+                        <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#1e293b' }}>
+                            ✨ {generatedPrompts.length}개의 결과
+                        </h3>
+                        <button
+                            onClick={() => setGeneratedPrompts([])}
+                            style={{
+                                display: 'flex', alignItems: 'center', gap: '0.4rem',
+                                padding: '0.5rem 0.75rem', fontSize: '0.9rem',
+                                background: 'white', border: '1px solid #e2e8f0', borderRadius: '0.5rem',
+                                color: '#64748b', cursor: 'pointer'
+                            }}
+                        >
+                            <span>🔄</span> 다시 만들기
+                        </button>
+                    </div>
 
-                            <h4 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '0.5rem', color: '#334155', paddingRight: '2rem' }}>
-                                {idx + 1}. {item.title}
-                            </h4>
-                            <div style={{
-                                background: 'white', padding: '0.75rem', borderRadius: '0.5rem',
-                                fontSize: '0.9rem', color: '#475569',
-                                border: '1px dashed #cbd5e1', marginBottom: '0.75rem'
-                            }}>
-                                {item.content}
-                            </div>
-                            <div style={{ fontSize: '0.85rem', color: '#64748b' }}>
-                                <strong>예상 답변:</strong> {item.expected_answer?.substring(0, 100)}...
-                            </div>
-                        </div>
-                    );
-                })}
-            </div>
+                    <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem', paddingRight: '0.5rem' }}>
+                        {generatedPrompts.map((item, idx) => {
+                            const isSelected = selectedIndices.includes(idx);
+                            return (
+                                <div
+                                    key={idx}
+                                    onClick={() => toggleSelection(idx)}
+                                    style={{
+                                        background: isSelected ? '#f5f3ff' : '#f8fafc',
+                                        border: isSelected ? '2px solid #7c3aed' : '1px solid #e2e8f0',
+                                        borderRadius: '0.75rem',
+                                        padding: '1.25rem',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s',
+                                        position: 'relative'
+                                    }}
+                                >
+                                    <div style={{ position: 'absolute', top: '1rem', right: '1rem', color: isSelected ? '#7c3aed' : '#cbd5e1' }}>
+                                        {isSelected ? <span>✅</span> : <span>⚪</span>}
+                                    </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', paddingTop: '1rem', borderTop: '1px solid #e2e8f0', flexShrink: 0 }}>
-                <button
-                    onClick={() => setGeneratedPrompts([])}
-                    className="btn"
-                    style={{ background: 'white', border: '1px solid #cbd5e1', color: '#64748b', padding: '0.8rem 1.5rem', borderRadius: '0.5rem', cursor: 'pointer' }}
-                >
-                    취소
-                </button>
-                <button
-                    onClick={handleSave}
-                    disabled={loading || selectedIndices.length === 0}
-                    className="btn btn-primary"
-                    style={{
-                        display: 'flex', alignItems: 'center', gap: '0.5rem',
-                        background: loading ? '#94a3b8' : '#16a34a', border: 'none',
-                        borderRadius: '0.5rem',
-                        color: 'white',
-                        padding: '0.8rem 1.5rem',
-                        boxShadow: '0 4px 6px -1px rgba(22, 163, 74, 0.3)',
-                        opacity: (loading || selectedIndices.length === 0) ? 0.5 : 1,
-                        cursor: (loading || selectedIndices.length === 0) ? 'not-allowed' : 'pointer'
-                    }}
-                >
-                    {loading ? <><span>⏳</span> 저장 중...</> : <><span>💾</span> {selectedIndices.length}개 선택 항목 저장하기</>}
-                </button>
-            </div>
-        </div>
-    )
-}
+                                    <h4 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '0.5rem', color: '#334155', paddingRight: '2rem' }}>
+                                        {idx + 1}. {item.title}
+                                    </h4>
+                                    <div style={{
+                                        background: 'white', padding: '0.75rem', borderRadius: '0.5rem',
+                                        fontSize: '0.9rem', color: '#475569',
+                                        border: '1px dashed #cbd5e1', marginBottom: '0.75rem'
+                                    }}>
+                                        {item.content}
+                                    </div>
+                                    <div style={{ fontSize: '0.85rem', color: '#64748b' }}>
+                                        <strong>예상 답변:</strong> {item.expected_answer?.substring(0, 100)}...
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', paddingTop: '1rem', borderTop: '1px solid #e2e8f0', flexShrink: 0 }}>
+                        <button
+                            onClick={() => setGeneratedPrompts([])}
+                            className="btn"
+                            style={{ background: 'white', border: '1px solid #cbd5e1', color: '#64748b', padding: '0.8rem 1.5rem', borderRadius: '0.5rem', cursor: 'pointer' }}
+                        >
+                            취소
+                        </button>
+                        <button
+                            onClick={handleSave}
+                            disabled={loading || selectedIndices.length === 0}
+                            className="btn btn-primary"
+                            style={{
+                                display: 'flex', alignItems: 'center', gap: '0.5rem',
+                                background: loading ? '#94a3b8' : '#16a34a', border: 'none',
+                                borderRadius: '0.5rem',
+                                color: 'white',
+                                padding: '0.8rem 1.5rem',
+                                boxShadow: '0 4px 6px -1px rgba(22, 163, 74, 0.3)',
+                                opacity: (loading || selectedIndices.length === 0) ? 0.5 : 1,
+                                cursor: (loading || selectedIndices.length === 0) ? 'not-allowed' : 'pointer'
+                            }}
+                        >
+                            {loading ? <><span>⏳</span> 저장 중...</> : <><span>💾</span> {selectedIndices.length}개 선택 항목 저장하기</>}
+                        </button>
+                    </div>
+                </div>
+            )
+            }
         </div >
     );
 }
