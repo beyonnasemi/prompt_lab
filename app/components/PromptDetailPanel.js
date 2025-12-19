@@ -95,8 +95,14 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
         e.preventDefault();
         setLoading(true);
         try {
+            // Override difficulty for threaded prompts to hide them from main list
+            const payload = { ...formData };
+            if (isThread) {
+                payload.difficulty = 'thread';
+            }
+
             // Pass to parent
-            const savedPrompt = await onSave({ ...formData }, file, prompt?.id);
+            const savedPrompt = await onSave(payload, file, prompt?.id);
 
             if (currentMode === 'create' || currentMode === 'continuous') {
                 // Continuous Flow: Add to ID-less session history or use returned object
@@ -228,6 +234,22 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                             </a>
                         </div>
                     )}
+                    {/* Bottom Back Button */}
+                    <div style={{ marginTop: '2rem', borderTop: '1px solid #e2e8f0', paddingTop: '1.5rem' }}>
+                        <button
+                            onClick={onClose}
+                            style={{
+                                display: 'flex', alignItems: 'center', gap: '0.5rem',
+                                padding: '0.75rem 1.5rem',
+                                background: 'white', border: '1px solid #cbd5e1',
+                                borderRadius: '0.5rem', cursor: 'pointer',
+                                color: '#475569', fontWeight: 600,
+                                width: '100%', justifyContent: 'center'
+                            }}
+                        >
+                            <span>⬅️</span> 목록으로 돌아가기
+                        </button>
+                    </div>
                 </div>
             </div>
         );
