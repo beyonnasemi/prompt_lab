@@ -37,6 +37,24 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
         }
     }, [currentMode]);
 
+    // --- FETCH THREADED CHILDREN (VIEW MODE) ---
+    const [threadItems, setThreadItems] = useState([]);
+    useEffect(() => {
+        if (currentMode === 'view' && prompt?.id) {
+            const fetchThreads = async () => {
+                const { data } = await supabase
+                    .from('prompts')
+                    .select('*')
+                    .ilike('expected_answer', `%[PARENT:${prompt.id}]%`)
+                    .order('created_at', { ascending: true });
+                setThreadItems(data || []);
+            };
+            fetchThreads();
+        } else {
+            setThreadItems([]);
+        }
+    }, [currentMode, prompt?.id]);
+
     useEffect(() => {
         if (prompt && mode !== 'create') {
             setFormData({
@@ -107,8 +125,9 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
             const payload = { ...formData };
             if (isThread) {
                 // DB has constraint on difficulty, so we can't use 'thread'.
-                // Instead, we use a hidden marker in expected_answer.
-                payload.expected_answer = '<!--THREAD-->' + (payload.expected_answer || '');
+                // Instead, we use a hidden marker in expected_answer + Parent ID link.
+                const parentIdTag = prompt?.id ? `[PARENT:${prompt.id}]` : '';
+                payload.expected_answer = `<!--THREAD-->${parentIdTag}` + (payload.expected_answer || '');
             }
 
             // Pass to parent
@@ -242,6 +261,41 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                             >
                                 <span>📥</span> 자료 다운로드
                             </a>
+                        </div>
+                    )}
+
+                    {/* --- THREADED REPLIES (PERSISTENT) --- */}
+                    {threadItems.length > 0 && (
+                        <div style={{ marginTop: '3rem', borderTop: '2px dashed #e2e8f0', paddingTop: '2rem' }}>
+                            <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#334155', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <span>🔗</span> 이어지는 프롬프트
+                            </h3>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', borderLeft: '3px solid #e2e8f0', paddingLeft: '1.5rem', marginLeft: '0.5rem' }}>
+                                {threadItems.map((item, idx) => (
+                                    <div key={item.id} style={{ position: 'relative', background: '#f8fafc', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0' }}>
+                                        {/* Connector Dot */}
+                                        <div style={{ position: 'absolute', left: '-1.9rem', top: '2rem', width: '12px', height: '12px', background: '#94a3b8', borderRadius: '50%', border: '2px solid white', boxShadow: '0 0 0 1px #cbd5e1' }}></div>
+
+                                        <div style={{ fontWeight: 600, color: '#475569', marginBottom: '1rem', fontSize: '1.05rem' }}>{item.title}</div>
+
+                                        <div style={{ marginBottom: '1rem' }}>
+                                            <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.25rem', fontWeight: 600 }}>프롬프트 내용</div>
+                                            <div style={{ fontSize: '0.95rem', color: '#334155', whiteSpace: 'pre-wrap', lineHeight: '1.6', background: 'white', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
+                                                {item.content}
+                                            </div>
+                                        </div>
+
+                                        {item.expected_answer && (
+                                            <div>
+                                                <div style={{ fontSize: '0.85rem', color: '#d97706', marginBottom: '0.25rem', fontWeight: 600 }}>예상 답변</div>
+                                                <div style={{ fontSize: '0.95rem', color: '#92400e', whiteSpace: 'pre-wrap', lineHeight: '1.6', background: '#fffbeb', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #fcd34d' }}>
+                                                    {item.expected_answer.replace(/<!--THREAD-->|\[PARENT:[^\]]+\]/g, '')}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     )}
                     {/* Bottom Back Button */}
