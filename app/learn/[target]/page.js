@@ -348,174 +348,179 @@ function LearnContent() {
                 )}
             </div>
 
-            {/* Split Layout */}
-            <div style={{ display: 'flex', gap: '2rem', flex: 1, overflow: 'hidden' }}>
+            {/* MAIN CONTENT AREA */}
+            <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
 
-                {/* LEFT COLUMN: List */}
-                <div style={{ flex: '1 1 60%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                    {/* Search */}
-                    <div style={{ marginBottom: '1rem' }}>
-                        <input
-                            type="text"
-                            placeholder="주제 검색..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            style={{ width: '100%', padding: '0.8rem', border: '1px solid #e2e8f0', borderRadius: '0.5rem' }}
-                        />
-                    </div>
+                {/* MODE: LIST VIEW */}
+                {!selectedPrompt && (
+                    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+                        {/* Search */}
+                        <div style={{ marginBottom: '1rem' }}>
+                            <input
+                                type="text"
+                                placeholder="주제 검색..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                style={{ width: '100%', padding: '0.8rem', border: '1px solid #e2e8f0', borderRadius: '0.5rem', fontSize: '1rem' }}
+                            />
+                        </div>
 
-                    {/* Table */}
-                    <div style={{ flex: 1, overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '0.5rem', background: 'white' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                            <thead style={{ position: 'sticky', top: 0, background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                                <tr>
-                                    {isAdmin && <th style={{ padding: '0.75rem' }}><input type="checkbox" onChange={handleCheckAll} checked={displayedPrompts.length > 0 && checkedIds.length === displayedPrompts.length} /></th>}
-                                    <th style={{ padding: '0.75rem', textAlign: 'left', color: '#64748b' }}>No.</th>
-                                    <th style={{ padding: '0.75rem', textAlign: 'left', color: '#64748b' }}>주제</th>
-                                    <th style={{ padding: '0.75rem', textAlign: 'left', color: '#64748b' }}>등록일</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {loading ? (
-                                    <tr><td colSpan="4" style={{ padding: '2rem', textAlign: 'center' }}>로딩 중...</td></tr>
-                                ) : displayedPrompts.length === 0 ? (
-                                    <tr><td colSpan="4" style={{ padding: '2rem', textAlign: 'center' }}>데이터가 없습니다.</td></tr>
-                                ) : (
-                                    displayedPrompts.map((prompt, idx) => (
-                                        <tr
-                                            key={prompt.id}
-                                            onClick={() => handlePromptClick(prompt)}
-                                            style={{
-                                                cursor: 'pointer',
-                                                background: selectedPrompt?.id === prompt.id ? '#eff6ff' : 'white',
-                                                borderBottom: '1px solid #f1f5f9'
-                                            }}
-                                        >
-                                            {isAdmin && (
-                                                <td style={{ padding: '0.75rem' }} onClick={e => e.stopPropagation()}>
-                                                    <input type="checkbox" checked={checkedIds.includes(prompt.id)} onChange={e => handleCheck(e, prompt.id)} />
+                        {/* List Table */}
+                        <div style={{ flex: 1, overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '0.5rem', background: 'white' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                <thead style={{ position: 'sticky', top: 0, background: '#f8fafc', borderBottom: '1px solid #e2e8f0', zIndex: 10 }}>
+                                    <tr>
+                                        {isAdmin && <th style={{ padding: '1rem', width: '50px', textAlign: 'center' }}><input type="checkbox" onChange={handleCheckAll} checked={displayedPrompts.length > 0 && checkedIds.length === displayedPrompts.length} /></th>}
+                                        <th style={{ padding: '1rem', textAlign: 'center', width: '80px', color: '#64748b' }}>No.</th>
+                                        <th style={{ padding: '1rem', textAlign: 'left', color: '#64748b' }}>주제</th>
+                                        <th style={{ padding: '1rem', textAlign: 'right', width: '150px', color: '#64748b' }}>등록일</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {loading ? (
+                                        <tr><td colSpan="4" style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8' }}>로딩 중...</td></tr>
+                                    ) : displayedPrompts.length === 0 ? (
+                                        <tr><td colSpan="4" style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8' }}>등록된 프롬프트가 없습니다.</td></tr>
+                                    ) : (
+                                        displayedPrompts.map((prompt, idx) => (
+                                            <tr
+                                                key={prompt.id}
+                                                onClick={() => { setSelectedPrompt(prompt); setActivePanel('detail'); }}
+                                                style={{
+                                                    cursor: 'pointer',
+                                                    background: 'white',
+                                                    borderBottom: '1px solid #f1f5f9',
+                                                    transition: 'background 0.2s'
+                                                }}
+                                                onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'}
+                                                onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
+                                            >
+                                                {isAdmin && (
+                                                    <td style={{ padding: '1rem', textAlign: 'center' }} onClick={e => e.stopPropagation()}>
+                                                        <input type="checkbox" checked={checkedIds.includes(prompt.id)} onChange={e => handleCheck(e, prompt.id)} />
+                                                    </td>
+                                                )}
+                                                <td style={{ padding: '1rem', textAlign: 'center', color: '#94a3b8' }}>
+                                                    {filteredPrompts.length - ((currentPage - 1) * itemsPerPage) - idx}
                                                 </td>
-                                            )}
-                                            <td style={{ padding: '0.75rem', color: '#94a3b8' }}>
-                                                {filteredPrompts.length - ((currentPage - 1) * itemsPerPage) - idx}
-                                            </td>
-                                            <td style={{ padding: '0.75rem', fontWeight: 600, color: '#334155' }}>
-                                                {prompt.title}
-                                            </td>
-                                            <td style={{ padding: '0.75rem', color: '#94a3b8', fontSize: '0.9rem' }}>
-                                                {new Date(prompt.created_at).toLocaleDateString()}
-                                            </td>
-                                        </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-
-                    {/* Pagination */}
-                    {totalPages > 1 && (
-                        <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', marginTop: '1rem' }}>
-                            <button disabled={currentPage === 1} onClick={() => setCurrentPage(c => c - 1)} className="btn" style={{ border: '1px solid #e2e8f0' }}>◀</button>
-                            <span style={{ display: 'flex', alignItems: 'center', color: '#64748b' }}>{currentPage} / {totalPages}</span>
-                            <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(c => c + 1)} className="btn" style={{ border: '1px solid #e2e8f0' }}>▶</button>
+                                                <td style={{ padding: '1rem', fontWeight: 600, color: '#334155', fontSize: '1.05rem' }}>
+                                                    {prompt.title}
+                                                </td>
+                                                <td style={{ padding: '1rem', textAlign: 'right', color: '#94a3b8', fontSize: '0.9rem' }}>
+                                                    {new Date(prompt.created_at).toLocaleDateString()}
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
                         </div>
-                    )}
-                </div>
 
-                {/* RIGHT COLUMN: Tabs & Panels */}
-                <div style={{ flex: '0 0 450px', maxWidth: '40%', borderLeft: '1px solid #e2e8f0', paddingLeft: '2rem', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-
-                    {/* Tab Navigation */}
-                    {isAdmin && (
-                        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', borderBottom: '1px solid #e2e8f0' }}>
-                            <button
-                                onClick={() => activePanel === 'detail' ? null : setActivePanel('detail')}
-                                disabled={!selectedPrompt}
-                                style={{
-                                    padding: '0.75rem 1rem', fontWeight: 600, cursor: selectedPrompt ? 'pointer' : 'not-allowed',
-                                    color: activePanel === 'detail' ? '#2563eb' : '#94a3b8',
-                                    borderBottom: activePanel === 'detail' ? '2px solid #2563eb' : '2px solid transparent',
-                                    background: 'none', borderTop: 'none', borderLeft: 'none', borderRight: 'none'
-                                }}
-                            >
-                                📝 상세
-                            </button>
-                            <button
-                                onClick={handleCreateTabClick}
-                                style={{
-                                    padding: '0.75rem 1rem', fontWeight: 600, cursor: 'pointer',
-                                    color: activePanel === 'create' ? '#2563eb' : '#64748b',
-                                    borderBottom: activePanel === 'create' ? '2px solid #2563eb' : '2px solid transparent',
-                                    background: 'none', borderTop: 'none', borderLeft: 'none', borderRight: 'none'
-                                }}
-                            >
-                                ➕ 새 프롬프트
-                            </button>
-                            <button
-                                onClick={() => setActivePanel('ai')}
-                                style={{
-                                    padding: '0.75rem 1rem', fontWeight: 600, cursor: 'pointer',
-                                    color: activePanel === 'ai' ? '#7c3aed' : '#64748b',
-                                    borderBottom: activePanel === 'ai' ? '2px solid #7c3aed' : '2px solid transparent',
-                                    background: 'none', borderTop: 'none', borderLeft: 'none', borderRight: 'none'
-                                }}
-                            >
-                                ✨ AI 생성
-                            </button>
-                            <button
-                                onClick={() => setActivePanel('bulk')}
-                                style={{
-                                    padding: '0.75rem 1rem', fontWeight: 600, cursor: 'pointer',
-                                    color: activePanel === 'bulk' ? '#475569' : '#64748b',
-                                    borderBottom: activePanel === 'bulk' ? '2px solid #475569' : '2px solid transparent',
-                                    background: 'none', borderTop: 'none', borderLeft: 'none', borderRight: 'none'
-                                }}
-                            >
-                                📂 대량 등록
-                            </button>
-                        </div>
-                    )}
-
-                    {/* Panels */}
-                    <div style={{ flex: 1, overflow: 'hidden' }}>
-                        {activePanel === 'none' && (
-                            <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', flexDirection: 'column', gap: '1rem' }}>
-                                <div style={{ fontSize: '3rem' }}>👈</div>
-                                <p>좌측 목록에서 주제를 선택하거나<br />상단 탭을 눌러 작업을 시작하세요.</p>
+                        {/* Pagination */}
+                        {totalPages > 1 && (
+                            <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', marginTop: '1.5rem' }}>
+                                <button disabled={currentPage === 1} onClick={() => setCurrentPage(c => c - 1)} className="btn" style={{ border: '1px solid #e2e8f0', padding: '0.5rem 1rem' }}>◀ 이전</button>
+                                <span style={{ display: 'flex', alignItems: 'center', color: '#64748b', margin: '0 1rem' }}>{currentPage} / {totalPages}</span>
+                                <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(c => c + 1)} className="btn" style={{ border: '1px solid #e2e8f0', padding: '0.5rem 1rem' }}>다음 ▶</button>
                             </div>
                         )}
-
-                        {(activePanel === 'detail' || activePanel === 'edit' || activePanel === 'create') && (
-                            <PromptDetailPanel
-                                prompt={activePanel === 'create' ? null : selectedPrompt}
-                                mode={activePanel === 'detail' ? 'view' : activePanel}
-                                isAdmin={isAdmin}
-                                onClose={() => setActivePanel('none')}
-                                onSave={handleSavePrompt}
-                                onDelete={handleDeleteClick}
-                            />
-                        )}
-
-                        {activePanel === 'ai' && (
-                            <AIGeneratePanel
-                                targetId={targetId}
-                                currentDifficulty={selectedDifficulty}
-                                onSuccess={handleBulkSave}
-                                onClose={() => setActivePanel('none')}
-                            />
-                        )}
-
-                        {activePanel === 'bulk' && (
-                            <BulkUploadPanel
-                                targetId={targetId}
-                                currentDifficulty={selectedDifficulty}
-                                onSuccess={handleBulkSave}
-                                onClose={() => setActivePanel('none')}
-                            />
-                        )}
                     </div>
-                </div>
+                )}
 
+                {/* MODE: DETAIL VIEW (CARD + INPUT) */}
+                {selectedPrompt && (
+                    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflowY: 'auto', paddingRight: '0.5rem' }}>
+                        {/* Back Button */}
+                        <div style={{ marginBottom: '1rem' }}>
+                            <button
+                                onClick={() => { setSelectedPrompt(null); setActivePanel('none'); }}
+                                style={{
+                                    display: 'flex', alignItems: 'center', gap: '0.5rem',
+                                    background: 'none', border: 'none', color: '#64748b',
+                                    cursor: 'pointer', fontSize: '1rem', fontWeight: 600
+                                }}
+                            >
+                                ⬅ 목록으로 돌아가기
+                            </button>
+                        </div>
+
+                        {/* DETAIL CARD */}
+                        <div style={{
+                            background: 'white',
+                            borderRadius: '1rem',
+                            border: '1px solid #e2e8f0',
+                            padding: '2rem',
+                            marginBottom: '2rem',
+                            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)'
+                        }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '1.5rem' }}>
+                                <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#1e293b', lineHeight: 1.3 }}>
+                                    {selectedPrompt.title}
+                                </h2>
+                                <span style={{
+                                    background: '#f1f5f9', color: '#64748b', padding: '0.25rem 0.75rem',
+                                    borderRadius: '9999px', fontSize: '0.85rem', fontWeight: 600, flexShrink: 0
+                                }}>
+                                    No. {selectedPrompt.id}
+                                </span>
+                            </div>
+
+                            <div style={{ display: 'grid', gap: '1.5rem' }}>
+                                <div>
+                                    <h4 style={{ fontSize: '0.95rem', color: '#94a3b8', marginBottom: '0.5rem', fontWeight: 600 }}>프롬프트 내용</h4>
+                                    <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '0.75rem', lineHeight: '1.6', color: '#334155', whiteSpace: 'pre-wrap' }}>
+                                        {selectedPrompt.content}
+                                    </div>
+                                </div>
+                                {selectedPrompt.expected_answer && (
+                                    <div>
+                                        <h4 style={{ fontSize: '0.95rem', color: '#94a3b8', marginBottom: '0.5rem', fontWeight: 600 }}>예상 답변</h4>
+                                        <div style={{ background: '#fffbeb', padding: '1.25rem', borderRadius: '0.75rem', lineHeight: '1.6', color: '#92400e', whiteSpace: 'pre-wrap', border: '1px solid #fef3c7' }}>
+                                            {selectedPrompt.expected_answer}
+                                        </div>
+                                    </div>
+                                )}
+                                {selectedPrompt.attachment_url && (
+                                    <div>
+                                        <h4 style={{ fontSize: '0.95rem', color: '#94a3b8', marginBottom: '0.5rem', fontWeight: 600 }}>첨부 파일</h4>
+                                        {selectedPrompt.attachment_url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                                            <img src={selectedPrompt.attachment_url} alt="Attachment" style={{ maxWidth: '100%', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }} />
+                                        ) : (
+                                            <a href={selectedPrompt.attachment_url} target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb', textDecoration: 'underline' }}>
+                                                � 파일 확인하기
+                                            </a>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* CREATE/EDIT FORM BELOW */}
+                        <div style={{ marginBottom: '2rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+                                <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#1e293b' }}>
+                                    ➕ 새로운 프롬프트 추가
+                                </h3>
+                                <p style={{ fontSize: '0.9rem', color: '#64748b' }}>
+                                    위 내용을 참고하여 이어서 작성할 수 있습니다.
+                                </p>
+                            </div>
+                            <div style={{ background: 'white', borderRadius: '1rem', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+                                <PromptDetailPanel
+                                    prompt={null} // Always fresh for creation below
+                                    mode="create"
+                                    isAdmin={true} // Allow creation by default in this view? Yes, logic in dashboard says admin only, but here users might create?
+                                    // Actually, page logic says isAdmin checks localstorage.
+                                    // But typically only admins can create. 
+                                    // Assuming isAdmin is true if user can see this page or check 'isAdmin' state.
+                                    // Let's pass the 'isAdmin' state variable.
+                                    onSave={handleSavePrompt}
+                                    onClose={() => { }}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
@@ -528,3 +533,4 @@ export default function LearnPage() {
         </Suspense>
     );
 }
+```
