@@ -119,6 +119,11 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                 // Stay in create mode (effectively continuous)
                 if (currentMode !== 'continuous') setCurrentMode('continuous');
 
+                // IF NOT THREADED (Main Header "New Prompt"), CLOSE AFTER SAVE
+                if (!isThread) {
+                    onClose();
+                }
+
                 // Scroll to bottom of history (optional, handled by react rendering usually)
             } else {
                 setCurrentMode('view');
