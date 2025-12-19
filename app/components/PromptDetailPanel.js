@@ -232,7 +232,7 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                         <div style={{ marginBottom: '1.5rem' }}>
                             <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#334155', marginBottom: '0.5rem' }}>💡 예상 답변</h3>
                             <div style={{ background: '#eff6ff', padding: '1.25rem', borderRadius: '0.5rem', color: '#1e3a8a', lineHeight: '1.7', border: '1px solid #dbeafe', whiteSpace: 'pre-wrap' }}>
-                                {prompt.expected_answer}
+                                {prompt.expected_answer.replace(/<!--THREAD-->|\[PARENT:[^\]]+\]/g, '')}
                             </div>
                         </div>
                     )}
@@ -373,7 +373,7 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                                     <div>
                                         <div style={{ fontSize: '0.8rem', color: '#d97706', marginBottom: '0.2rem', fontWeight: 600 }}>예상 답변</div>
                                         <div style={{ fontSize: '0.95rem', color: '#92400e', whiteSpace: 'pre-wrap', lineHeight: '1.6', background: '#fffbeb', padding: '0.75rem', borderRadius: '0.375rem', border: '1px solid #fcd34d' }}>
-                                            {historyItem.expected_answer.replace('<!--THREAD-->', '')}
+                                            {historyItem.expected_answer.replace(/<!--THREAD-->|\[PARENT:[^\]]+\]/g, '')}
                                         </div>
                                     </div>
                                 )}
