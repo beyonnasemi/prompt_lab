@@ -138,86 +138,54 @@ export default function AIGeneratePanel({ targetId, currentDifficulty, onSuccess
                         </div>
                     </div>
 
-                            />
-                        </div>
-                        {image && (
-                            <div style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: '#2563eb', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                <span>✅</span> 이미지가 선택되었습니다.
-                                <button type="button" onClick={() => setImage(null)} style={{ border: 'none', background: 'none', color: '#ef4444', cursor: 'pointer', textDecoration: 'underline' }}>삭제</button>
-                            </div>
-                        )}
+                    <div style={{ width: '100px' }}>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155' }}>생성 개수</label>
+                        <input
+                            type="number"
+                            min="1"
+                            max="5"
+                            value={count}
+                            onChange={(e) => setCount(Number(e.target.value))}
+                            style={{ width: '100%', padding: '0.8rem', border: '1px solid #cbd5e1', borderRadius: '0.5rem', fontSize: '0.95rem' }}
+                        />
                     </div>
+                </div>
 
-                    <div style={{ display: 'flex', gap: '1rem' }}>
-                        <div style={{ flex: 1 }}>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155' }}>AI 모델</label>
-                            <select
-                                value={selectedModel}
-                                onChange={(e) => setSelectedModel(e.target.value)}
-                                style={{ width: '100%', padding: '0.8rem', border: '1px solid #cbd5e1', borderRadius: '0.5rem', fontSize: '0.95rem' }}
-                            >
-                                <option value="gemini">Google Gemini 1.5 Flash</option>
-                                <option value="gpt">OpenAI GPT-4o</option>
-                            </select>
-                        </div>
-                        <div style={{ flex: 1 }}>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155' }}>난이도</label>
-                            <select
-                                value={difficulty}
-                                onChange={(e) => setDifficulty(e.target.value)}
-                                style={{ width: '100%', padding: '0.8rem', border: '1px solid #cbd5e1', borderRadius: '0.5rem', fontSize: '0.95rem' }}
-                            >
-                                <option value="beginner">초급</option>
-                                <option value="intermediate">중급</option>
-                                <option value="advanced">고급</option>
-                            </select>
-                        </div>
-                        <div style={{ width: '100px' }}>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155' }}>생성 개수</label>
-                            <input
-                                type="number"
-                                min="1" max="5"
-                                value={count}
-                                onChange={(e) => setCount(parseInt(e.target.value) || 1)}
-                                style={{ width: '100%', padding: '0.8rem', border: '1px solid #cbd5e1', borderRadius: '0.5rem', fontSize: '0.95rem' }}
-                            />
-                        </div>
+
+    {
+                error && (
+                    <div style={{ padding: '1rem', background: '#fef2f2', color: '#b91c1c', borderRadius: '0.5rem', fontSize: '0.9rem' }}>
+                        ⚠️ {error}
                     </div>
+                )
+            }
 
-                    {
-        error && (
-            <div style={{ padding: '1rem', background: '#fef2f2', color: '#b91c1c', borderRadius: '0.5rem', fontSize: '0.9rem' }}>
-                ⚠️ {error}
+            <div style={{ marginTop: 'auto', paddingTop: '1rem' }}>
+                <button
+                    type="submit"
+                    disabled={loading}
+                    className="btn btn-primary"
+                    style={{
+                        width: '100%',
+                        padding: '1rem',
+                        fontSize: '1.1rem',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        background: loading ? '#94a3b8' : 'linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)',
+                        border: 'none',
+                        borderRadius: '0.5rem',
+                        color: 'white',
+                        cursor: loading ? 'not-allowed' : 'pointer',
+                        boxShadow: '0 4px 6px -1px rgba(124, 58, 237, 0.3)'
+                    }}
+                >
+                    {loading ? <><span>⏳</span> 생성 중...</> : <><span>✨</span> 교육 과정 설계하기</>}
+                </button>
             </div>
-        )
-    }
-
-    <div style={{ marginTop: 'auto', paddingTop: '1rem' }}>
-        <button
-            type="submit"
-            disabled={loading}
-            className="btn btn-primary"
-            style={{
-                width: '100%',
-                padding: '1rem',
-                fontSize: '1.1rem',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                gap: '0.5rem',
-                background: loading ? '#94a3b8' : 'linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)',
-                border: 'none',
-                borderRadius: '0.5rem',
-                color: 'white',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                boxShadow: '0 4px 6px -1px rgba(124, 58, 237, 0.3)'
-            }}
-        >
-            {loading ? <><span>⏳</span> 생성 중...</> : <><span>✨</span> 교육 과정 설계하기</>}
-        </button>
-    </div>
-                </form >
-            ) : (
+        </form >
+    ) : (
         /* PREVIEW RESULT */
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', flex: 1, overflowY: 'hidden' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>

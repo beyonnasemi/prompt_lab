@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClient } from '@/utils/supabase/client'; // Assuming this path, will verify. If not, I'll fix.
+// import { createClient } from '@/utils/supabase/client'; // Assuming this path, will verify. If not, I'll fix.
 // Actually, standard Next.js Supabase starter often usesutils/supabase/client.
 // Let's safe-guard. I will use a prop for onSave and handle upload in parent if possible?
 // START_UPDATE
