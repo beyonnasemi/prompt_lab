@@ -423,18 +423,28 @@ function LearnContent() {
                     </div>
                 )}
 
-                {/* MODE: CREATE STANDALONE PANEL (Optional: if we want full screen create) */}
-                {/* For consistency with 'New Prompt' button, let's treat 'create' as a mode masking the list, 
-                    OR we just use the selectedPrompt view logic? 
-                    Let's use a standalone view for 'create' triggered from header. */}
+                {/* MODE: CREATE STANDALONE PANEL */}
                 {activePanel === 'create' && (
                     <div style={{ position: 'absolute', inset: 0, background: 'white', zIndex: 20, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                        {/* We reuse PromptDetailPanel logic */}
                         <PromptDetailPanel
                             mode="create"
                             isAdmin={true}
                             onSave={handleSavePrompt}
                             onClose={() => setActivePanel('none')}
+                        />
+                    </div>
+                )}
+
+                {/* MODE: EDIT STANDALONE PANEL */}
+                {activePanel === 'edit' && selectedPrompt && (
+                    <div style={{ position: 'absolute', inset: 0, background: 'white', zIndex: 20, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                        <PromptDetailPanel
+                            prompt={selectedPrompt}
+                            mode="edit"
+                            isAdmin={true}
+                            onSave={handleSavePrompt}
+                            onDelete={handleDeleteClick}
+                            onClose={() => setActivePanel('detail')}
                         />
                     </div>
                 )}
@@ -612,32 +622,7 @@ function LearnContent() {
                         </div>
 
                         {/* CREATE/EDIT FORM BELOW */}
-                        <div style={{ marginBottom: '2rem' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-                                <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#1e293b' }}>
-                                    {activePanel === 'edit' ? '✏️ 프롬프트 수정' : '➕ 새로운 프롬프트 추가'}
-                                </h3>
-                                <p style={{ fontSize: '0.9rem', color: '#64748b' }}>
-                                    {activePanel === 'edit' ? '내용을 수정한 후 저장하세요.' : '위 내용을 참고하여 이어서 작성할 수 있습니다.'}
-                                </p>
-                            </div>
-                            <div style={{ background: 'white', borderRadius: '1rem', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
-                                <PromptDetailPanel
-                                    prompt={activePanel === 'edit' ? selectedPrompt : null}
-                                    mode={activePanel === 'edit' ? 'edit' : 'create'}
-                                    isAdmin={true} // Logic handles auth internally, and this page is protected or checks admin
-                                    onSave={handleSavePrompt}
-                                    onClose={() => {
-                                        if (activePanel === 'edit') {
-                                            setActivePanel('detail'); // Go back to detail view if cancelling edit
-                                        } else {
-                                            setSelectedPrompt(null);
-                                            setActivePanel('none');
-                                        }
-                                    }}
-                                />
-                            </div>
-                        </div>
+
                     </div>
                 )}
             </div>
