@@ -14,6 +14,7 @@ import { useState, useEffect } from 'react';
 
 export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onClose, onSave, onDelete }) {
     // mode: 'view' | 'edit' | 'create'
+    const [currentMode, setCurrentMode] = useState(mode);
     const [sessionHistory, setSessionHistory] = useState([]); // For continuous creation "cards"
 
     // Reset history when mode changes away from create, OR keep it? 
