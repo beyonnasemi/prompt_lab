@@ -12,7 +12,7 @@ import { useState, useEffect } from 'react';
 
 // Re-verified page.js in next step.
 
-export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onClose, onSave, onDelete, isThread = false }) {
+export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onClose, onSave, onDelete, isThread = false, initialDifficulty = 'beginner' }) {
     // mode: 'view' | 'edit' | 'create'
     const [currentMode, setCurrentMode] = useState(mode);
     const [sessionHistory, setSessionHistory] = useState([]); // For continuous creation "cards"
@@ -54,7 +54,7 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                     title: '',
                     content: '',
                     expected_answer: '',
-                    difficulty: 'beginner',
+                    difficulty: initialDifficulty,
                     attachment_url: null
                 }));
             }
@@ -326,7 +326,8 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                             <select
                                 value={formData.difficulty}
                                 onChange={e => setFormData({ ...formData, difficulty: e.target.value })}
-                                style={{ width: '100%', padding: '0.8rem', border: '1px solid #e2e8f0', borderRadius: '0.5rem' }}
+                                disabled={isThread}
+                                style={{ width: '100%', padding: '0.8rem', border: '1px solid #e2e8f0', borderRadius: '0.5rem', background: isThread ? '#f1f5f9' : 'white', cursor: isThread ? 'not-allowed' : 'pointer' }}
                             >
                                 <option value="beginner">초급</option>
                                 <option value="intermediate">중급</option>
