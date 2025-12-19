@@ -12,7 +12,7 @@ import { useState, useEffect } from 'react';
 
 // Re-verified page.js in next step.
 
-export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onClose, onSave, onDelete }) {
+export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onClose, onSave, onDelete, isThread = false }) {
     // mode: 'view' | 'edit' | 'create'
     const [currentMode, setCurrentMode] = useState(mode);
     const [sessionHistory, setSessionHistory] = useState([]); // For continuous creation "cards"
@@ -231,7 +231,7 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
     // --- EDIT / CREATE / CONTINUOUS MODE ---
     return (
         <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '1rem', flexShrink: 0 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '1rem', flexShrink: 0, display: isThread ? 'none' : 'flex' }}>
                 <h2 style={{ fontSize: '1.5rem', fontWeight: 700 }}>
                     {(currentMode === 'create' || currentMode === 'continuous') ? '새 프롬프트 등록' : '프롬프트 수정'}
                 </h2>
@@ -248,34 +248,32 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
 
             <div style={{ flex: 1, overflowY: 'auto', paddingRight: '0.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
 
-                {/* Session History Cards (Chat Style) */}
+                {/* Session History Cards (Chat Style / Thread Style) */}
                 {(currentMode === 'create' || currentMode === 'continuous') && sessionHistory.length > 0 && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', paddingBottom: '1rem' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', paddingBottom: '1rem', borderLeft: isThread ? '2px solid #e2e8f0' : 'none', marginLeft: isThread ? '1rem' : '0', paddingLeft: isThread ? '1.5rem' : '0' }}>
                         {sessionHistory.map((historyItem, idx) => (
                             <div key={idx} style={{
-                                alignSelf: 'flex-end',
-                                width: '90%',
-                                background: '#eff6ff',
-                                border: '1px solid #dbeafe',
-                                borderRadius: '1rem 1rem 0 1rem',
+                                alignSelf: 'flex-start',
+                                width: '100%',
+                                background: '#f0f9ff',
+                                border: '1px solid #bae6fd',
+                                borderRadius: '0.75rem',
                                 padding: '1.25rem',
                                 position: 'relative'
                             }}>
-                                <div style={{ fontWeight: 600, color: '#1e3a8a', marginBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
-                                    <span>#{idx + 1} {historyItem.title}</span>
-                                    <span style={{ fontSize: '0.8rem', fontWeight: 400, color: '#60a5fa' }}>방금 전</span>
+                                {/* Thread Connector Node */}
+                                {isThread && (
+                                    <div style={{ position: 'absolute', left: '-2.1rem', top: '1.5rem', width: '12px', height: '12px', background: '#3b82f6', borderRadius: '50%', border: '2px solid white', boxShadow: '0 0 0 2px #e2e8f0' }}></div>
+                                )}
+                                <div style={{ fontWeight: 600, color: '#0369a1', marginBottom: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        <span style={{ background: '#0ea5e9', color: 'white', padding: '0.1rem 0.4rem', borderRadius: '4px', fontSize: '0.75rem' }}>등록완료</span>
+                                        {historyItem.title}
+                                    </span>
+                                    <span style={{ fontSize: '0.8rem', fontWeight: 400, color: '#64748b' }}>방금 전</span>
                                 </div>
-                                <div style={{ fontSize: '0.95rem', color: '#334155', whiteSpace: 'pre-wrap', lineHeight: '1.5' }}>
+                                <div style={{ fontSize: '0.95rem', color: '#334155', whiteSpace: 'pre-wrap', lineHeight: '1.6' }}>
                                     {historyItem.content}
-                                </div>
-                                <div style={{ marginTop: '0.75rem', display: 'flex', gap: '0.5rem' }}>
-                                    <button
-                                        type="button"
-                                        onClick={() => setFormData(prev => ({ ...prev, content: historyItem.content }))}
-                                        style={{ fontSize: '0.8rem', color: '#2563eb', background: 'white', border: '1px solid #bfdbfe', padding: '0.2rem 0.5rem', borderRadius: '4px', cursor: 'pointer' }}
-                                    >
-                                        ↪️ 인용하기
-                                    </button>
                                 </div>
                             </div>
                         ))}
@@ -283,13 +281,26 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                 )}
 
                 {/* Input Form */}
-                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', background: (currentMode === 'continuous' || sessionHistory.length > 0) ? '#f8fafc' : 'transparent', padding: (currentMode === 'continuous' || sessionHistory.length > 0) ? '1rem' : '0', borderRadius: '0.5rem', border: (currentMode === 'continuous' || sessionHistory.length > 0) ? '1px solid #e2e8f0' : 'none' }}>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <span style={{ fontSize: '1.5rem' }}>✍️</span>
-                        <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#334155' }}>
-                            {sessionHistory.length > 0 ? '새 프롬프트 작성' : '작성하기'}
-                        </h3>
+                <form onSubmit={handleSubmit} style={{
+                    display: 'flex', flexDirection: 'column', gap: '1.5rem',
+                    background: (isThread || currentMode === 'continuous' || sessionHistory.length > 0) ? (isThread ? 'white' : '#f8fafc') : 'transparent',
+                    padding: (isThread || currentMode === 'continuous' || sessionHistory.length > 0) ? '1rem' : '0',
+                    borderRadius: '0.5rem',
+                    border: (isThread || currentMode === 'continuous' || sessionHistory.length > 0) ? (isThread ? 'none' : '1px solid #e2e8f0') : 'none',
+                    borderLeft: isThread ? '2px solid #e2e8f0' : 'none',
+                    marginLeft: isThread ? '1rem' : '0',
+                    paddingLeft: isThread ? '1.5rem' : '0'
+                }}>
+                    <div style={{ position: 'relative' }}>
+                        {isThread && (
+                            <div style={{ position: 'absolute', left: '-2.1rem', top: '0.5rem', width: '12px', height: '12px', background: '#cbd5e1', borderRadius: '50%', border: '2px solid white', boxShadow: '0 0 0 2px #e2e8f0' }}></div>
+                        )}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <span style={{ fontSize: '1.5rem' }}>✍️</span>
+                            <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#334155' }}>
+                                {sessionHistory.length > 0 ? '추가 프롬프트 작성 (계속)' : '새 프롬프트 작성'}
+                            </h3>
+                        </div>
                     </div>
 
                     <div>

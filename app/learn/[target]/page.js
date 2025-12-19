@@ -613,7 +613,7 @@ function LearnContent() {
                                             <img src={selectedPrompt.attachment_url} alt="Attachment" style={{ maxWidth: '100%', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }} />
                                         ) : (
                                             <a href={selectedPrompt.attachment_url} target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb', textDecoration: 'underline' }}>
-                                                � 파일 확인하기
+                                                파일 확인하기
                                             </a>
                                         )}
                                     </div>
@@ -638,6 +638,7 @@ function LearnContent() {
                                         isAdmin={true}
                                         onSave={handleSavePrompt}
                                         onClose={() => { }} // No-op for inline form
+                                        isThread={true}
                                     />
                                 </div>
                             </div>
