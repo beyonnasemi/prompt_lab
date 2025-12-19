@@ -622,6 +622,26 @@ function LearnContent() {
                         </div>
 
                         {/* CREATE/EDIT FORM BELOW */}
+                        {isAdmin && (
+                            <div style={{ marginTop: '2rem', paddingTop: '2rem', borderTop: '1px dashed #cbd5e1' }}>
+                                <div style={{ marginBottom: '1rem' }}>
+                                    <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#334155', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        <span>👇</span> 추가 프롬프트 작성 (현재 내용 참고)
+                                    </h3>
+                                    <p style={{ fontSize: '0.9rem', color: '#64748b' }}>
+                                        위 프롬프트를 참고하여, 연관된 새로운 프롬프트를 바로 작성할 수 있습니다.
+                                    </p>
+                                </div>
+                                <div style={{ background: 'white', borderRadius: '1rem', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+                                    <PromptDetailPanel
+                                        mode="create"
+                                        isAdmin={true}
+                                        onSave={handleSavePrompt}
+                                        onClose={() => { }} // No-op for inline form
+                                    />
+                                </div>
+                            </div>
+                        )}
 
                     </div>
                 )}

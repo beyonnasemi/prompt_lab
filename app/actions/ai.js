@@ -83,6 +83,7 @@ export async function generatePromptsAction({ model, topic, count, difficulty, t
     - Audience: Koreans working/studying in ${targetInfo.context}.
     - Tone: ${targetInfo.tone}.
     - Language: Korean (Must be natural and professional).
+    - CRITICAL: ALL CONTENT (Title, Prompt, Expected Answer) MUST BE IN KOREAN. Do not use English unless it's a specific technical term that is better in English.
     
     [Difficulty: ${currentDifficulty}]
     ${currentDifficulty === 'beginner' ? '- Focus on simple, direct instructions.' : ''}
@@ -96,7 +97,7 @@ export async function generatePromptsAction({ model, topic, count, difficulty, t
     2. "content": The ACTUAL PROMPT input that the user should copy and paste into ChatGPT/Gemini. 
        - This must be a "Best Practice" prompt.
        - It should likely start with "Act as a..." or specific instructions suitable for the difficulty.
-       - IMPORTANT: The 'content' must be written in KOREAN (use English only for necessary technical terms).
+       - IMPORTANT: The 'content' must be written in KOREAN.
     3. "expected_answer": A concrete example of what the AI would generate from that prompt. Show the user the potential result.
     4. "difficulty": "${currentDifficulty}"
     
@@ -183,7 +184,10 @@ export async function generatePromptsAction({ model, topic, count, difficulty, t
 
   } catch (error) {
     console.error("AI Generation Error:", error);
-    // Return the specific error message to the client
-    return { success: false, error: error.message || "알 수 없는 오류가 발생했습니다." };
+    // Explicitly check for timeouts or common Google errors
+    if (error.message && error.message.includes('504')) {
+      return { success: false, error: "AI 모델 응답 시간이 초과되었습니다. 생성 개수를 줄이거나 잠시 후 다시 시도해주세요." };
+    }
+    return { success: false, error: error.message || "알 수 없는 오류가 발생했습니다. (잠시 후 다시 시도해주세요)" };
   }
 }
