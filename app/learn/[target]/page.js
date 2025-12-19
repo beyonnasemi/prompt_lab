@@ -142,18 +142,19 @@ function LearnContent() {
 
     // --- Handlers ---
 
+    // --- Handlers ---
+
     const handlePromptClick = (prompt) => {
         setSelectedPrompt(prompt);
         setActivePanel('detail');
     };
 
-    const handleAddClick = () => {
+    const handleCreateTabClick = () => {
         setSelectedPrompt(null);
         setActivePanel('create');
     };
 
     // This handles single prompt save (create/edit)
-    // Updated signature: payload (data), file (object, optional), id (optional)
     const handleSavePrompt = async (formData, file, id) => {
         try {
             const adminSession = JSON.parse(localStorage.getItem('admin_session') || '{}');
@@ -189,31 +190,37 @@ function LearnContent() {
                     throw err;
                 }
             } else if (formData.attachment_url) {
-                // Keep existing URL if passed back
                 payload.attachment_url = formData.attachment_url;
             }
 
+            let resultData = null;
+
             if (id) {
                 // Update
-                const { error } = await supabase.from('prompts').update(payload).eq('id', id);
+                const { data, error } = await supabase.from('prompts').update(payload).eq('id', id).select().single();
                 if (error) throw error;
+                resultData = data;
+
                 // Update local state if needed
                 if (selectedPrompt?.id === id) {
                     setSelectedPrompt({ ...selectedPrompt, ...payload });
                 }
             } else {
                 // Insert
-                const { error } = await supabase.from('prompts').insert([payload]);
+                const { data, error } = await supabase.from('prompts').insert([payload]).select().single();
                 if (error) throw error;
+                resultData = data;
             }
 
             fetchPrompts(targetId, selectedDifficulty);
-            if (id) setActivePanel('detail');
-            else setActivePanel('none'); // Or back to list
+            // We do NOT change panel here if creating, to allow continuous flow.
+            // PromptDetailPanel handles the UI feedback.
+
+            return resultData;
 
         } catch (error) {
             console.error("Save failed", error);
-            throw error; // Re-throw for component to handle alert
+            throw error;
         }
     };
 
@@ -239,7 +246,7 @@ function LearnContent() {
 
             alert(`${rows.length}개의 프롬프트가 성공적으로 등록되었습니다.`);
             fetchPrompts(targetId, selectedDifficulty);
-            setActivePanel('none');
+            setActivePanel('none'); // Or back to list?
         } catch (error) {
             console.error("Save Error:", error);
             alert('저장 중 오류가 발생했습니다: ' + error.message);
@@ -247,6 +254,10 @@ function LearnContent() {
     };
 
     const handleDeleteClick = async (id) => {
+        // Redundant confirm removed here since PromptDetailPanel already asks? 
+        // Wait, PromptDetailPanel asks. I should remove confirm here if called from there?
+        // Actually, PromptDetailPanel code I fixed earlier: <button onClick={() => onDelete(prompt.id)}>
+        // So the confirm IS removed from PromptDetailPanel. It MUST be here.
         if (!confirm('정말 삭제하시겠습니까?')) return;
         const { error } = await supabase.from('prompts').delete().eq('id', id);
         if (error) alert('삭제 실패: ' + error.message);
@@ -320,9 +331,7 @@ function LearnContent() {
                                 🗑️ 선택 삭제
                             </button>
                         )}
-                        <button onClick={() => setActivePanel('ai')} className="btn" style={{ background: 'white', border: '1px solid #7c3aed', color: '#7c3aed' }}>✨ AI 생성</button>
-                        <button onClick={() => setActivePanel('bulk')} className="btn" style={{ background: 'white', border: '1px solid #e2e8f0' }}>📄 대량 등록</button>
-                        <button onClick={handleAddClick} className="btn btn-primary">➕ 추가</button>
+                        {/* Old Buttons Removed: AI, Bulk, Add */}
                     </div>
                 )}
             </div>
@@ -401,44 +410,98 @@ function LearnContent() {
                     )}
                 </div>
 
-                {/* RIGHT COLUMN: Panels */}
-                <div style={{ flex: '0 0 400px', maxWidth: '40%', borderLeft: '1px solid #e2e8f0', paddingLeft: '2rem', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                    {activePanel === 'none' && (
-                        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', flexDirection: 'column', gap: '1rem' }}>
-                            <div style={{ fontSize: '3rem' }}>👈</div>
-                            <p>좌측 목록에서 주제를 선택하거나<br />우측 상단 버튼을 눌러 작업을 시작하세요.</p>
+                {/* RIGHT COLUMN: Tabs & Panels */}
+                <div style={{ flex: '0 0 450px', maxWidth: '40%', borderLeft: '1px solid #e2e8f0', paddingLeft: '2rem', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+
+                    {/* Tab Navigation */}
+                    {isAdmin && (
+                        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', borderBottom: '1px solid #e2e8f0' }}>
+                            <button
+                                onClick={() => activePanel === 'detail' ? null : setActivePanel('detail')}
+                                disabled={!selectedPrompt}
+                                style={{
+                                    padding: '0.75rem 1rem', fontWeight: 600, cursor: selectedPrompt ? 'pointer' : 'not-allowed',
+                                    color: activePanel === 'detail' ? '#2563eb' : '#94a3b8',
+                                    borderBottom: activePanel === 'detail' ? '2px solid #2563eb' : '2px solid transparent',
+                                    background: 'none', borderTop: 'none', borderLeft: 'none', borderRight: 'none'
+                                }}
+                            >
+                                📝 상세
+                            </button>
+                            <button
+                                onClick={handleCreateTabClick}
+                                style={{
+                                    padding: '0.75rem 1rem', fontWeight: 600, cursor: 'pointer',
+                                    color: activePanel === 'create' ? '#2563eb' : '#64748b',
+                                    borderBottom: activePanel === 'create' ? '2px solid #2563eb' : '2px solid transparent',
+                                    background: 'none', borderTop: 'none', borderLeft: 'none', borderRight: 'none'
+                                }}
+                            >
+                                ➕ 새 프롬프트
+                            </button>
+                            <button
+                                onClick={() => setActivePanel('ai')}
+                                style={{
+                                    padding: '0.75rem 1rem', fontWeight: 600, cursor: 'pointer',
+                                    color: activePanel === 'ai' ? '#7c3aed' : '#64748b',
+                                    borderBottom: activePanel === 'ai' ? '2px solid #7c3aed' : '2px solid transparent',
+                                    background: 'none', borderTop: 'none', borderLeft: 'none', borderRight: 'none'
+                                }}
+                            >
+                                ✨ AI 생성
+                            </button>
+                            <button
+                                onClick={() => setActivePanel('bulk')}
+                                style={{
+                                    padding: '0.75rem 1rem', fontWeight: 600, cursor: 'pointer',
+                                    color: activePanel === 'bulk' ? '#475569' : '#64748b',
+                                    borderBottom: activePanel === 'bulk' ? '2px solid #475569' : '2px solid transparent',
+                                    background: 'none', borderTop: 'none', borderLeft: 'none', borderRight: 'none'
+                                }}
+                            >
+                                📂 대량 등록
+                            </button>
                         </div>
                     )}
 
-                    {(activePanel === 'detail' || activePanel === 'edit' || activePanel === 'create') && (
-                        <PromptDetailPanel
-                            prompt={selectedPrompt}
-                            mode={activePanel === 'detail' ? 'view' : activePanel}
-                            // Maps 'detail'->'view', 'create'->'create', 'edit'->'edit'
-                            isAdmin={isAdmin}
-                            onClose={() => setActivePanel('none')}
-                            onSave={handleSavePrompt}
-                            onDelete={handleDeleteClick}
-                        />
-                    )}
+                    {/* Panels */}
+                    <div style={{ flex: 1, overflow: 'hidden' }}>
+                        {activePanel === 'none' && (
+                            <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', flexDirection: 'column', gap: '1rem' }}>
+                                <div style={{ fontSize: '3rem' }}>👈</div>
+                                <p>좌측 목록에서 주제를 선택하거나<br />상단 탭을 눌러 작업을 시작하세요.</p>
+                            </div>
+                        )}
 
-                    {activePanel === 'ai' && (
-                        <AIGeneratePanel
-                            targetId={targetId}
-                            currentDifficulty={selectedDifficulty}
-                            onSuccess={handleBulkSave}
-                            onClose={() => setActivePanel('none')}
-                        />
-                    )}
+                        {(activePanel === 'detail' || activePanel === 'edit' || activePanel === 'create') && (
+                            <PromptDetailPanel
+                                prompt={activePanel === 'create' ? null : selectedPrompt}
+                                mode={activePanel === 'detail' ? 'view' : activePanel}
+                                isAdmin={isAdmin}
+                                onClose={() => setActivePanel('none')}
+                                onSave={handleSavePrompt}
+                                onDelete={handleDeleteClick}
+                            />
+                        )}
 
-                    {activePanel === 'bulk' && (
-                        <BulkUploadPanel
-                            targetId={targetId}
-                            currentDifficulty={selectedDifficulty}
-                            onSuccess={handleBulkSave}
-                            onClose={() => setActivePanel('none')}
-                        />
-                    )}
+                        {activePanel === 'ai' && (
+                            <AIGeneratePanel
+                                targetId={targetId}
+                                currentDifficulty={selectedDifficulty}
+                                onSuccess={handleBulkSave}
+                                onClose={() => setActivePanel('none')}
+                            />
+                        )}
+
+                        {activePanel === 'bulk' && (
+                            <BulkUploadPanel
+                                targetId={targetId}
+                                currentDifficulty={selectedDifficulty}
+                                onSuccess={handleBulkSave}
+                                onClose={() => setActivePanel('none')}
+                            />
+                        )}
+                    </div>
                 </div>
 
             </div>

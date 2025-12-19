@@ -14,17 +14,15 @@ import { createClient } from '@/utils/supabase/client'; // Assuming this path, w
 
 export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onClose, onSave, onDelete }) {
     // mode: 'view' | 'edit' | 'create'
-    const [currentMode, setCurrentMode] = useState(mode);
-    const [formData, setFormData] = useState({
-        title: '',
-        content: '',
-        expected_answer: '',
-        difficulty: 'beginner',
-        attachment_url: null
-    });
-    const [file, setFile] = useState(null);
-    const [loading, setLoading] = useState(false);
-    const [copiedId, setCopiedId] = useState(null);
+    const [sessionHistory, setSessionHistory] = useState([]); // For continuous creation "cards"
+
+    // Reset history when mode changes away from create, OR keep it? 
+    // User wants "continuously connected". Let's keep it until explicitly closed or mode changed.
+    useEffect(() => {
+        if (currentMode !== 'create') {
+            setSessionHistory([]);
+        }
+    }, [currentMode]);
 
     useEffect(() => {
         if (prompt && mode !== 'create') {
@@ -37,13 +35,18 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
             });
             setCurrentMode('view'); // Default to view if prompt exists
         } else if (mode === 'create') {
-            setFormData({
-                title: '',
-                content: '',
-                expected_answer: '',
-                difficulty: 'beginner',
-                attachment_url: null
-            });
+            // Keep existing formData if we are just switching tabs back to create? 
+            // For now, reset if prompt is null.
+            if (!prompt) {
+                setFormData(prev => ({
+                    ...prev,
+                    title: '',
+                    content: '',
+                    expected_answer: '',
+                    difficulty: 'beginner',
+                    attachment_url: null
+                }));
+            }
             setCurrentMode('create');
         } else if (mode === 'edit') {
             setFormData({
@@ -81,22 +84,26 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
         e.preventDefault();
         setLoading(true);
         try {
-            let finalAttachmentUrl = formData.attachment_url;
-
-            if (file) {
-                // Initialize Supabase Client dynamically to avoid build errors if path is wrong,
-                // but better to import it. I will rely on onSave to handle the logic if possible?
-                // No, file upload usually needs client.
-                // let's assume the standard path or pass it in?
-                // I'll try to just pass the file to onSave and let the Page handle it?
-                // That's cleaner.
-                // onSave(formData, file)
-            }
-
-            await onSave({ ...formData }, file, prompt?.id);
+            // Pass to parent
+            const savedPrompt = await onSave({ ...formData }, file, prompt?.id);
 
             if (currentMode === 'create') {
-                // Parent handles closing or resetting
+                // Continuous Flow: Add to ID-less session history or use returned object
+                // We assume parent returns the saved object. If not, use formData.
+                const historyItem = savedPrompt || { ...formData, created_at: new Date().toISOString() };
+                setSessionHistory(prev => [...prev, historyItem]);
+
+                // Clear form for next input
+                setFormData({
+                    title: '',
+                    content: '',
+                    expected_answer: '',
+                    difficulty: 'beginner',
+                    attachment_url: null
+                });
+                setFile(null);
+                // Do NOT close.
+                alert("저장되었습니다. 다음 내용을 계속 작성할 수 있습니다.");
             } else {
                 setCurrentMode('view');
             }
@@ -224,6 +231,22 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
             </div>
 
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', flex: 1, overflowY: 'auto', paddingRight: '0.5rem' }}>
+
+                {/* Session History Cards */}
+                {currentMode === 'create' && sessionHistory.length > 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1rem', borderBottom: '2px dashed #e2e8f0', paddingBottom: '1rem' }}>
+                        <h4 style={{ color: '#94a3b8', fontSize: '0.9rem', fontWeight: 600 }}>🌟 방금 작성한 프롬프트</h4>
+                        {sessionHistory.map((historyItem, idx) => (
+                            <div key={idx} style={{ background: '#f8fafc', padding: '1rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1' }}>
+                                <div style={{ fontWeight: 600, color: '#334155', marginBottom: '0.5rem' }}>{historyItem.title}</div>
+                                <div style={{ fontSize: '0.9rem', color: '#64748b', whiteSpace: 'pre-wrap', maxHeight: '100px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                    {historyItem.content}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
                 <div>
                     <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155' }}>제목</label>
                     <input

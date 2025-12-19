@@ -6,7 +6,8 @@ import { generatePromptsAction } from '@/app/actions/ai';
 export default function BulkUploadPanel({ targetId, currentDifficulty, onSuccess, onClose }) {
     const [bulkJson, setBulkJson] = useState('');
     const [activeBulkTab, setActiveBulkTab] = useState('json'); // 'json' | 'ai'
-    const [aiParams, setAiParams] = useState({ topic: '', model: 'gemini', count: 3, apiKey: '' });
+    // Removed apiKey, added difficulty to local state (defaulting to prop)
+    const [aiParams, setAiParams] = useState({ topic: '', model: 'gemini', count: 3, difficulty: currentDifficulty || 'beginner' });
     const [isGenerating, setIsGenerating] = useState(false);
 
     const handleBulkSubmit = async () => {
@@ -24,12 +25,18 @@ export default function BulkUploadPanel({ targetId, currentDifficulty, onSuccess
         if (!aiParams.topic) return alert('주제를 입력해주세요.');
         setIsGenerating(true);
         try {
+            // Updated action call signature
             const result = await generatePromptsAction({
-                ...aiParams,
-                difficulty: currentDifficulty,
+                topic: aiParams.topic,
+                model: aiParams.model,
+                count: aiParams.count,
+                difficulty: aiParams.difficulty, // Use local override
                 targetGroup: targetId
             });
-            setBulkJson(JSON.stringify(result, null, 2));
+
+            if (!result.success) throw new Error(result.error);
+
+            setBulkJson(JSON.stringify(result.data, null, 2));
             setActiveBulkTab('json');
             alert('생성 완료! 내용을 확인하고 등록 버튼을 눌러주세요.');
         } catch (e) {
@@ -82,7 +89,7 @@ export default function BulkUploadPanel({ targetId, currentDifficulty, onSuccess
                         <div style={{ marginBottom: '1.5rem' }}>
                             <p style={{ marginBottom: '0.5rem', fontWeight: 500, color: '#334155' }}>작성 가이드</p>
                             <div style={{ background: '#f1f5f9', padding: '1rem', borderRadius: '0.5rem', fontSize: '0.85rem', color: '#475569' }}>
-                                <p style={{ marginBottom: '0.5rem' }}>아래와 같은 JSON 배열 형식으로 입력해주세요. <br />(난이도를 생략하면 현재 페이지의 난이도({currentDifficulty})로 자동 설정됩니다.)</p>
+                                <p style={{ marginBottom: '0.5rem' }}>아래와 같은 JSON 배열 형식으로 입력해주세요. <br />(난이도를 생략하면 선택한 난이도로 자동 설정됩니다.)</p>
                                 <pre style={{ background: '#1e293b', color: '#f8fafc', padding: '0.75rem', borderRadius: '4px', overflowX: 'auto', fontFamily: 'monospace' }}>
                                     {`[
   {
@@ -119,7 +126,7 @@ export default function BulkUploadPanel({ targetId, currentDifficulty, onSuccess
                                 <span>🤖</span> AI 프롬프트 생성기
                             </h4>
                             <p style={{ fontSize: '0.9rem', color: '#4c1d95' }}>
-                                주제 입력 -> AI 생성 -> JSON 자동 변환
+                                주제 입력 -&gt; AI 생성 -&gt; JSON 자동 변환
                             </p>
                         </div>
 
@@ -142,12 +149,24 @@ export default function BulkUploadPanel({ targetId, currentDifficulty, onSuccess
                                     onChange={(e) => setAiParams({ ...aiParams, model: e.target.value })}
                                     style={{ width: '100%', padding: '0.75rem', border: '1px solid #e2e8f0', borderRadius: '0.5rem' }}
                                 >
-                                    <option value="gemini">Google Gemini</option>
-                                    <option value="gpt">OpenAI GPT-3.5</option>
+                                    <option value="gemini">Google Gemini 1.5 Flash</option>
+                                    <option value="gpt">OpenAI GPT-4o</option>
                                 </select>
                             </div>
-                            <div style={{ width: '100px' }}>
-                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>생성 개수</label>
+                            <div style={{ flex: 1 }}>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>난이도</label>
+                                <select
+                                    value={aiParams.difficulty}
+                                    onChange={(e) => setAiParams({ ...aiParams, difficulty: e.target.value })}
+                                    style={{ width: '100%', padding: '0.75rem', border: '1px solid #e2e8f0', borderRadius: '0.5rem' }}
+                                >
+                                    <option value="beginner">초급</option>
+                                    <option value="intermediate">중급</option>
+                                    <option value="advanced">고급</option>
+                                </select>
+                            </div>
+                            <div style={{ width: '80px' }}>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>개수</label>
                                 <input
                                     type="number"
                                     min="1" max="10"
@@ -158,16 +177,7 @@ export default function BulkUploadPanel({ targetId, currentDifficulty, onSuccess
                             </div>
                         </div>
 
-                        <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>API Key (Optional)</label>
-                            <input
-                                type="password"
-                                placeholder="기본 키 사용 (비워둠)"
-                                value={aiParams.apiKey}
-                                onChange={(e) => setAiParams({ ...aiParams, apiKey: e.target.value })}
-                                style={{ width: '100%', padding: '0.75rem', border: '1px solid #e2e8f0', borderRadius: '0.5rem' }}
-                            />
-                        </div>
+                        {/* API Key Input Removed */}
 
                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '1rem' }}>
                             <button onClick={onClose} className="btn" style={{ border: '1px solid #e2e8f0', background: 'white', padding: '0.75rem 1.25rem', borderRadius: '0.5rem' }}>취소</button>
