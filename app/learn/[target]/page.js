@@ -137,6 +137,7 @@ function LearnContent() {
 
     useEffect(() => {
         setCurrentPage(1);
+        setSelectedPrompt(null); // Fix: Reset view on tab change
     }, [selectedDifficulty, searchQuery]);
 
 
@@ -536,7 +537,7 @@ function LearnContent() {
                                     // Assuming isAdmin is true if user can see this page or check 'isAdmin' state.
                                     // Let's pass the 'isAdmin' state variable.
                                     onSave={handleSavePrompt}
-                                    onClose={() => { }}
+                                    onClose={() => { setSelectedPrompt(null); setActivePanel('none'); }}
                                 />
                             </div>
                         </div>

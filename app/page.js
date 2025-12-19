@@ -1,11 +1,52 @@
-'use client';
-
+import { useState, useEffect } from 'react';
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Users, Building2, GraduationCap, School, Baby, User, Sparkles } from "lucide-react";
+import { supabase } from '@/lib/supabase';
+
+// Icon mapping for known static IDs (optional, prevents regression of nice icons)
+const iconMap = {
+  'business': <Building2 size={40} />,
+  'public': <Users size={40} />,
+  'univ': <GraduationCap size={40} />,
+  'elem': <Baby size={40} />,
+  'middle': <School size={40} />,
+  'high': <School size={40} />,
+  'adult': <User size={40} />
+};
 
 export default function Home() {
   const router = useRouter();
+  const [targets, setTargets] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchGroups = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('accounts')
+          .select('id, username, display_name')
+          .neq('username', 'admin') // Exclude admin
+          .order('created_at', { ascending: true }); // Keep order?
+
+        if (error) throw error;
+
+        // Map to target format
+        const formattedTargets = data.map(account => ({
+          id: account.username, // logic uses username as target ID
+          name: account.display_name,
+          icon: iconMap[account.username] || <Users size={40} /> // Default icon
+        }));
+        setTargets(formattedTargets);
+      } catch (err) {
+        console.error("Failed to fetch groups:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchGroups();
+  }, []);
 
   const handleTargetClick = (id) => {
     // If admin is logged in, go directly to learn page
@@ -22,16 +63,6 @@ export default function Home() {
     router.push(`/login?target=${id}`);
   };
 
-  const targets = [
-    { id: 'business', name: '비즈니스', icon: <Building2 size={40} /> },
-    { id: 'public', name: '공공기관', icon: <Users size={40} /> },
-    { id: 'univ', name: '대학', icon: <GraduationCap size={40} /> },
-    { id: 'elem', name: '초등학교', icon: <Baby size={40} /> },
-    { id: 'middle', name: '중학교', icon: <School size={40} /> },
-    { id: 'high', name: '고등학교', icon: <School size={40} /> },
-    { id: 'adult', name: '일반성인 (기초)', icon: <User size={40} /> },
-  ];
-
   return (
     <div>
       <div style={{ marginBottom: '2rem' }}>
@@ -46,21 +77,25 @@ export default function Home() {
         </p>
       </div>
 
-      <div className="target-grid">
-        {targets.map((target) => (
-          <div key={target.id} onClick={() => handleTargetClick(target.id)} style={{ textDecoration: 'none', cursor: 'pointer' }}>
-            <div className="target-card">
-              <div className="target-icon">
-                {target.icon}
+      {loading ? (
+        <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>로딩 중...</div>
+      ) : (
+        <div className="target-grid">
+          {targets.map((target) => (
+            <div key={target.id} onClick={() => handleTargetClick(target.id)} style={{ textDecoration: 'none', cursor: 'pointer' }}>
+              <div className="target-card">
+                <div className="target-icon">
+                  {target.icon}
+                </div>
+                <h3 className="target-name">{target.name}</h3>
+                <p style={{ marginTop: '0.5rem', color: '#94a3b8', fontSize: '0.9rem' }}>
+                  학습 시작하기 &rarr;
+                </p>
               </div>
-              <h3 className="target-name">{target.name}</h3>
-              <p style={{ marginTop: '0.5rem', color: '#94a3b8', fontSize: '0.9rem' }}>
-                학습 시작하기 &rarr;
-              </p>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
