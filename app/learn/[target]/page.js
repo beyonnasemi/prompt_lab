@@ -659,6 +659,24 @@ function LearnContent() {
                             </div>
                         )}
 
+                        {/* BOTTOM BACK BUTTON */}
+                        <div style={{ marginTop: '3rem', textAlign: 'center', paddingBottom: '3rem' }}>
+                            <button
+                                onClick={() => {
+                                    setSelectedPrompt(null);
+                                    setActivePanel('none');
+                                }}
+                                style={{
+                                    padding: '0.8rem 2rem', border: '1px solid #cbd5e1', background: 'white',
+                                    borderRadius: '2rem', color: '#475569', fontWeight: 600,
+                                    cursor: 'pointer', boxShadow: '0 2px 5px rgba(0,0,0,0.05)',
+                                    display: 'inline-flex', alignItems: 'center', gap: '0.5rem'
+                                }}
+                            >
+                                <span>🔙</span> 목록으로 돌아가기
+                            </button>
+                        </div>
+
                     </div>
                 )}
             </div>

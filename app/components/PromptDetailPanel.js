@@ -309,9 +309,20 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                                     </span>
                                     <span style={{ fontSize: '0.8rem', fontWeight: 400, color: '#64748b' }}>방금 전</span>
                                 </div>
-                                <div style={{ fontSize: '0.95rem', color: '#334155', whiteSpace: 'pre-wrap', lineHeight: '1.6' }}>
-                                    {historyItem.content}
+                                <div style={{ marginBottom: '0.75rem' }}>
+                                    <div style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '0.2rem', fontWeight: 600 }}>프롬프트 내용</div>
+                                    <div style={{ fontSize: '0.95rem', color: '#334155', whiteSpace: 'pre-wrap', lineHeight: '1.6', background: 'white', padding: '0.75rem', borderRadius: '0.375rem', border: '1px solid #e2e8f0' }}>
+                                        {historyItem.content}
+                                    </div>
                                 </div>
+                                {historyItem.expected_answer && (
+                                    <div>
+                                        <div style={{ fontSize: '0.8rem', color: '#d97706', marginBottom: '0.2rem', fontWeight: 600 }}>예상 답변</div>
+                                        <div style={{ fontSize: '0.95rem', color: '#92400e', whiteSpace: 'pre-wrap', lineHeight: '1.6', background: '#fffbeb', padding: '0.75rem', borderRadius: '0.375rem', border: '1px solid #fcd34d' }}>
+                                            {historyItem.expected_answer.replace('<!--THREAD-->', '')}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         ))}
                     </div>
