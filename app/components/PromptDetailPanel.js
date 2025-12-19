@@ -69,18 +69,16 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
             });
             setCurrentMode('view'); // Default to view if prompt exists
         } else if (mode === 'create') {
-            // Keep existing formData if we are just switching tabs back to create? 
-            // For now, reset if prompt is null.
-            if (!prompt) {
-                setFormData(prev => ({
-                    ...prev,
-                    title: '',
-                    content: '',
-                    expected_answer: '',
-                    difficulty: initialDifficulty,
-                    attachment_url: null
-                }));
-            }
+            // For create mode, we ALWAYS start fresh. 
+            // Even if 'prompt' is passed (as parent context for threads), we don't want to copy its text.
+            setFormData(prev => ({
+                ...prev,
+                title: '',
+                content: '',
+                expected_answer: '',
+                difficulty: initialDifficulty,
+                attachment_url: null
+            }));
             setCurrentMode('create');
         } else if (mode === 'edit') {
             setFormData({
@@ -133,9 +131,15 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
             // Pass to parent
             const savedPrompt = await onSave(payload, file, prompt?.id);
 
+            // 1. Standalone Create: Close immediately to show list
+            if (!isThread && (currentMode === 'create' || currentMode === 'continuous')) {
+                onClose();
+                return;
+            }
+
+            // 2. Thread Continuous Flow
             if (currentMode === 'create' || currentMode === 'continuous') {
                 // Continuous Flow: Add to ID-less session history or use returned object
-                // We assume parent returns the saved object. If not, use formData.
                 const historyItem = savedPrompt || { ...formData, created_at: new Date().toISOString() };
 
                 // Add to history
@@ -154,12 +158,6 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                 // Stay in create mode (effectively continuous)
                 if (currentMode !== 'continuous') setCurrentMode('continuous');
 
-                // IF NOT THREADED (Main Header "New Prompt"), CLOSE AFTER SAVE
-                if (!isThread) {
-                    onClose();
-                }
-
-                // Scroll to bottom of history (optional, handled by react rendering usually)
             } else {
                 setCurrentMode('view');
             }
