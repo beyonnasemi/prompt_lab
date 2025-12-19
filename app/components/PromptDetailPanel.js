@@ -16,6 +16,16 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
     // mode: 'view' | 'edit' | 'create'
     const [currentMode, setCurrentMode] = useState(mode);
     const [sessionHistory, setSessionHistory] = useState([]); // For continuous creation "cards"
+    const [formData, setFormData] = useState({
+        title: prompt?.title || '',
+        content: prompt?.content || '',
+        expected_answer: prompt?.expected_answer || '',
+        difficulty: prompt?.difficulty || 'beginner',
+        attachment_url: prompt?.attachment_url || null
+    });
+    const [loading, setLoading] = useState(false);
+    const [file, setFile] = useState(null);
+    const [copiedId, setCopiedId] = useState(null);
 
     // Reset history when mode changes away from create, OR keep it? 
     // User wants "continuously connected". Let's keep it until explicitly closed or mode changed.
