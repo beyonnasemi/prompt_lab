@@ -40,7 +40,10 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
             setFormData({
                 title: prompt.title || '',
                 content: prompt.content || '',
-                expected_answer: prompt.expected_answer || '',
+                title: prompt.title || '',
+                content: prompt.content || '',
+                expected_answer: (prompt.expected_answer || '').replace('<!--THREAD-->', ''),
+                difficulty: prompt.difficulty || 'beginner',
                 difficulty: prompt.difficulty || 'beginner',
                 attachment_url: prompt.attachment_url || null
             });
@@ -63,7 +66,10 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
             setFormData({
                 title: prompt.title || '',
                 content: prompt.content || '',
-                expected_answer: prompt.expected_answer || '',
+                title: prompt.title || '',
+                content: prompt.content || '',
+                expected_answer: (prompt.expected_answer || '').replace('<!--THREAD-->', ''),
+                difficulty: prompt.difficulty || 'beginner',
                 difficulty: prompt.difficulty || 'beginner',
                 attachment_url: prompt.attachment_url || null
             });
@@ -98,7 +104,9 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
             // Override difficulty for threaded prompts to hide them from main list
             const payload = { ...formData };
             if (isThread) {
-                payload.difficulty = 'thread';
+                // DB has constraint on difficulty, so we can't use 'thread'.
+                // Instead, we use a hidden marker in expected_answer.
+                payload.expected_answer = '<!--THREAD-->' + (payload.expected_answer || '');
             }
 
             // Pass to parent

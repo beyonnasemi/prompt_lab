@@ -122,10 +122,15 @@ function LearnContent() {
         setLoading(false);
     };
 
+
     // --- Search & Pagination ---
     const filteredPrompts = useMemo(() => {
-        if (!searchQuery) return prompts;
-        return prompts.filter(p => p.title.toLowerCase().includes(searchQuery.toLowerCase()));
+        let result = prompts;
+        // Filter out threaded/reply prompts (hidden from main list)
+        result = result.filter(p => !p.expected_answer?.includes('<!--THREAD-->'));
+
+        if (!searchQuery) return result;
+        return result.filter(p => p.title.toLowerCase().includes(searchQuery.toLowerCase()));
     }, [prompts, searchQuery]);
 
     const itemsPerPage = 8; // Adjust for layout
