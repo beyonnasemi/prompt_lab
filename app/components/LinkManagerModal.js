@@ -8,6 +8,7 @@ export default function LinkManagerModal({ isOpen, onClose, onUpdate }) {
     const [links, setLinks] = useState([]);
     const [loading, setLoading] = useState(false);
     const [draggedItemIndex, setDraggedItemIndex] = useState(null);
+    const [dropTargetIndex, setDropTargetIndex] = useState(null);
     const [editingId, setEditingId] = useState(null);
     const [formData, setFormData] = useState({ title: '', url: '', sort_order: 0 });
 
@@ -51,14 +52,22 @@ export default function LinkManagerModal({ isOpen, onClose, onUpdate }) {
     const handleDragEnd = (e) => {
         e.target.style.opacity = '1';
         setDraggedItemIndex(null);
+        setDropTargetIndex(null);
+    };
+
+    const handleDragEnter = (e, index) => {
+        if (draggedItemIndex === index) return;
+        setDropTargetIndex(index);
     };
 
     const handleDragOver = (e) => {
-        e.preventDefault();
+        e.preventDefault(); // Necessary to allow dropping
+        e.dataTransfer.dropEffect = 'move';
     };
 
     const handleDrop = async (e, dropIndex) => {
         e.preventDefault();
+        setDropTargetIndex(null); // Clear indicator
         if (draggedItemIndex === null || draggedItemIndex === dropIndex) return;
 
         const newLinks = [...links];
@@ -76,29 +85,6 @@ export default function LinkManagerModal({ isOpen, onClose, onUpdate }) {
         setLoading(false);
         onUpdate();
         setDraggedItemIndex(null);
-    };
-
-    // --- Arrow Handlers ---
-    const handleMove = async (index, direction) => {
-        if (direction === -1 && index === 0) return;
-        if (direction === 1 && index === links.length - 1) return;
-
-        const newLinks = [...links];
-        const item = newLinks[index];
-        const swapItem = newLinks[index + direction];
-
-        const tempOrder = item.sort_order;
-        item.sort_order = swapItem.sort_order;
-        swapItem.sort_order = tempOrder;
-
-        newLinks[index] = swapItem;
-        newLinks[index + direction] = item;
-
-        setLinks([...newLinks]);
-        setLoading(true);
-        await Promise.all([saveLinkAction(item), saveLinkAction(swapItem)]);
-        setLoading(false);
-        onUpdate();
     };
 
     const handleSubmit = async (e) => {
@@ -172,29 +158,24 @@ export default function LinkManagerModal({ isOpen, onClose, onUpdate }) {
                             onDragStart={(e) => handleDragStart(e, index)}
                             onDragEnd={handleDragEnd}
                             onDragOver={handleDragOver}
+                            onDragEnter={(e) => handleDragEnter(e, index)}
                             onDrop={(e) => handleDrop(e, index)}
                             style={{
                                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                                padding: '0.75rem', border: '1px solid #e2e8f0', borderRadius: '0.5rem', background: 'white',
+                                padding: '0.75rem',
+                                border: '1px solid #e2e8f0',
+                                borderTop: (draggedItemIndex !== null && draggedItemIndex !== index && dropTargetIndex === index)
+                                    ? '3px solid #3b82f6' // Visual Line Indicator
+                                    : '1px solid #e2e8f0',
+                                borderRadius: '0.5rem', background: 'white',
                                 cursor: 'grab',
-                                opacity: draggedItemIndex === index ? 0.5 : 1
+                                opacity: draggedItemIndex === index ? 0.5 : 1,
+                                transition: 'border-top 0.1s'
                             }}
                         >
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'center' }}>
-                                    <button
-                                        type="button"
-                                        onClick={() => handleMove(index, -1)}
-                                        disabled={index === 0}
-                                        style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: '0.8rem', color: index === 0 ? '#e2e8f0' : '#64748b', padding: '2px' }}
-                                    >▲</button>
-                                    <span style={{ color: '#cbd5e1', fontSize: '1.2rem', lineHeight: '0.5', cursor: 'grab' }}>⋮⋮</span>
-                                    <button
-                                        type="button"
-                                        onClick={() => handleMove(index, 1)}
-                                        disabled={index === links.length - 1}
-                                        style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: '0.8rem', color: index === links.length - 1 ? '#e2e8f0' : '#64748b', padding: '2px' }}
-                                    >▼</button>
+                                <div style={{ display: 'flex', alignItems: 'center', paddingRight: '0.5rem', cursor: 'grab' }}>
+                                    <span style={{ color: '#94a3b8', fontSize: '1.5rem', lineHeight: '1' }}>⋮⋮</span>
                                 </div>
                                 <div style={{ width: 24, height: 24, background: '#f1f5f9', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                     {(!link.icon_key || link.icon_key === 'default' || link.icon_key === 'auto') ? <span>🌐</span> :
@@ -212,12 +193,16 @@ export default function LinkManagerModal({ isOpen, onClose, onUpdate }) {
                                 <button onClick={() => handleDelete(link.id)} style={{ padding: '0.25rem', color: '#ef4444', border: 'none', background: 'none', cursor: 'pointer' }}>🗑️</button>
                             </div>
                         </div>
-                    ))}
-                    {links.length === 0 && !loading && (
-                        <div style={{ textAlign: 'center', color: '#94a3b8', padding: '1rem' }}>등록된 링크가 없습니다.</div>
-                    )}
-                </div>
-            </div>
-        </div>
+
+                    ))
+                    }
+                    {
+                        links.length === 0 && !loading && (
+                            <div style={{ textAlign: 'center', color: '#94a3b8', padding: '1rem' }}>등록된 링크가 없습니다.</div>
+                        )
+                    }
+                </div >
+            </div >
+        </div >
     );
 }
