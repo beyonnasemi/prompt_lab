@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 
+import { deletePromptAction } from '@/app/actions/prompt-actions';
+
 // const supabase = createClient(); // Removed incorrect client creation
 // Actually, standard Next.js Supabase starter often usesutils/supabase/client.
 // Let's safe-guard. I will use a prop for onSave and handle upload in parent if possible?
@@ -135,14 +137,31 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
         if (typeof window !== 'undefined' && !window.confirm('정말 이 프롬프트를 삭제하시겠습니까?')) return;
         try {
             setLoading(true);
-            const { error } = await supabase.from('prompts').delete().eq('id', id);
-            if (error) throw error;
+
+            // Get Admin ID from session
+            let adminId = null;
+            try {
+                const sessionStr = localStorage.getItem('admin_session');
+                if (sessionStr) {
+                    const session = JSON.parse(sessionStr);
+                    adminId = session.id;
+                }
+            } catch (e) {
+                console.error('Session parse error', e);
+            }
+
+            if (!adminId) {
+                throw new Error('관리자 로그인 정보가 없습니다 (세션 만료).');
+            }
+
+            // Call Server Action
+            await deletePromptAction(id, adminId);
 
             alert('삭제되었습니다.');
             setTriggerRefetch(p => p + 1);
         } catch (error) {
             console.error('Thread delete error:', error);
-            alert('삭제 실패: ' + error.message);
+            alert('삭제 실패: ' + (error.message || error));
         } finally {
             setLoading(false);
         }
