@@ -75,7 +75,9 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
     }, [currentMode, prompt?.id, triggerRefetch]);
 
     useEffect(() => {
-        if (prompt && mode !== 'create' && mode !== 'collapsed') {
+        // If we are creating a thread (local state), don't reset to view even if prompt updates (e.g. refetch).
+        // Only reset if we are NOT creating a thread.
+        if (prompt && mode !== 'create' && mode !== 'collapsed' && !isCreatingThread) {
             setFormData({
                 title: prompt.title || '',
                 content: prompt.content || '',
@@ -106,7 +108,7 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
             });
             setCurrentMode('edit');
         }
-    }, [prompt, mode, initialDifficulty]);
+    }, [prompt, mode, initialDifficulty, isCreatingThread]);
 
     const handleCopy = (text) => {
         navigator.clipboard.writeText(text);
@@ -427,6 +429,28 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
 
 
             <div style={{ paddingRight: '0.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', padding: '0.5rem', position: 'relative' }}>
+
+                {/* --- PARENT PROMPT DETAIL (CONTEXT) --- */}
+                {isThreadMode && prompt && (
+                    <div style={{ paddingBottom: '1.5rem', marginBottom: '1rem', borderBottom: '1px solid #e2e8f0' }}>
+                        <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#1e293b', lineHeight: 1.3, marginBottom: '0.75rem' }}>
+                            {prompt.title} (원문)
+                        </h2>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#64748b', flexWrap: 'wrap', marginBottom: '1rem' }}>
+                            <span style={{
+                                background: prompt.difficulty === 'beginner' ? '#dbeafe' : prompt.difficulty === 'intermediate' ? '#fce7f3' : '#ffedd5',
+                                color: prompt.difficulty === 'beginner' ? '#1e40af' : prompt.difficulty === 'intermediate' ? '#9d174d' : '#9a3412',
+                                fontSize: '0.75rem', padding: '0.2rem 0.5rem', borderRadius: '4px', fontWeight: 600
+                            }}>
+                                {prompt.difficulty === 'beginner' ? '초급' : prompt.difficulty === 'intermediate' ? '중급' : '고급'}
+                            </span>
+                            <span>📅 {new Date(prompt.created_at).toLocaleDateString()}</span>
+                        </div>
+                        <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '0.5rem', whiteSpace: 'pre-wrap', lineHeight: '1.6', border: '1px solid #e2e8f0', color: '#334155', fontSize: '0.95rem' }}>
+                            {prompt.content}
+                        </div>
+                    </div>
+                )}
 
                 {/* Floating Close Button */}
                 <button
