@@ -157,6 +157,10 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
             // Call Server Action
             await deletePromptAction(id, adminId);
 
+            // Optimistic / Manual Update to remove from UI immediately
+            setThreadItems(prev => prev.filter(item => item.id !== id));
+            setSessionHistory(prev => prev.filter(item => item.id !== id));
+
             alert('삭제되었습니다.');
             setTriggerRefetch(p => p + 1);
         } catch (error) {
