@@ -542,31 +542,37 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                                     <div style={{ position: 'absolute', left: '-2.6rem', top: '1.8rem', width: '14px', height: '14px', background: '#3b82f6', borderRadius: '50%', border: '3px solid white', boxShadow: '0 0 0 2px #e2e8f0' }}></div>
                                 )}
                                 <div style={{ fontWeight: 600, color: '#0369a1', marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem' }}>
-                                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '1.1rem' }}>
-                                        <span style={{ background: '#0ea5e9', color: 'white', padding: '0.15rem 0.6rem', borderRadius: '999px', fontSize: '0.75rem', fontWeight: 600 }}>등록완료</span>
-                                        {item.title}
-                                    </span>
-                                    <span style={{ fontSize: '0.8rem', fontWeight: 400, color: '#94a3b8' }}>{new Date(item.created_at).toLocaleDateString()}</span>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '1.1rem' }}>
+                                            <span style={{ background: '#0ea5e9', color: 'white', padding: '0.15rem 0.6rem', borderRadius: '999px', fontSize: '0.75rem', fontWeight: 600 }}>등록완료</span>
+                                            {item.title}
+                                        </span>
 
-                                    {/* Admin Actions for Thread Item */}
-                                    {isAdmin && (
-                                        <div style={{ display: 'flex', gap: '0.5rem', marginLeft: '1rem' }}>
-                                            <button
-                                                onClick={() => handleEditThread(item)}
-                                                style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: '0.9rem', padding: '0.2rem' }}
-                                                title="수정"
-                                            >
-                                                ✏️
-                                            </button>
-                                            <button
-                                                onClick={() => handleDeleteThread(item.id)}
-                                                style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: '0.9rem', padding: '0.2rem' }}
-                                                title="삭제"
-                                            >
-                                                🗑️
-                                            </button>
-                                        </div>
-                                    )}
+                                        {/* Admin Actions moved to left */}
+                                        {isAdmin && (
+                                            <div style={{ display: 'flex', gap: '0.25rem' }}>
+                                                <button
+                                                    onClick={() => handleEditThread(item)}
+                                                    style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: '1rem', padding: '0.2rem', opacity: 0.7 }}
+                                                    onMouseEnter={(e) => e.target.style.opacity = 1}
+                                                    onMouseLeave={(e) => e.target.style.opacity = 0.7}
+                                                    title="수정"
+                                                >
+                                                    ✏️
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteThread(item.id)}
+                                                    style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: '1rem', padding: '0.2rem', opacity: 0.7 }}
+                                                    onMouseEnter={(e) => e.target.style.opacity = 1}
+                                                    onMouseLeave={(e) => e.target.style.opacity = 0.7}
+                                                    title="삭제"
+                                                >
+                                                    🗑️
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <span style={{ fontSize: '0.8rem', fontWeight: 400, color: '#94a3b8' }}>{new Date(item.created_at).toLocaleDateString()}</span>
                                 </div>
                                 <div style={{ marginBottom: '1rem' }}>
                                     <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.4rem', fontWeight: 600 }}>프롬프트 내용</div>
@@ -606,10 +612,36 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                                     <div style={{ position: 'absolute', left: '-2.6rem', top: '1.8rem', width: '14px', height: '14px', background: '#3b82f6', borderRadius: '50%', border: '3px solid white', boxShadow: '0 0 0 2px #e2e8f0' }}></div>
                                 )}
                                 <div style={{ fontWeight: 600, color: '#0369a1', marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem' }}>
-                                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '1.1rem' }}>
-                                        <span style={{ background: '#0ea5e9', color: 'white', padding: '0.15rem 0.6rem', borderRadius: '999px', fontSize: '0.75rem', fontWeight: 600 }}>등록완료</span>
-                                        {historyItem.title}
-                                    </span>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '1.1rem' }}>
+                                            <span style={{ background: '#0ea5e9', color: 'white', padding: '0.15rem 0.6rem', borderRadius: '999px', fontSize: '0.75rem', fontWeight: 600 }}>등록완료</span>
+                                            {historyItem.title}
+                                        </span>
+
+                                        {/* Admin Actions moved to left */}
+                                        {isAdmin && historyItem.id && (
+                                            <div style={{ display: 'flex', gap: '0.25rem' }}>
+                                                <button
+                                                    onClick={() => handleEditThread(historyItem)}
+                                                    style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: '1rem', padding: '0.2rem', opacity: 0.7 }}
+                                                    onMouseEnter={(e) => e.target.style.opacity = 1}
+                                                    onMouseLeave={(e) => e.target.style.opacity = 0.7}
+                                                    title="수정"
+                                                >
+                                                    ✏️
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteThread(historyItem.id)}
+                                                    style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: '1rem', padding: '0.2rem', opacity: 0.7 }}
+                                                    onMouseEnter={(e) => e.target.style.opacity = 1}
+                                                    onMouseLeave={(e) => e.target.style.opacity = 0.7}
+                                                    title="삭제"
+                                                >
+                                                    🗑️
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
                                     <span style={{ fontSize: '0.8rem', fontWeight: 400, color: '#94a3b8' }}>방금 전</span>
                                 </div>
                                 <div style={{ marginBottom: '1rem' }}>
