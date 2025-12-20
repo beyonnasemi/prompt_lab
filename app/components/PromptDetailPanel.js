@@ -890,26 +890,7 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                                             e.target.style.boxShadow = 'none';
                                         }}
                                     />
-                                    {/* Real-time Preview */}
-                                    <div style={{ marginTop: '0.8rem' }}>
-                                        <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#64748b', marginBottom: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                                            <span>👀</span> 실시간 미리보기 (Preview)
-                                        </div>
-                                        <div
-                                            dangerouslySetInnerHTML={{ __html: formData.expected_answer || '<span style="color:#94a3b8; font-size: 0.9rem;">내용을 입력하면 실제 화면에 표시될 모습이 여기에 나타납니다.</span>' }}
-                                            style={{
-                                                background: '#eff6ff',
-                                                padding: '1rem',
-                                                borderRadius: '0.75rem',
-                                                border: '1px solid #dbeafe',
-                                                color: '#1e3a8a',
-                                                lineHeight: '1.6',
-                                                whiteSpace: 'pre-wrap', // Preserves newlines while allowing HTML
-                                                minHeight: '3rem',
-                                                fontSize: '0.95rem'
-                                            }}
-                                        />
-                                    </div>
+
                                 </div>
 
                                 <div>
