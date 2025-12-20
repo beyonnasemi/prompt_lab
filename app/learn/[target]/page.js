@@ -416,7 +416,7 @@ function LearnContent() {
 
                 {/* MODE: AI GENERATE PANEL */}
                 {activePanel === 'ai' && (
-                    <div style={{ position: 'absolute', inset: 0, background: 'white', zIndex: 20, overflow: 'hidden' }}>
+                    <div style={{ position: 'absolute', inset: 0, background: 'white', zIndex: 20, overflowY: 'auto' }}>
                         <AIGeneratePanel
                             targetId={targetId}
                             currentDifficulty={selectedDifficulty}
@@ -428,7 +428,7 @@ function LearnContent() {
 
                 {/* MODE: BULK UPLOAD PANEL */}
                 {activePanel === 'bulk' && (
-                    <div style={{ position: 'absolute', inset: 0, background: 'white', zIndex: 20, overflow: 'hidden' }}>
+                    <div style={{ position: 'absolute', inset: 0, background: 'white', zIndex: 20, overflowY: 'auto' }}>
                         <BulkUploadPanel
                             targetId={targetId}
                             onSave={handleBulkSave}
@@ -439,7 +439,7 @@ function LearnContent() {
 
                 {/* MODE: CREATE STANDALONE PANEL */}
                 {activePanel === 'create' && (
-                    <div style={{ position: 'absolute', inset: 0, background: 'white', zIndex: 20, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ position: 'absolute', inset: 0, background: 'white', zIndex: 20, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
                         <PromptDetailPanel
                             mode="create"
                             isAdmin={true}
@@ -452,7 +452,7 @@ function LearnContent() {
 
                 {/* MODE: EDIT STANDALONE PANEL */}
                 {activePanel === 'edit' && selectedPrompt && (
-                    <div style={{ position: 'absolute', inset: 0, background: 'white', zIndex: 20, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ position: 'absolute', inset: 0, background: 'white', zIndex: 20, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
                         <PromptDetailPanel
                             prompt={selectedPrompt}
                             mode="edit"
