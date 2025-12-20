@@ -542,7 +542,7 @@ function LearnContent() {
 
                 {/* MODE: DETAIL VIEW (UNIFIED) */}
                 {selectedPrompt && (
-                    <div style={{ height: '100%' }}>
+                    <div style={{}}>
                         <PromptDetailPanel
                             mode="view"
                             prompt={selectedPrompt}
