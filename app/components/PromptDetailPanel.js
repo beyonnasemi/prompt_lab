@@ -862,11 +862,33 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                             <div style={{ padding: '1rem', borderTop: '1px dashed #e2e8f0', marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                                 <div>
                                     <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155', fontSize: '0.95rem' }}>예상 답변</label>
-                                    <EditableDiv
+                                    <textarea
                                         value={formData.expected_answer}
-                                        onChange={(val) => setFormData({ ...formData, expected_answer: val })}
-                                        placeholder="사용자가 이 프롬프트를 실행했을 때 기대하는 답변 예시를 입력하세요."
-                                        minHeight="400px" // User requested increase
+                                        onChange={(e) => setFormData({ ...formData, expected_answer: e.target.value })}
+                                        placeholder="이곳에 HTML 코드를 직접 입력할 수 있습니다. (예: <b>강조</b>, <br> 줄바꿈, <ul>...</ul> 목록 등)"
+                                        style={{
+                                            width: '100%',
+                                            padding: '1rem',
+                                            border: '1px solid #e2e8f0',
+                                            borderRadius: '0.75rem',
+                                            minHeight: '400px',
+                                            fontSize: '1rem',
+                                            lineHeight: '1.5',
+                                            background: '#f8fafc',
+                                            outline: 'none',
+                                            fontFamily: 'monospace', // Use monospace for code editing
+                                            resize: 'vertical'
+                                        }}
+                                        onFocus={(e) => {
+                                            e.target.style.background = 'white';
+                                            e.target.style.borderColor = '#3b82f6';
+                                            e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                                        }}
+                                        onBlur={(e) => {
+                                            e.target.style.background = '#f8fafc';
+                                            e.target.style.borderColor = '#e2e8f0';
+                                            e.target.style.boxShadow = 'none';
+                                        }}
                                     />
                                 </div>
 
