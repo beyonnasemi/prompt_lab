@@ -64,7 +64,7 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                 content: prompt.content || '',
                 expected_answer: (prompt.expected_answer || '').replace('<!--THREAD-->', ''),
                 difficulty: prompt.difficulty || 'beginner',
-                difficulty: prompt.difficulty || 'beginner',
+
                 attachment_url: prompt.attachment_url || null
             });
             setCurrentMode('view'); // Default to view if prompt exists
@@ -296,8 +296,38 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                             </div>
                         </div>
                     )}
+
+                    {/* --- ADD NEW THREAD BUTTON (Only Admin) --- */}
+                    {isAdmin && (
+                        <div style={{ marginTop: '3rem', borderTop: '1px solid #e2e8f0', paddingTop: '2rem', paddingBottom: '2rem' }}>
+                            <button
+                                onClick={() => setCurrentMode('continuous')}
+                                style={{
+                                    width: '100%',
+                                    padding: '1rem',
+                                    background: '#f0f9ff',
+                                    border: '1px dashed #0ea5e9',
+                                    borderRadius: '0.75rem',
+                                    color: '#0284c7',
+                                    fontWeight: 600,
+                                    fontSize: '1rem',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                    gap: '0.5rem',
+                                    transition: 'background 0.2s'
+                                }}
+                                onMouseEnter={(e) => e.currentTarget.style.background = '#e0f2fe'}
+                                onMouseLeave={(e) => e.currentTarget.style.background = '#f0f9ff'}
+                            >
+                                <span>➕</span> 이어지는 프롬프트 추가하기 (스레드)
+                            </button>
+                        </div>
+                    )}
+
                     {/* Bottom Back Button */}
-                    <div style={{ marginTop: '2rem', borderTop: '1px solid #e2e8f0', paddingTop: '1.5rem' }}>
+                    <div style={{ marginTop: '0', borderTop: '1px solid #e2e8f0', paddingTop: '1.5rem' }}>
                         <button
                             onClick={onClose}
                             style={{
@@ -327,7 +357,7 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                 <button
                     onClick={() => {
                         if (currentMode === 'create' || currentMode === 'continuous') onClose();
-                        else setCurrentMode('view');
+                        else setCurrentMode('view'); // continuous mode에서 닫으면 view로
                     }}
                     style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: '1.2rem', color: '#94a3b8' }}
                 >
@@ -475,5 +505,5 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
             </div>
         </div>
     );
-
 }
+
