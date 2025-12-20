@@ -374,7 +374,7 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                             </button>
                         </div>
                         <div
-                            dangerouslySetInnerHTML={{ __html: prompt.content }}
+                            dangerouslySetInnerHTML={{ __html: prompt.content.replace(/<style[\s\S]*?>[\s\S]*?<\/style>|<script[\s\S]*?>[\s\S]*?<\/script>|<\/?html.*?>|<\/?body.*?>|<\/?head.*?>|<meta.*?>/gi, '') }}
                             style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '0.5rem', lineHeight: '1.6', border: '1px solid #e2e8f0', color: '#334155', minHeight: '3rem', whiteSpace: 'pre-wrap' }}
                         />
                     </div>
@@ -406,7 +406,7 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                             <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#334155', marginBottom: '0.5rem' }}>💡 예상 답변</h3>
                             <div
                                 className={/<[a-z][\s\S]*>/i.test(prompt.expected_answer) ? 'doc-content' : ''}
-                                dangerouslySetInnerHTML={{ __html: prompt.expected_answer.replace(/<!--THREAD-->|\[PARENT:[^\]]+\]/g, '') }}
+                                dangerouslySetInnerHTML={{ __html: prompt.expected_answer.replace(/<!--THREAD-->|\[PARENT:[^\]]+\]/g, '').replace(/<style[\s\S]*?>[\s\S]*?<\/style>|<script[\s\S]*?>[\s\S]*?<\/script>|<\/?html.*?>|<\/?body.*?>|<\/?head.*?>|<meta.*?>/gi, '') }}
                                 style={{
                                     background: '#eff6ff',
                                     padding: '1.25rem',
@@ -476,7 +476,7 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                                         <div style={{ marginBottom: '1rem' }}>
                                             <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.25rem', fontWeight: 600 }}>프롬프트 내용</div>
                                             <div
-                                                dangerouslySetInnerHTML={{ __html: item.content }}
+                                                dangerouslySetInnerHTML={{ __html: item.content.replace(/<style[\s\S]*?>[\s\S]*?<\/style>|<script[\s\S]*?>[\s\S]*?<\/script>|<\/?html.*?>|<\/?body.*?>|<\/?head.*?>|<meta.*?>/gi, '') }}
                                                 style={{ fontSize: '0.95rem', color: '#334155', lineHeight: '1.6', background: 'white', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0', whiteSpace: 'pre-wrap' }}
                                             />
                                         </div>
@@ -485,7 +485,7 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                                             <div>
                                                 <div style={{ fontSize: '0.85rem', color: '#1e3a8a', marginBottom: '0.25rem', fontWeight: 600 }}>예상 답변</div>
                                                 <div
-                                                    dangerouslySetInnerHTML={{ __html: item.expected_answer.replace(/<!--THREAD-->|\[PARENT:[^\]]+\]/g, '') }}
+                                                    dangerouslySetInnerHTML={{ __html: item.expected_answer.replace(/<!--THREAD-->|\[PARENT:[^\]]+\]/g, '').replace(/<style[\s\S]*?>[\s\S]*?<\/style>|<script[\s\S]*?>[\s\S]*?<\/script>|<\/?html.*?>|<\/?body.*?>|<\/?head.*?>|<meta.*?>/gi, '') }}
                                                     style={{ fontSize: '0.95rem', color: '#1e3a8a', lineHeight: '1.6', background: '#eff6ff', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #dbeafe', whiteSpace: 'pre-wrap' }}
                                                 />
                                             </div>
@@ -714,7 +714,7 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                                 <div style={{ marginBottom: '1rem' }}>
                                     <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.4rem', fontWeight: 600 }}>프롬프트 내용</div>
                                     <div
-                                        dangerouslySetInnerHTML={{ __html: item.content }}
+                                        dangerouslySetInnerHTML={{ __html: item.content.replace(/<style[\s\S]*?>[\s\S]*?<\/style>|<script[\s\S]*?>[\s\S]*?<\/script>|<\/?html.*?>|<\/?body.*?>|<\/?head.*?>|<meta.*?>/gi, '') }}
                                         style={{ fontSize: '0.95rem', color: '#334155', lineHeight: '1.6', background: '#f8fafc', padding: '1rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0', whiteSpace: 'pre-wrap' }}
                                     />
                                 </div>
@@ -723,7 +723,7 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                                         <div style={{ fontSize: '0.85rem', color: '#1e3a8a', marginBottom: '0.4rem', fontWeight: 600 }}>💡 예상 답변</div>
                                         <div
                                             className={/<[a-z][\s\S]*>/i.test(item.expected_answer) ? 'doc-content' : ''}
-                                            dangerouslySetInnerHTML={{ __html: item.expected_answer.replace(/<!--THREAD-->|\[PARENT:[^\]]+\]/g, '') }}
+                                            dangerouslySetInnerHTML={{ __html: item.expected_answer.replace(/<!--THREAD-->|\[PARENT:[^\]]+\]/g, '').replace(/<style[\s\S]*?>[\s\S]*?<\/style>|<script[\s\S]*?>[\s\S]*?<\/script>|<\/?html.*?>|<\/?body.*?>|<\/?head.*?>|<meta.*?>/gi, '') }}
                                             style={{
                                                 fontSize: '0.95rem',
                                                 color: '#1e3a8a',
