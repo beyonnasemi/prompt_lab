@@ -14,9 +14,10 @@ import { supabase } from '@/lib/supabase';
 
 // Re-verified page.js in next step.
 
-export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onClose, onSave, onDelete = () => { }, isThread = false, initialDifficulty = 'beginner' }) {
+export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onClose, onSave, onDelete = () => { }, isThread = false, initialDifficulty = 'beginner', enableThreadCreation = false }) {
     // mode: 'view' | 'edit' | 'create'
     const [currentMode, setCurrentMode] = useState(mode);
+    const [isCreatingThread, setIsCreatingThread] = useState(false); // Helper for root prompts creating threads
     const [sessionHistory, setSessionHistory] = useState([]); // For continuous creation "cards"
     const [formData, setFormData] = useState({
         title: (mode === 'create' || mode === 'collapsed') ? '' : (prompt?.title || ''),
@@ -33,6 +34,7 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
     useEffect(() => {
         if (currentMode !== 'create' && currentMode !== 'continuous') {
             setSessionHistory([]);
+            setIsCreatingThread(false);
         }
     }, [currentMode]);
 
@@ -126,7 +128,10 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
         try {
             // Override difficulty for threaded prompts to hide them from main list
             const payload = { ...formData };
-            if (isThread) {
+            // Check either isThread prop OR dynamic creatingThread state
+            const isThreadMode = isThread || isCreatingThread;
+
+            if (isThreadMode) {
                 // DB has constraint on difficulty, so we can't use 'thread'.
                 // Instead, we use a hidden marker in expected_answer + Parent ID link.
                 const parentIdTag = prompt?.id ? `[PARENT:${prompt.id}]` : '';
@@ -134,16 +139,13 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
             }
 
             // Pass to parent
-            // IMPORTANT: If isThread is true, we are creating a NEW CHILD, so we pass null ID.
-            // If isThread is false, we might be editing (if prompt.id exists AND mode is edit) - handled by caller logic usually?
-            // Wait, if mode='edit', we should pass prompt.id.
-            // If mode='create' or 'continuous', we pass null.
+            // If creating thread child, targetId is null (new). If editing parent, targetId is prompt.id.
             const targetId = (currentMode === 'edit') ? prompt?.id : null;
 
             const savedPrompt = await onSave(payload, file, targetId);
 
             // 1. Standalone Create: Close immediately to show list
-            if (!isThread && (currentMode === 'create' || currentMode === 'continuous')) {
+            if (!isThreadMode && (currentMode === 'create' || currentMode === 'continuous')) {
                 onClose();
                 return;
             }
@@ -166,12 +168,10 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                 }));
                 setFile(null);
 
-                // If thread, collapse back to button. If standalone create, we already closed above.
-                if (isThread) {
+                // If in thread mode (either prop or dynamic), collapse back to button.
+                if (isThreadMode) {
                     setCurrentMode('collapsed');
                 } else {
-                    // Stay in create/continuous if not thread (though we returned above for !isThread)
-                    // This block is mainly for safety or if we change standalone behavior later.
                     if (currentMode !== 'continuous') setCurrentMode('continuous');
                 }
 
@@ -315,10 +315,13 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                     )}
 
                     {/* --- ADD NEW THREAD BUTTON (Only Admin) --- */}
-                    {isAdmin && (
+                    {isAdmin && (enableThreadCreation || isThread) && (
                         <div style={{ marginTop: '3rem', borderTop: '1px solid #e2e8f0', paddingTop: '2rem', paddingBottom: '2rem' }}>
                             <button
-                                onClick={() => setCurrentMode('continuous')}
+                                onClick={() => {
+                                    setIsCreatingThread(true);
+                                    setCurrentMode('continuous');
+                                }}
                                 style={{
                                     width: '100%',
                                     padding: '1rem',
@@ -380,7 +383,11 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
             alignItems: 'center',
             justifyContent: 'center'
         }}
-            onClick={() => setCurrentMode('continuous')}
+            onClick={() => {
+                // Keep existing thread state or set it?
+                // If we are here, we are likely already in thread mode.
+                setCurrentMode('continuous');
+            }}
             onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#3b82f6'; e.currentTarget.style.background = '#f8fafc'; }}
             onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#cbd5e1'; e.currentTarget.style.background = 'white'; }}
         >
@@ -396,6 +403,9 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
             </p>
         </div>
     );
+
+    // --- EDIT / CREATE / CONTINUOUS MODE ---
+    const isThreadMode = isThread || isCreatingThread;
 
     // --- MAIN RENDER (Edit / Create / Continuous / Collapsed) ---
     return (
@@ -439,7 +449,7 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
 
                 {/* Session History Cards (Chat Style / Thread Style) */}
                 {sessionHistory.length > 0 && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', paddingBottom: '1.5rem', borderLeft: isThread ? '3px solid #e2e8f0' : 'none', marginLeft: isThread ? '1.5rem' : '0', paddingLeft: isThread ? '2rem' : '0' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', paddingBottom: '1.5rem', borderLeft: isThreadMode ? '3px solid #e2e8f0' : 'none', marginLeft: isThreadMode ? '1.5rem' : '0', paddingLeft: isThreadMode ? '2rem' : '0' }}>
                         {sessionHistory.map((historyItem, idx) => (
                             <div key={idx} style={{
                                 alignSelf: 'flex-start',
@@ -452,7 +462,7 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                                 boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)'
                             }}>
                                 {/* Thread Connector Node */}
-                                {isThread && (
+                                {isThreadMode && (
                                     <div style={{ position: 'absolute', left: '-2.6rem', top: '1.8rem', width: '14px', height: '14px', background: '#3b82f6', borderRadius: '50%', border: '3px solid white', boxShadow: '0 0 0 2px #e2e8f0' }}></div>
                                 )}
                                 <div style={{ fontWeight: 600, color: '#0369a1', marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem' }}>
@@ -492,17 +502,18 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                         borderRadius: '1rem',
                         border: '1px solid #e2e8f0',
                         boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.05)',
-                        borderLeft: isThread ? 'none' : 'none',
-                        marginLeft: (isThread && sessionHistory.length > 0) ? '1.5rem' : '0',
+                        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.05)',
+                        borderLeft: isThreadMode ? 'none' : 'none',
+                        marginLeft: (isThreadMode && sessionHistory.length > 0) ? '1.5rem' : '0',
                         position: 'relative'
                     }}>
                         {/* Thread Connector Line for Form (Visual Only) */}
-                        {isThread && (
+                        {isThreadMode && (
                             <div style={{ position: 'absolute', left: '-1.6rem', top: '0', bottom: '0', width: '3px', background: '#e2e8f0', display: sessionHistory.length > 0 ? 'block' : 'none' }}></div>
                         )}
 
                         <div style={{ position: 'relative', marginBottom: '0.5rem' }}>
-                            {isThread && sessionHistory.length > 0 && (
+                            {isThreadMode && sessionHistory.length > 0 && (
                                 <div style={{ position: 'absolute', left: '-2.6rem', top: '0.5rem', width: '14px', height: '14px', background: '#cbd5e1', borderRadius: '50%', border: '3px solid white', boxShadow: '0 0 0 2px #e2e8f0' }}></div>
                             )}
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -518,7 +529,7 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                             </div>
                         </div>
 
-                        {!isThread && (
+                        {!isThreadMode && (
                             <div>
                                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155', fontSize: '0.95rem' }}>제목</label>
                                 <input
@@ -534,7 +545,7 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                             </div>
                         )}
 
-                        {!isThread && (
+                        {!isThreadMode && (
                             <div style={{ display: 'flex', gap: '1rem' }}>
                                 <div style={{ flex: 1 }}>
                                     <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155', fontSize: '0.95rem' }}>난이도</label>
@@ -601,7 +612,7 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                                         onClose();
                                     } else {
                                         // If thread or history exists, collapse
-                                        if (isThread) setCurrentMode('collapsed');
+                                        if (isThreadMode) setCurrentMode('collapsed');
                                         else onClose();
                                     }
                                 }}
@@ -620,6 +631,6 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                     </form>
                 )}
             </div>
-        </div>
+        </div >
     );
 }

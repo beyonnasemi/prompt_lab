@@ -540,133 +540,20 @@ function LearnContent() {
                     </div>
                 )}
 
-                {/* MODE: DETAIL VIEW (CARD + INPUT) */}
+                {/* MODE: DETAIL VIEW (UNIFIED) */}
                 {selectedPrompt && (
-                    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflowY: 'auto', paddingRight: '0.5rem' }}>
-                        {/* Back Button */}
-                        <div style={{ marginBottom: '1rem' }}>
-                            <button
-                                onClick={() => { setSelectedPrompt(null); setActivePanel('none'); }}
-                                style={{
-                                    display: 'flex', alignItems: 'center', gap: '0.5rem',
-                                    background: 'none', border: 'none', color: '#64748b',
-                                    cursor: 'pointer', fontSize: '1rem', fontWeight: 600
-                                }}
-                            >
-                                ⬅ 목록으로 돌아가기
-                            </button>
-                        </div>
-
-                        {/* DETAIL CARD */}
-                        <div style={{
-                            background: 'white',
-                            borderRadius: '1rem',
-                            border: '1px solid #e2e8f0',
-                            padding: '2rem',
-                            marginBottom: '2rem',
-                            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)'
-                        }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '1.5rem' }}>
-                                <div>
-                                    <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#1e293b', lineHeight: 1.3 }}>
-                                        {selectedPrompt.title}
-                                    </h2>
-                                    {isAdmin && (
-                                        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
-                                            <button
-                                                onClick={() => setActivePanel('edit')}
-                                                style={{
-                                                    fontSize: '0.85rem', padding: '0.3rem 0.6rem',
-                                                    background: 'white', border: '1px solid #cbd5e1',
-                                                    borderRadius: '0.25rem', cursor: 'pointer',
-                                                    color: '#475569', display: 'flex', alignItems: 'center', gap: '0.3rem'
-                                                }}
-                                            >
-                                                ✏️ 수정
-                                            </button>
-                                            <button
-                                                onClick={() => handleDeleteClick(selectedPrompt.id)}
-                                                style={{
-                                                    fontSize: '0.85rem', padding: '0.3rem 0.6rem',
-                                                    background: '#fef2f2', border: '1px solid #fca5a5',
-                                                    borderRadius: '0.25rem', cursor: 'pointer',
-                                                    color: '#dc2626', display: 'flex', alignItems: 'center', gap: '0.3rem'
-                                                }}
-                                            >
-                                                🗑️ 삭제
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-
-                            </div>
-
-                            <div style={{ display: 'grid', gap: '1.5rem' }}>
-                                <div>
-                                    <h4 style={{ fontSize: '0.95rem', color: '#94a3b8', marginBottom: '0.5rem', fontWeight: 600 }}>프롬프트 내용</h4>
-                                    <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '0.75rem', lineHeight: '1.6', color: '#334155', whiteSpace: 'pre-wrap' }}>
-                                        {selectedPrompt.content}
-                                    </div>
-                                </div>
-                                {selectedPrompt.expected_answer && (
-                                    <div>
-                                        <h4 style={{ fontSize: '0.95rem', color: '#94a3b8', marginBottom: '0.5rem', fontWeight: 600 }}>예상 답변</h4>
-                                        <div style={{ background: '#fffbeb', padding: '1.25rem', borderRadius: '0.75rem', lineHeight: '1.6', color: '#92400e', whiteSpace: 'pre-wrap', border: '1px solid #fef3c7' }}>
-                                            {selectedPrompt.expected_answer}
-                                        </div>
-                                    </div>
-                                )}
-                                {selectedPrompt.attachment_url && (
-                                    <div>
-                                        <h4 style={{ fontSize: '0.95rem', color: '#94a3b8', marginBottom: '0.5rem', fontWeight: 600 }}>첨부 파일</h4>
-                                        {selectedPrompt.attachment_url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
-                                            <img src={selectedPrompt.attachment_url} alt="Attachment" style={{ maxWidth: '100%', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }} />
-                                        ) : (
-                                            <a href={selectedPrompt.attachment_url} target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb', textDecoration: 'underline' }}>
-                                                파일 확인하기
-                                            </a>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* CREATE/EDIT FORM BELOW */}
-                        {isAdmin && (
-                            <div style={{ marginTop: '3rem', paddingTop: '2rem', borderTop: '1px dashed #e2e8f0' }}>
-
-                                {/* Header removed */}
-
-                                <PromptDetailPanel
-                                    mode="collapsed"
-                                    isAdmin={true}
-                                    onSave={handleSavePrompt}
-                                    onClose={() => { }}
-                                    isThread={true}
-                                    prompt={selectedPrompt}
-                                    initialDifficulty={selectedDifficulty}
-                                />
-                            </div>
-                        )}
-
-                        {/* BOTTOM BACK BUTTON */}
-                        <div style={{ marginTop: '3rem', textAlign: 'center', paddingBottom: '3rem' }}>
-                            <button
-                                onClick={() => {
-                                    setSelectedPrompt(null);
-                                    setActivePanel('none');
-                                }}
-                                style={{
-                                    padding: '0.8rem 2rem', border: '1px solid #cbd5e1', background: 'white',
-                                    borderRadius: '2rem', color: '#475569', fontWeight: 600,
-                                    cursor: 'pointer', boxShadow: '0 2px 5px rgba(0,0,0,0.05)',
-                                    display: 'inline-flex', alignItems: 'center', gap: '0.5rem'
-                                }}
-                            >
-                                <span>🔙</span> 목록으로 돌아가기
-                            </button>
-                        </div>
-
+                    <div style={{ height: '100%' }}>
+                        <PromptDetailPanel
+                            mode="view"
+                            prompt={selectedPrompt}
+                            isAdmin={isAdmin}
+                            onClose={() => { setSelectedPrompt(null); setActivePanel('none'); }}
+                            onSave={handleSavePrompt}
+                            onDelete={handleDeleteClick}
+                            enableThreadCreation={true}
+                            initialDifficulty={selectedDifficulty}
+                        // Note: isThread is false by default for the ROOT view
+                        />
                     </div>
                 )}
             </div>
