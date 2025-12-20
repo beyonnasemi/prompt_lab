@@ -489,10 +489,7 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
 
                 {/* Floating Close Button */}
                 <button
-                    onClick={() => {
-                        if (currentMode === 'create' || currentMode === 'continuous') onClose();
-                        else setCurrentMode('view');
-                    }}
+                    onClick={onClose}
                     style={{
                         position: 'absolute',
                         right: '1rem',
