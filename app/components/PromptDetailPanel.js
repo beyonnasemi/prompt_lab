@@ -113,7 +113,12 @@ function ShadowHtmlView({ html, style, className }) {
             const safeHtml = html
                 .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '') // Remove script AND content
                 .replace(/<\/?(html|head|body|meta)[\s\S]*?>/gi, ''); // Remove other tags but keep content
-            node.shadowRoot.innerHTML = `<style>${defaultDocStyles}</style>${safeHtml}`;
+
+            // Detect if content is HTML or Plain Text
+            const isHtml = /<[a-z][\s\S]*>/i.test(safeHtml);
+            const whiteSpaceRule = isHtml ? 'normal' : 'pre-wrap';
+
+            node.shadowRoot.innerHTML = `<style>${defaultDocStyles} :host { white-space: ${whiteSpaceRule}; }</style>${safeHtml}`;
         }
     }} style={style} className={className}></div>;
 }
