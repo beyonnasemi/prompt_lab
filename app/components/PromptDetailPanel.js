@@ -385,22 +385,42 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
     // --- EDIT / CREATE / CONTINUOUS MODE ---
     return (
         <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '1rem', flexShrink: 0, display: isThread ? 'none' : 'flex' }}>
-                <h2 style={{ fontSize: '1.5rem', fontWeight: 700 }}>
-                    {(currentMode === 'create' || currentMode === 'continuous') ? '새 프롬프트 등록' : '프롬프트 수정'}
-                </h2>
+
+
+            <div style={{ flex: 1, overflowY: 'auto', paddingRight: '0.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', padding: '0.5rem', position: 'relative' }}>
+
+                {/* Floating Close Button */}
                 <button
                     onClick={() => {
                         if (currentMode === 'create' || currentMode === 'continuous') onClose();
                         else setCurrentMode('view');
                     }}
-                    style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: '1.2rem', color: '#94a3b8' }}
+                    style={{
+                        position: 'absolute',
+                        right: '1rem',
+                        top: '1rem',
+                        zIndex: 10,
+                        border: 'none',
+                        background: 'white',
+                        borderRadius: '50%',
+                        width: '2.5rem',
+                        height: '2.5rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        color: '#94a3b8',
+                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                        border: '1px solid #f1f5f9',
+                        fontSize: '1.2rem',
+                        transition: 'all 0.2s'
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.1)'; e.currentTarget.style.color = '#ef4444'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.color = '#94a3b8'; }}
+                    title="닫기"
                 >
                     ✖
                 </button>
-            </div>
-
-            <div style={{ flex: 1, overflowY: 'auto', paddingRight: '0.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', padding: '0.5rem' }}>
 
                 {/* Session History Cards (Chat Style / Thread Style) */}
                 {(currentMode === 'create' || currentMode === 'continuous') && sessionHistory.length > 0 && (
@@ -449,15 +469,14 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                 {/* Input Form */}
                 <form onSubmit={handleSubmit} style={{
                     display: 'flex', flexDirection: 'column', gap: '1.5rem',
-                    background: (isThread || currentMode === 'continuous' || sessionHistory.length > 0) ? 'white' : 'transparent',
-                    padding: (isThread || currentMode === 'continuous' || sessionHistory.length > 0) ? '2rem' : '0',
+                    background: 'white',
+                    padding: '2rem',
                     borderRadius: '1rem',
-                    border: (isThread || currentMode === 'continuous' || sessionHistory.length > 0) ? '1px solid #e2e8f0' : 'none',
-                    boxShadow: (isThread || currentMode === 'continuous' || sessionHistory.length > 0) ? '0 10px 15px -3px rgba(0, 0, 0, 0.05)' : 'none',
+                    border: '1px solid #e2e8f0',
+                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.05)',
                     borderLeft: isThread ? 'none' : 'none',
-                    marginLeft: isThread ? '1.5rem' : '0',
+                    marginLeft: (isThread && sessionHistory.length > 0) ? '1.5rem' : '0',
                     position: 'relative'
-                    /* Thread line is handled by container margin in currentMode check if we want, but for form it's better standalone */
                 }}>
                     {/* Thread Connector Line for Form (Visual Only) */}
                     {isThread && (
