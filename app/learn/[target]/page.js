@@ -311,6 +311,25 @@ function LearnContent() {
         else setCheckedIds([]);
     };
 
+    // New: Reorder functionality (Bump to Top)
+    const handleMoveToTop = async (e, id) => {
+        e.stopPropagation();
+        if (!confirm('이 게시글을 최상단으로 올리시겠습니까? (등록일시가 현재로 변경됩니다)')) return;
+
+        try {
+            const { error } = await supabase
+                .from('prompts')
+                .update({ created_at: new Date().toISOString() })
+                .eq('id', id);
+
+            if (error) throw error;
+            fetchPrompts(targetId, selectedDifficulty);
+        } catch (err) {
+            console.error(err);
+            alert('순서 변경 실패');
+        }
+    };
+
     if (!userSession) return null;
 
     return (
@@ -357,59 +376,70 @@ function LearnContent() {
                         </div>
                     )}
                 </div>
+            </div>
 
-                {/* Difficulty Tabs */}
-                <div style={{ marginBottom: '1rem' }}>
-                    <div style={{ display: 'flex', gap: '0.5rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem' }}>
-                        {['beginner', 'intermediate', 'advanced'].map((level) => (
-                            <button
-                                key={level}
-                                onClick={() => setSelectedDifficulty(level)}
-                                style={{
-                                    padding: '0.75rem 1.5rem',
-                                    borderRadius: '0.5rem 0.5rem 0 0',
-                                    fontWeight: 600,
-                                    fontSize: '1rem',
-                                    cursor: 'pointer',
-                                    border: 'none',
-                                    borderBottom: selectedDifficulty === level ? '3px solid #2563eb' : '3px solid transparent',
-                                    color: selectedDifficulty === level ? '#2563eb' : '#64748b',
-                                    background: selectedDifficulty === level ? '#eff6ff' : 'transparent',
-                                    transition: 'all 0.2s'
-                                }}
-                            >
-                                {level === 'beginner' ? '🌱 초급' : level === 'intermediate' ? '🌿 중급' : '🌳 고급'}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Difficulty Description Box */}
-                <div style={{
-                    background: '#f8fafc',
-                    padding: '1.25rem',
-                    borderRadius: '0 0.5rem 0.5rem 0.5rem', // Connect visually with active tab if possible, or just rounded
-                    border: '1px solid #e2e8f0',
-                    marginBottom: '1rem',
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
-                }}>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.75rem', marginBottom: '0.5rem' }}>
-                        <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>
-                            {difficultyGuides[selectedDifficulty].title}
-                        </h3>
-                        <span style={{ fontSize: '0.9rem', color: '#2563eb', fontWeight: 600, background: '#dbeafe', padding: '0.1rem 0.5rem', borderRadius: '4px' }}>
-                            {selectedDifficulty === 'beginner' ? 'Beginner' : selectedDifficulty === 'intermediate' ? 'Intermediate' : 'Advanced'}
-                        </span>
-                    </div>
-                    <p style={{ fontSize: '0.95rem', color: '#475569', marginBottom: '0.5rem', lineHeight: '1.5' }}>
-                        {difficultyGuides[selectedDifficulty].desc}
-                    </p>
-                    <div style={{ fontSize: '0.9rem', color: '#0f766e', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <span>� 핵심 특징:</span>
-                        {difficultyGuides[selectedDifficulty].features}
-                    </div>
+            {/* Difficulty Tabs */}
+            <div style={{ marginBottom: '1rem' }}>
+                <div style={{ display: 'flex', gap: '0.5rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem' }}>
+                    {['beginner', 'intermediate', 'advanced'].map((level) => (
+                        <button
+                            key={level}
+                            onClick={() => setSelectedDifficulty(level)}
+                            style={{
+                                flex: 1,
+                                textAlign: 'center',
+                                padding: '0.75rem 0.5rem',
+                                borderBottom: selectedDifficulty === level ? '3px solid #3b82f6' : '3px solid transparent',
+                                color: selectedDifficulty === level ? '#2563eb' : '#64748b',
+                                fontWeight: selectedDifficulty === level ? 700 : 500,
+                                cursor: 'pointer',
+                                background: 'none',
+                                borderTop: 'none', borderLeft: 'none', borderRight: 'none',
+                                fontSize: '1rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                whiteSpace: 'nowrap'
+                            }}
+                        >
+                            {level === 'beginner' ? '초급' : level === 'intermediate' ? '중급' : '고급'}
+                        </button>
+                    ))}
                 </div>
             </div>
+
+
+
+            {/* Difficulty Description Box (Compact) */}
+            <div style={{
+                background: '#f8fafc',
+                padding: '0.8rem 1rem',
+                borderRadius: '0 0.5rem 0.5rem 0.5rem',
+                border: '1px solid #e2e8f0',
+                marginBottom: '0.5rem',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                fontSize: '0.9rem'
+            }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.3rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>
+                            {difficultyGuides[selectedDifficulty].title}
+                        </h3>
+                        <span style={{ fontSize: '0.75rem', color: '#64748b', background: '#e2e8f0', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>
+                            {selectedDifficulty.toUpperCase()}
+                        </span>
+                    </div>
+                </div>
+                {/* Hide description on very small screens if needed, or keep it short */}
+                <p style={{ margin: '0 0 0.4rem 0', color: '#475569', lineHeight: '1.4', display: 'none' }} className="desktop-only-block">
+                    {difficultyGuides[selectedDifficulty].desc}
+                </p>
+                <div style={{ color: '#0f766e', fontWeight: 600, display: 'flex', alignItems: 'flex-start', gap: '0.3rem', fontSize: '0.85rem' }}>
+                    <span style={{ whiteSpace: 'nowrap' }}>💡 핵심:</span>
+                    <span>{difficultyGuides[selectedDifficulty].features}</span>
+                </div>
+            </div>
+
 
             {/* MAIN CONTENT AREA */}
             <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
@@ -553,7 +583,17 @@ function LearnContent() {
                                                 {prompt.content.replace(/<[^>]+>/g, '') /* Simple Safe Strip for preview */}
                                             </div>
                                             <div className="mobile-card-meta">
-                                                <span>📅 {new Date(prompt.created_at).toLocaleDateString()}</span>
+                                                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                                    <span>📅 {new Date(prompt.created_at).toLocaleDateString()}</span>
+                                                    {isAdmin && (
+                                                        <button
+                                                            onClick={(e) => handleMoveToTop(e, prompt.id)}
+                                                            style={{ border: '1px solid #e2e8f0', background: 'white', borderRadius: '4px', fontSize: '0.7rem', padding: '2px 6px' }}
+                                                        >
+                                                            🔼 위로
+                                                        </button>
+                                                    )}
+                                                </div>
                                                 <span style={{ color: '#2563eb' }}>자세히 보기 &gt;</span>
                                             </div>
                                         </div>
@@ -590,7 +630,7 @@ function LearnContent() {
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     );
 }
 
