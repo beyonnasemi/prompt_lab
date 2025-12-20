@@ -314,7 +314,7 @@ function LearnContent() {
     if (!userSession) return null;
 
     return (
-        <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '1rem', height: 'calc(100vh - 80px)', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '1rem', minHeight: 'calc(100vh - 80px)', height: (selectedPrompt || activePanel !== 'none') ? 'auto' : 'calc(100vh - 80px)', display: 'flex', flexDirection: 'column' }}>
             {/* Header */}
             <div style={{ marginBottom: '2rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
@@ -412,7 +412,7 @@ function LearnContent() {
             </div>
 
             {/* MAIN CONTENT AREA */}
-            <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+            <div style={{ flex: 1, overflow: (selectedPrompt || activePanel !== 'none') ? 'visible' : 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
 
                 {/* MODE: AI GENERATE PANEL */}
                 {activePanel === 'ai' && (
