@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, Suspense, useMemo } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter, useParams, useSearchParams, usePathname } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import BulkUploadPanel from '@/app/components/BulkUploadPanel';
 import AIGeneratePanel from '@/app/components/AIGeneratePanel';
@@ -56,7 +56,36 @@ function LearnContent() {
     // Search & Pagination State
     const [searchQuery, setSearchQuery] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
+    const searchParams = useSearchParams();
+    const pathname = usePathname();
     const [isAdmin, setIsAdmin] = useState(false);
+
+    // Sync URL with State (Handle Back Button)
+    useEffect(() => {
+        const promptId = searchParams.get('promptId');
+        if (promptId && prompts.length > 0) {
+            const prompt = prompts.find(p => p.id === promptId);
+            if (prompt) {
+                setSelectedPrompt(prompt);
+            }
+        } else {
+            setSelectedPrompt(null);
+        }
+    }, [searchParams, prompts]);
+
+    // Handle Prompt Click (Update URL)
+    const handlePromptClick = (prompt) => {
+        const params = new URLSearchParams(searchParams);
+        params.set('promptId', prompt.id);
+        router.push(`${pathname}?${params.toString()}`);
+    };
+
+    // Handle Close (Reset URL)
+    const handleCloseDetail = () => {
+        const params = new URLSearchParams(searchParams);
+        params.delete('promptId');
+        router.push(`${pathname}?${params.toString()}`);
+    };
 
     useEffect(() => {
         if (!targetId) return;
@@ -155,10 +184,7 @@ function LearnContent() {
 
     // --- Handlers ---
 
-    const handlePromptClick = (prompt) => {
-        setSelectedPrompt(prompt);
-        setActivePanel('detail');
-    };
+
 
     const handleCreateTabClick = () => {
         setSelectedPrompt(null);
@@ -573,7 +599,7 @@ function LearnContent() {
                                     <div style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8' }}>등록된 프롬프트가 없습니다.</div>
                                 ) : (
                                     displayedPrompts.map((prompt) => (
-                                        <div key={prompt.id} className="mobile-card" onClick={() => setSelectedPrompt(prompt)}>
+                                        <div key={prompt.id} className="mobile-card" onClick={() => handlePromptClick(prompt)}>
                                             <div className="mobile-card-header">
                                                 <div className="mobile-card-title">{prompt.title}</div>
                                                 {isAdmin && (
@@ -626,7 +652,7 @@ function LearnContent() {
                             mode="view"
                             prompt={selectedPrompt}
                             isAdmin={isAdmin}
-                            onClose={() => { setSelectedPrompt(null); setActivePanel('none'); }}
+                            onClose={handleCloseDetail}
                             onSave={handleSavePrompt}
                             onDelete={handleDeleteClick}
                             enableThreadCreation={true}
