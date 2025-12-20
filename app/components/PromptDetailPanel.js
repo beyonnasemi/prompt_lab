@@ -109,8 +109,10 @@ function ShadowHtmlView({ html, style, className }) {
             }
             // Smart update: only update if changed to prevent flicker? 
             // innerHTML replacement causes total reflow.
-            // Sanitize ONLY html/body/head/script/meta to be safe, but ALLOW STYLE.
-            const safeHtml = html.replace(/<\/?(html|head|body|meta|script)[\s\S]*?>/gi, '');
+            // Sanitize: REMOVE <script> blocks completely, Remove structural tags but keep content.
+            const safeHtml = html
+                .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '') // Remove script AND content
+                .replace(/<\/?(html|head|body|meta)[\s\S]*?>/gi, ''); // Remove other tags but keep content
             node.shadowRoot.innerHTML = `<style>${defaultDocStyles}</style>${safeHtml}`;
         }
     }} style={style} className={className}></div>;
