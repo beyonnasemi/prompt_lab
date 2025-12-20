@@ -263,6 +263,12 @@ body {
   gap: 1rem;
 }
 
+.responsive-header .actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
 @media (max-width: 768px) {
   .responsive-header {
     flex-direction: column;
