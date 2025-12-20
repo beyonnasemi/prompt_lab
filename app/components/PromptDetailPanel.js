@@ -55,7 +55,7 @@ function EditableDiv({ value, onChange, placeholder, minHeight, style }) {
                 borderRadius: '0.75rem',
                 minHeight: minHeight,
                 fontSize: '1rem',
-                lineHeight: '1.6',
+                lineHeight: '1.3',
                 background: '#f8fafc',
                 outline: 'none',
                 overflowY: 'auto',
