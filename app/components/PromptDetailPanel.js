@@ -527,7 +527,7 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                             </div>
                         ))}
                     </div>
-                )} // END THREAD ITEMS
+                )}
 
                 {/* Session History Cards (Chat Style / Thread Style) */}
                 {sessionHistory.length > 0 && (
