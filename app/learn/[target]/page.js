@@ -637,26 +637,22 @@ function LearnContent() {
 
                         {/* CREATE/EDIT FORM BELOW */}
                         {isAdmin && (
-                            <div style={{ marginTop: '2rem', paddingTop: '2rem', borderTop: '1px dashed #cbd5e1' }}>
-                                <div style={{ marginBottom: '1rem' }}>
+                            <div style={{ marginTop: '3rem', paddingTop: '2rem', borderTop: '1px dashed #e2e8f0' }}>
+                                <div style={{ marginBottom: '1rem', display: 'none' }}> {/* Hidden header as it's now internal */}
                                     <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#334155', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                         <span>👇</span> 새 프롬프트 추가
                                     </h3>
-                                    <p style={{ fontSize: '0.9rem', color: '#64748b' }}>
-                                        새로운 프롬프트를 작성하여 등록합니다.
-                                    </p>
                                 </div>
-                                <div style={{ background: 'white', borderRadius: '1rem', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
-                                    <PromptDetailPanel
-                                        mode="create"
-                                        isAdmin={true}
-                                        onSave={handleSavePrompt}
-                                        onClose={() => { }} // No-op for inline form
-                                        isThread={true}
-                                        prompt={selectedPrompt}
-                                        initialDifficulty={selectedDifficulty}
-                                    />
-                                </div>
+
+                                <PromptDetailPanel
+                                    mode="collapsed"
+                                    isAdmin={true}
+                                    onSave={handleSavePrompt}
+                                    onClose={() => { }}
+                                    isThread={true}
+                                    prompt={selectedPrompt}
+                                    initialDifficulty={selectedDifficulty}
+                                />
                             </div>
                         )}
 
