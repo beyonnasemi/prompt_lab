@@ -353,3 +353,27 @@ body {
 .desktop-hidden {
   display: none;
 }
+
+/* Visibility Utilities */
+@media (max-width: 768px) {
+  .mobile-hidden {
+    display: none !important;
+  }
+}
+
+@media (min-width: 769px) {
+  .desktop-hidden {
+    display: none !important;
+  }
+}
+
+/* Tab Icons */
+.tab-icon {
+  margin-right: 0.5rem;
+}
+
+@media (max-width: 768px) {
+  .tab-icon {
+    display: none;
+  }
+}

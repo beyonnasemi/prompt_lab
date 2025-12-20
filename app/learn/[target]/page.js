@@ -388,20 +388,25 @@ function LearnContent() {
                             style={{
                                 flex: 1,
                                 textAlign: 'center',
-                                padding: '0.75rem 0.5rem',
+                                padding: '1rem 1.5rem',
                                 borderBottom: selectedDifficulty === level ? '3px solid #3b82f6' : '3px solid transparent',
                                 color: selectedDifficulty === level ? '#2563eb' : '#64748b',
                                 fontWeight: selectedDifficulty === level ? 700 : 500,
                                 cursor: 'pointer',
                                 background: 'none',
                                 borderTop: 'none', borderLeft: 'none', borderRight: 'none',
-                                fontSize: '1rem',
+                                fontSize: '1.1rem',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                whiteSpace: 'nowrap'
+                                whiteSpace: 'nowrap',
+                                transition: 'all 0.2s',
+                                gap: '0.5rem'
                             }}
                         >
+                            <span className="tab-icon">
+                                {level === 'beginner' ? '🌱' : level === 'intermediate' ? '🌿' : '🌳'}
+                            </span>
                             {level === 'beginner' ? '초급' : level === 'intermediate' ? '중급' : '고급'}
                         </button>
                     ))}
@@ -410,32 +415,33 @@ function LearnContent() {
 
 
 
-            {/* Difficulty Description Box (Compact) */}
+            {/* Difficulty Description Box */}
             <div style={{
                 background: '#f8fafc',
-                padding: '0.8rem 1rem',
+                padding: '1.5rem',
                 borderRadius: '0 0.5rem 0.5rem 0.5rem',
                 border: '1px solid #e2e8f0',
-                marginBottom: '0.5rem',
+                marginBottom: '1rem',
                 boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                fontSize: '0.9rem'
+                fontSize: '0.95rem'
             }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.3rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>
                             {difficultyGuides[selectedDifficulty].title}
                         </h3>
-                        <span style={{ fontSize: '0.75rem', color: '#64748b', background: '#e2e8f0', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>
+                        <span style={{ fontSize: '0.85rem', color: '#64748b', background: '#e2e8f0', padding: '0.2rem 0.6rem', borderRadius: '4px' }}>
                             {selectedDifficulty.toUpperCase()}
                         </span>
                     </div>
                 </div>
-                {/* Hide description on very small screens if needed, or keep it short */}
-                <p style={{ margin: '0 0 0.4rem 0', color: '#475569', lineHeight: '1.4', display: 'none' }} className="desktop-only-block">
+
+                <p style={{ margin: '0 0 0.75rem 0', color: '#475569', lineHeight: '1.6' }} className="mobile-hidden">
                     {difficultyGuides[selectedDifficulty].desc}
                 </p>
-                <div style={{ color: '#0f766e', fontWeight: 600, display: 'flex', alignItems: 'flex-start', gap: '0.3rem', fontSize: '0.85rem' }}>
-                    <span style={{ whiteSpace: 'nowrap' }}>💡 핵심:</span>
+
+                <div style={{ color: '#0f766e', fontWeight: 600, display: 'flex', alignItems: 'flex-start', gap: '0.5rem', fontSize: '0.9rem' }}>
+                    <span style={{ whiteSpace: 'nowrap' }}>💡 핵심 특징:</span>
                     <span>{difficultyGuides[selectedDifficulty].features}</span>
                 </div>
             </div>
