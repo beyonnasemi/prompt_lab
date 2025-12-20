@@ -137,7 +137,7 @@ function LearnContent() {
         return result.filter(p => p.title.toLowerCase().includes(searchQuery.toLowerCase()));
     }, [prompts, searchQuery]);
 
-    const itemsPerPage = 8; // Adjust for layout
+    const itemsPerPage = 10; // Increased to 10 as requested
     const totalPages = Math.ceil(filteredPrompts.length / itemsPerPage);
     const displayedPrompts = useMemo(() => {
         const start = (currentPage - 1) * itemsPerPage;
@@ -333,9 +333,9 @@ function LearnContent() {
     if (!userSession) return null;
 
     return (
-        <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '1rem', height: '100dvh', maxHeight: '100dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '1rem', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
             {/* Header */}
-            <div style={{ marginBottom: '1rem', flexShrink: 0 }}>
+            <div style={{ marginBottom: '1rem' }}>
                 <div className="responsive-header">
                     <h1 style={{ fontSize: '1.8rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>
                         {userSession.display_name} 프롬프트 실습
@@ -442,7 +442,7 @@ function LearnContent() {
 
 
             {/* MAIN CONTENT AREA */}
-            <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
 
                 {/* MODE: AI GENERATE PANEL */}
                 {activePanel === 'ai' && (
@@ -509,7 +509,7 @@ function LearnContent() {
                         </div>
 
                         {/* List Table & Mobile Card View */}
-                        <div style={{ flex: 1, overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '0.5rem', background: '#f8fafc' }}>
+                        <div style={{ border: '1px solid #e2e8f0', borderRadius: '0.5rem', background: '#f8fafc' }}>
                             {/* Desktop Table */}
                             <table className="desktop-table" style={{ width: '100%', borderCollapse: 'collapse', background: 'white' }}>
                                 <thead style={{ position: 'sticky', top: 0, background: '#f8fafc', borderBottom: '1px solid #e2e8f0', zIndex: 10 }}>
@@ -615,7 +615,7 @@ function LearnContent() {
 
                 {/* MODE: DETAIL VIEW (UNIFIED) */}
                 {selectedPrompt && (
-                    <div style={{ height: '100%', overflowY: 'auto' }}>
+                    <div style={{}}>
                         <PromptDetailPanel
                             mode="view"
                             prompt={selectedPrompt}
