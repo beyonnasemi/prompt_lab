@@ -68,9 +68,15 @@ function LearnContent() {
             const prompt = prompts.find(p => p.id === promptId);
             if (prompt) {
                 setSelectedPrompt(prompt);
+                // Ensure panel is correctly set
+                setActivePanel('detail');
             }
         } else {
             setSelectedPrompt(null);
+            // Reset panel to show list if we are in detail view context
+            // But if user is creating/editing, we shouldn't force 'none' unless navigation implies it?
+            // If promptId is removed, we are likely going back to list.
+            setActivePanel('none');
         }
     }, [searchParams, prompts]);
 
@@ -562,7 +568,7 @@ function LearnContent() {
                                         displayedPrompts.map((prompt, idx) => (
                                             <tr
                                                 key={prompt.id}
-                                                onClick={() => { setSelectedPrompt(prompt); setActivePanel('detail'); }}
+                                                onClick={() => handlePromptClick(prompt)}
                                                 style={{
                                                     cursor: 'pointer',
                                                     background: 'white',
@@ -578,10 +584,24 @@ function LearnContent() {
                                                     </td>
                                                 )}
                                                 <td style={{ padding: '1rem', textAlign: 'center', color: '#94a3b8' }}>
+                                                    {/* Re-add Up/Down for admin in PC Table if needed, but user asked for Link Manager. This is Post list. */}
+                                                    {/* Post list reordering was requested earlier and implemented via Bump. No change needed here. */}
                                                     {filteredPrompts.length - ((currentPage - 1) * itemsPerPage) - idx}
                                                 </td>
                                                 <td style={{ padding: '1rem', fontWeight: 600, color: '#334155', fontSize: '1.05rem' }}>
-                                                    {prompt.title}
+                                                    {/* Title Column with Admin Up Button */}
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        {prompt.title}
+                                                        {isAdmin && (
+                                                            <button
+                                                                onClick={(e) => handleMoveToTop(e, prompt.id)}
+                                                                title="맨 위로 올리기"
+                                                                style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: '0.8rem', opacity: 0.5 }}
+                                                            >
+                                                                🔼
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 </td>
                                                 <td style={{ padding: '1rem', textAlign: 'right', color: '#94a3b8', fontSize: '0.9rem' }}>
                                                     {new Date(prompt.created_at).toLocaleDateString()}
