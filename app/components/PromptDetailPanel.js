@@ -370,7 +370,7 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                         </div>
                         <div
                             dangerouslySetInnerHTML={{ __html: prompt.content }}
-                            style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '0.5rem', lineHeight: '1.6', border: '1px solid #e2e8f0', color: '#334155', minHeight: '3rem' }}
+                            style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '0.5rem', lineHeight: '1.6', border: '1px solid #e2e8f0', color: '#334155', minHeight: '3rem', whiteSpace: 'pre-wrap' }}
                         />
                     </div>
                 </div>
@@ -381,7 +381,7 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                             <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#334155', marginBottom: '0.5rem' }}>💡 예상 답변</h3>
                             <div
                                 dangerouslySetInnerHTML={{ __html: prompt.expected_answer.replace(/<!--THREAD-->|\[PARENT:[^\]]+\]/g, '') }}
-                                style={{ background: '#eff6ff', padding: '1.25rem', borderRadius: '0.5rem', color: '#1e3a8a', lineHeight: '1.7', border: '1px solid #dbeafe', minHeight: '3rem' }}
+                                style={{ background: '#eff6ff', padding: '1.25rem', borderRadius: '0.5rem', color: '#1e3a8a', lineHeight: '1.7', border: '1px solid #dbeafe', minHeight: '3rem', whiteSpace: 'pre-wrap' }}
                             />
                         </div>
                     )
@@ -442,16 +442,16 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                                             <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.25rem', fontWeight: 600 }}>프롬프트 내용</div>
                                             <div
                                                 dangerouslySetInnerHTML={{ __html: item.content }}
-                                                style={{ fontSize: '0.95rem', color: '#334155', lineHeight: '1.6', background: 'white', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}
+                                                style={{ fontSize: '0.95rem', color: '#334155', lineHeight: '1.6', background: 'white', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0', whiteSpace: 'pre-wrap' }}
                                             />
                                         </div>
 
                                         {item.expected_answer && (
                                             <div>
-                                                <div style={{ fontSize: '0.85rem', color: '#d97706', marginBottom: '0.25rem', fontWeight: 600 }}>예상 답변</div>
+                                                <div style={{ fontSize: '0.85rem', color: '#1e3a8a', marginBottom: '0.25rem', fontWeight: 600 }}>예상 답변</div>
                                                 <div
                                                     dangerouslySetInnerHTML={{ __html: item.expected_answer.replace(/<!--THREAD-->|\[PARENT:[^\]]+\]/g, '') }}
-                                                    style={{ fontSize: '0.95rem', color: '#92400e', lineHeight: '1.6', background: '#fffbeb', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #fcd34d' }}
+                                                    style={{ fontSize: '0.95rem', color: '#1e3a8a', lineHeight: '1.6', background: '#eff6ff', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #dbeafe', whiteSpace: 'pre-wrap' }}
                                                 />
                                             </div>
                                         )}
@@ -590,7 +590,7 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                         </div>
                         <div
                             dangerouslySetInnerHTML={{ __html: prompt.content }}
-                            style={{ background: '#f8fafc', padding: '1rem', borderRadius: '0.5rem', lineHeight: '1.6', border: '1px solid #e2e8f0', color: '#334155', fontSize: '0.95rem' }}
+                            style={{ background: '#f8fafc', padding: '1rem', borderRadius: '0.5rem', lineHeight: '1.6', border: '1px solid #e2e8f0', color: '#334155', fontSize: '0.95rem', whiteSpace: 'pre-wrap' }}
                         />
                     </div>
                 )}
@@ -680,7 +680,7 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                                     <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.4rem', fontWeight: 600 }}>프롬프트 내용</div>
                                     <div
                                         dangerouslySetInnerHTML={{ __html: item.content }}
-                                        style={{ fontSize: '0.95rem', color: '#334155', lineHeight: '1.6', background: '#f8fafc', padding: '1rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0' }}
+                                        style={{ fontSize: '0.95rem', color: '#334155', lineHeight: '1.6', background: '#f8fafc', padding: '1rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0', whiteSpace: 'pre-wrap' }}
                                     />
                                 </div>
                                 {item.expected_answer && (
@@ -688,7 +688,7 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                                         <div style={{ fontSize: '0.85rem', color: '#1e3a8a', marginBottom: '0.4rem', fontWeight: 600 }}>💡 예상 답변</div>
                                         <div
                                             dangerouslySetInnerHTML={{ __html: item.expected_answer.replace(/<!--THREAD-->|\[PARENT:[^\]]+\]/g, '') }}
-                                            style={{ fontSize: '0.95rem', color: '#1e3a8a', lineHeight: '1.6', background: '#eff6ff', padding: '1rem', borderRadius: '0.75rem', border: '1px solid #dbeafe' }}
+                                            style={{ fontSize: '0.95rem', color: '#1e3a8a', lineHeight: '1.6', background: '#eff6ff', padding: '1rem', borderRadius: '0.75rem', border: '1px solid #dbeafe', whiteSpace: 'pre-wrap' }}
                                         />
                                     </div>
                                 )}
@@ -752,7 +752,7 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                                     <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.4rem', fontWeight: 600 }}>프롬프트 내용</div>
                                     <div
                                         dangerouslySetInnerHTML={{ __html: historyItem.content }}
-                                        style={{ fontSize: '0.95rem', color: '#334155', lineHeight: '1.6', background: '#f8fafc', padding: '1rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0' }}
+                                        style={{ fontSize: '0.95rem', color: '#334155', lineHeight: '1.6', background: '#f8fafc', padding: '1rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0', whiteSpace: 'pre-wrap' }}
                                     />
                                 </div>
                                 {historyItem.expected_answer && (
@@ -760,7 +760,7 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                                         <div style={{ fontSize: '0.85rem', color: '#1e3a8a', marginBottom: '0.4rem', fontWeight: 600 }}>💡 예상 답변</div>
                                         <div
                                             dangerouslySetInnerHTML={{ __html: historyItem.expected_answer.replace(/<!--THREAD-->|\[PARENT:[^\]]+\]/g, '') }}
-                                            style={{ fontSize: '0.95rem', color: '#1e3a8a', lineHeight: '1.6', background: '#eff6ff', padding: '1rem', borderRadius: '0.75rem', border: '1px solid #dbeafe' }}
+                                            style={{ fontSize: '0.95rem', color: '#1e3a8a', lineHeight: '1.6', background: '#eff6ff', padding: '1rem', borderRadius: '0.75rem', border: '1px solid #dbeafe', whiteSpace: 'pre-wrap' }}
                                         />
                                     </div>
                                 )}
