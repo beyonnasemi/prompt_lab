@@ -177,11 +177,16 @@ export default function LinkManagerModal({ isOpen, onClose, onUpdate }) {
                                 <div style={{ display: 'flex', alignItems: 'center', paddingRight: '0.5rem', cursor: 'grab' }}>
                                     <span style={{ color: '#94a3b8', fontSize: '1.5rem', lineHeight: '1' }}>⋮⋮</span>
                                 </div>
-                                <div style={{ width: 24, height: 24, background: '#f1f5f9', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    {(!link.icon_key || link.icon_key === 'default' || link.icon_key === 'auto') ? <span>🌐</span> :
-                                        <div style={{ width: '100%', height: '100%', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                            <span>🌐</span>
-                                        </div>}
+                                <div style={{ width: 24, height: 24, background: '#f1f5f9', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                                    {(!link.icon_key || link.icon_key === 'default' || link.icon_key === 'auto') ? (
+                                        <span>🌐</span>
+                                    ) : (
+                                        <img
+                                            src={link.icon_key.startsWith('http') ? link.icon_key : `https://www.google.com/s2/favicons?domain=${link.url}&sz=128`}
+                                            alt=""
+                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                        />
+                                    )}
                                 </div>
                                 <div>
                                     <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{link.title}</div>
