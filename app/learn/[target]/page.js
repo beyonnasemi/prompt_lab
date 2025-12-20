@@ -597,12 +597,7 @@ function LearnContent() {
                                         </div>
                                     )}
                                 </div>
-                                <span style={{
-                                    background: '#f1f5f9', color: '#64748b', padding: '0.25rem 0.75rem',
-                                    borderRadius: '9999px', fontSize: '0.85rem', fontWeight: 600, flexShrink: 0
-                                }}>
-                                    No. {selectedPrompt.id}
-                                </span>
+
                             </div>
 
                             <div style={{ display: 'grid', gap: '1.5rem' }}>

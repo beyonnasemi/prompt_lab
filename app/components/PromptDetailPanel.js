@@ -166,8 +166,14 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                 }));
                 setFile(null);
 
-                // Stay in create mode (effectively continuous)
-                if (currentMode !== 'continuous') setCurrentMode('continuous');
+                // If thread, collapse back to button. If standalone create, we already closed above.
+                if (isThread) {
+                    setCurrentMode('collapsed');
+                } else {
+                    // Stay in create/continuous if not thread (though we returned above for !isThread)
+                    // This block is mainly for safety or if we change standalone behavior later.
+                    if (currentMode !== 'continuous') setCurrentMode('continuous');
+                }
 
             } else {
                 setCurrentMode('view');
@@ -511,35 +517,38 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                         </div>
                     </div>
 
-                    <div>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155', fontSize: '0.95rem' }}>제목</label>
-                        <input
-                            type="text"
-                            value={formData.title}
-                            onChange={e => setFormData({ ...formData, title: e.target.value })}
-                            placeholder="이번 단계의 핵심 주제를 입력하세요"
-                            style={{ width: '100%', padding: '1rem', border: '1px solid #e2e8f0', borderRadius: '0.75rem', fontSize: '1rem', background: '#f8fafc', transition: 'all 0.2s', outline: 'none' }}
-                            onFocus={(e) => { e.target.style.background = 'white'; e.target.style.borderColor = '#3b82f6'; e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)'; }}
-                            onBlur={(e) => { e.target.style.background = '#f8fafc'; e.target.style.borderColor = '#e2e8f0'; e.target.style.boxShadow = 'none'; }}
-                            required
-                        />
-                    </div>
-
-                    <div style={{ display: 'flex', gap: '1rem' }}>
-                        <div style={{ flex: 1 }}>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155', fontSize: '0.95rem' }}>난이도</label>
-                            <select
-                                value={formData.difficulty}
-                                onChange={e => setFormData({ ...formData, difficulty: e.target.value })}
-                                disabled={isThread}
-                                style={{ width: '100%', padding: '1rem', border: '1px solid #e2e8f0', borderRadius: '0.75rem', background: isThread ? '#f1f5f9' : '#f8fafc', cursor: isThread ? 'not-allowed' : 'pointer', fontSize: '1rem', outline: 'none' }}
-                            >
-                                <option value="beginner">초급</option>
-                                <option value="intermediate">중급</option>
-                                <option value="advanced">고급</option>
-                            </select>
+                    {!isThread && (
+                        <div>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155', fontSize: '0.95rem' }}>제목</label>
+                            <input
+                                type="text"
+                                value={formData.title}
+                                onChange={e => setFormData({ ...formData, title: e.target.value })}
+                                placeholder="이번 단계의 핵심 주제를 입력하세요"
+                                style={{ width: '100%', padding: '1rem', border: '1px solid #e2e8f0', borderRadius: '0.75rem', fontSize: '1rem', background: '#f8fafc', transition: 'all 0.2s', outline: 'none' }}
+                                onFocus={(e) => { e.target.style.background = 'white'; e.target.style.borderColor = '#3b82f6'; e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)'; }}
+                                onBlur={(e) => { e.target.style.background = '#f8fafc'; e.target.style.borderColor = '#e2e8f0'; e.target.style.boxShadow = 'none'; }}
+                                required
+                            />
                         </div>
-                    </div>
+                    )}
+
+                    {!isThread && (
+                        <div style={{ display: 'flex', gap: '1rem' }}>
+                            <div style={{ flex: 1 }}>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155', fontSize: '0.95rem' }}>난이도</label>
+                                <select
+                                    value={formData.difficulty}
+                                    onChange={e => setFormData({ ...formData, difficulty: e.target.value })}
+                                    style={{ width: '100%', padding: '1rem', border: '1px solid #e2e8f0', borderRadius: '0.75rem', background: '#f8fafc', cursor: 'pointer', fontSize: '1rem', outline: 'none' }}
+                                >
+                                    <option value="beginner">초급</option>
+                                    <option value="intermediate">중급</option>
+                                    <option value="advanced">고급</option>
+                                </select>
+                            </div>
+                        </div>
+                    )}
 
                     <div>
                         <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155', fontSize: '0.95rem' }}>프롬프트 내용</label>
@@ -554,26 +563,33 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                         />
                     </div>
 
-                    <div>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155', fontSize: '0.95rem' }}>예상 답변 (선택)</label>
-                        <textarea
-                            value={formData.expected_answer}
-                            onChange={e => setFormData({ ...formData, expected_answer: e.target.value })}
-                            placeholder="사용자가 이 프롬프트를 실행했을 때 기대하는 답변 예시를 입력하세요."
-                            style={{ width: '100%', padding: '1rem', border: '1px solid #e2e8f0', borderRadius: '0.75rem', minHeight: '120px', fontSize: '0.95rem', background: '#f8fafc', resize: 'vertical', outline: 'none' }}
-                        />
-                    </div>
+                    <details style={{ background: '#f8fafc', borderRadius: '0.75rem', padding: '0.5rem', border: '1px solid #e2e8f0' }}>
+                        <summary style={{ cursor: 'pointer', padding: '0.5rem', fontWeight: 600, color: '#64748b', listStyle: 'none' }}>
+                            <span style={{ marginRight: '0.5rem' }}>👉</span> 예상 답변 및 첨부 파일 (선택)
+                        </summary>
+                        <div style={{ padding: '1rem', borderTop: '1px dashed #e2e8f0', marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155', fontSize: '0.95rem' }}>예상 답변</label>
+                                <textarea
+                                    value={formData.expected_answer}
+                                    onChange={e => setFormData({ ...formData, expected_answer: e.target.value })}
+                                    placeholder="사용자가 이 프롬프트를 실행했을 때 기대하는 답변 예시를 입력하세요."
+                                    style={{ width: '100%', padding: '1rem', border: '1px solid #e2e8f0', borderRadius: '0.75rem', minHeight: '120px', fontSize: '0.95rem', background: 'white', resize: 'vertical', outline: 'none' }}
+                                />
+                            </div>
 
-                    <div>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155', fontSize: '0.95rem' }}>첨부 파일 (선택)</label>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', border: '1px dashed #cbd5e1', borderRadius: '0.75rem', background: '#f8fafc' }}>
-                            <input
-                                type="file"
-                                onChange={handleFileChange}
-                                style={{ width: '100%', fontSize: '0.9rem' }}
-                            />
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155', fontSize: '0.95rem' }}>첨부 파일</label>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', border: '1px dashed #cbd5e1', borderRadius: '0.75rem', background: 'white' }}>
+                                    <input
+                                        type="file"
+                                        onChange={handleFileChange}
+                                        style={{ width: '100%', fontSize: '0.9rem' }}
+                                    />
+                                </div>
+                            </div>
                         </div>
-                    </div>
+                    </details>
 
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem', borderTop: '1px solid #f1f5f9', paddingTop: '1.5rem' }}>
                         <button
