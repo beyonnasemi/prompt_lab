@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense, useMemo } from 'react';
 import { useRouter, useParams, useSearchParams, usePathname } from 'next/navigation';
+import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import BulkUploadPanel from '@/app/components/BulkUploadPanel';
 import AIGeneratePanel from '@/app/components/AIGeneratePanel';
@@ -599,7 +600,12 @@ function LearnContent() {
                                     <div style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8' }}>등록된 프롬프트가 없습니다.</div>
                                 ) : (
                                     displayedPrompts.map((prompt) => (
-                                        <div key={prompt.id} className="mobile-card" onClick={() => handlePromptClick(prompt)}>
+                                        <Link
+                                            key={prompt.id}
+                                            href={`${pathname}?promptId=${prompt.id}`}
+                                            className="mobile-card"
+                                            style={{ display: 'block', textDecoration: 'none', color: 'inherit', cursor: 'pointer' }}
+                                        >
                                             <div className="mobile-card-header">
                                                 <div className="mobile-card-title">{prompt.title}</div>
                                                 {isAdmin && (
@@ -628,7 +634,7 @@ function LearnContent() {
                                                 </div>
                                                 <span style={{ color: '#2563eb' }}>자세히 보기 &gt;</span>
                                             </div>
-                                        </div>
+                                        </Link>
                                     ))
                                 )}
                             </div>

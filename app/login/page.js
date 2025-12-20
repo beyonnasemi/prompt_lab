@@ -63,7 +63,7 @@ function LoginForm() {
             }
 
             // Redirect to Learn page
-            router.push(`/learn/${targetId}`);
+            router.replace(`/learn/${targetId}`);
 
         } catch (err) {
             setError(err.message);
