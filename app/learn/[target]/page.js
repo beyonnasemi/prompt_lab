@@ -412,7 +412,7 @@ function LearnContent() {
             </div>
 
             {/* MAIN CONTENT AREA */}
-            <div style={{ flex: 1, overflow: (selectedPrompt || activePanel !== 'none') ? 'visible' : 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+            <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
 
                 {/* MODE: AI GENERATE PANEL */}
                 {activePanel === 'ai' && (
@@ -542,7 +542,7 @@ function LearnContent() {
 
                 {/* MODE: DETAIL VIEW (UNIFIED) */}
                 {selectedPrompt && (
-                    <div style={{}}>
+                    <div style={{ height: '100%', overflowY: 'auto' }}>
                         <PromptDetailPanel
                             mode="view"
                             prompt={selectedPrompt}
