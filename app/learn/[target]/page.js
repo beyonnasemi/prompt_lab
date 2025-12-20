@@ -314,40 +314,40 @@ function LearnContent() {
     if (!userSession) return null;
 
     return (
-        <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '1rem', minHeight: 'calc(100vh - 80px)', height: (selectedPrompt || activePanel !== 'none') ? 'auto' : 'calc(100vh - 80px)', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '1rem', height: '100dvh', maxHeight: '100dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             {/* Header */}
-            <div style={{ marginBottom: '2rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+            <div style={{ marginBottom: '1rem', flexShrink: 0 }}>
+                <div className="responsive-header">
                     <h1 style={{ fontSize: '1.8rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>
                         {userSession.display_name} 프롬프트 실습
                     </h1>
                     {isAdmin && (
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <div className="actions">
                             {/* NEW: Admin Actions */}
                             <button
                                 onClick={() => setActivePanel('create')}
                                 className="btn"
-                                style={{ background: '#2563eb', color: 'white', border: 'none', padding: '0.6rem 1rem', borderRadius: '0.375rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600 }}
+                                style={{ background: '#2563eb', color: 'white', border: 'none', padding: '0.6rem 1rem', borderRadius: '0.375rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600, fontSize: '0.9rem', whiteSpace: 'nowrap' }}
                             >
                                 <span>➕</span> 새 프롬프트
                             </button>
                             <button
                                 onClick={() => setActivePanel('ai')}
                                 className="btn"
-                                style={{ background: 'linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)', color: 'white', border: 'none', padding: '0.6rem 1rem', borderRadius: '0.375rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600 }}
+                                style={{ background: 'linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)', color: 'white', border: 'none', padding: '0.6rem 1rem', borderRadius: '0.375rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600, fontSize: '0.9rem', whiteSpace: 'nowrap' }}
                             >
                                 <span>✨</span> AI 자동 생성
                             </button>
                             <button
                                 onClick={() => setActivePanel('bulk')}
                                 className="btn"
-                                style={{ background: 'white', color: '#475569', border: '1px solid #cbd5e1', padding: '0.6rem 1rem', borderRadius: '0.375rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600 }}
+                                style={{ background: 'white', color: '#475569', border: '1px solid #cbd5e1', padding: '0.6rem 1rem', borderRadius: '0.375rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600, fontSize: '0.9rem', whiteSpace: 'nowrap' }}
                             >
                                 <span>📂</span> 대량 등록
                             </button>
 
-                            {/* Separator */}
-                            <div style={{ width: '1px', height: '24px', background: '#e2e8f0', margin: '0 0.5rem' }}></div>
+                            {/* Separator - Hidden on mobile if needed or kept */}
+                            <div style={{ width: '1px', height: '24px', background: '#e2e8f0', margin: '0 0.5rem' }} className="desktop-only"></div>
 
                             {checkedIds.length > 0 && (
                                 <button onClick={handleBulkDelete} className="btn" style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fca5a5', padding: '0.5rem 1rem', borderRadius: '0.375rem', cursor: 'pointer' }}>
@@ -478,9 +478,10 @@ function LearnContent() {
                             />
                         </div>
 
-                        {/* List Table */}
-                        <div style={{ flex: 1, overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '0.5rem', background: 'white' }}>
-                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        {/* List Table & Mobile Card View */}
+                        <div style={{ flex: 1, overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '0.5rem', background: '#f8fafc' }}>
+                            {/* Desktop Table */}
+                            <table className="desktop-table" style={{ width: '100%', borderCollapse: 'collapse', background: 'white' }}>
                                 <thead style={{ position: 'sticky', top: 0, background: '#f8fafc', borderBottom: '1px solid #e2e8f0', zIndex: 10 }}>
                                     <tr>
                                         {isAdmin && <th style={{ padding: '1rem', width: '50px', textAlign: 'center' }}><input type="checkbox" onChange={handleCheckAll} checked={displayedPrompts.length > 0 && checkedIds.length === displayedPrompts.length} /></th>}
@@ -527,6 +528,38 @@ function LearnContent() {
                                     )}
                                 </tbody>
                             </table>
+
+                            {/* Mobile Card View */}
+                            <div className="mobile-list-view" style={{ padding: '0.5rem' }}>
+                                {loading ? (
+                                    <div style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8' }}>로딩 중...</div>
+                                ) : displayedPrompts.length === 0 ? (
+                                    <div style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8' }}>등록된 프롬프트가 없습니다.</div>
+                                ) : (
+                                    displayedPrompts.map((prompt) => (
+                                        <div key={prompt.id} className="mobile-card" onClick={() => setSelectedPrompt(prompt)}>
+                                            <div className="mobile-card-header">
+                                                <div className="mobile-card-title">{prompt.title}</div>
+                                                {isAdmin && (
+                                                    <input
+                                                        type="checkbox"
+                                                        onClick={(e) => handleCheck(e, prompt.id)}
+                                                        checked={checkedIds.includes(prompt.id)}
+                                                        style={{ transform: 'scale(1.2)' }}
+                                                    />
+                                                )}
+                                            </div>
+                                            <div className="mobile-card-content">
+                                                {prompt.content.replace(/<[^>]+>/g, '') /* Simple Safe Strip for preview */}
+                                            </div>
+                                            <div className="mobile-card-meta">
+                                                <span>📅 {new Date(prompt.created_at).toLocaleDateString()}</span>
+                                                <span style={{ color: '#2563eb' }}>자세히 보기 &gt;</span>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
                         </div>
 
                         {/* Pagination */}
