@@ -11,8 +11,62 @@ import { deletePromptAction } from '@/app/actions/prompt-actions';
 // START_UPDATE
 // User complained about "max size" error. This is often because of passing base64 to server action.
 // Best practice is client-side upload.
+// Best practice is client-side upload.
 // I will implement client-side upload here.
 // I'll try to import createClient from '@/utils/supabase/client'. if it fails build, I'll fix.
+
+// Simple Editable Div Component for Rich Text
+function EditableDiv({ value, onChange, placeholder, minHeight, style }) {
+    const divRef = (node) => {
+        if (node) {
+            // Only update if not focused to prevent cursor jumping, or if empty (initial load)
+            if (document.activeElement !== node && node.innerHTML !== value) {
+                node.innerHTML = value;
+            }
+        }
+    };
+
+    return (
+        <div
+            ref={divRef}
+            contentEditable
+            onInput={(e) => onChange(e.currentTarget.innerHTML)}
+            onBlur={(e) => {
+                // Ensure value is synced on blur
+                if (e.currentTarget.innerHTML !== value) {
+                    onChange(e.currentTarget.innerHTML);
+                }
+                // Reset styling
+                e.target.style.background = '#f8fafc';
+                e.target.style.borderColor = '#e2e8f0';
+                e.target.style.boxShadow = 'none';
+            }}
+            onFocus={(e) => {
+                e.target.style.background = 'white';
+                e.target.style.borderColor = '#3b82f6';
+                e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+            }}
+            data-placeholder={placeholder}
+            className="custom-editable-input"
+            style={{
+                width: '100%',
+                padding: '1rem',
+                border: '1px solid #e2e8f0',
+                borderRadius: '0.75rem',
+                minHeight: minHeight,
+                fontSize: '1rem',
+                lineHeight: '1.6',
+                background: '#f8fafc',
+                outline: 'none',
+                overflowY: 'auto',
+                transition: 'all 0.2s',
+                whiteSpace: 'pre-wrap',
+                fontFamily: 'inherit', // Remove monospace to support rich text look
+                ...style
+            }}
+        />
+    );
+}
 
 // Re-verified page.js in next step.
 
@@ -314,21 +368,27 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                                 {copiedId ? '✅ 복사됨' : '📋 복사하기'}
                             </button>
                         </div>
-                        <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '0.5rem', whiteSpace: 'pre-wrap', lineHeight: '1.6', border: '1px solid #e2e8f0', color: '#334155', fontFamily: 'monospace' }}>
-                            {prompt.content}
-                        </div>
+                        <div
+                            dangerouslySetInnerHTML={{ __html: prompt.content }}
+                            style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '0.5rem', lineHeight: '1.6', border: '1px solid #e2e8f0', color: '#334155', minHeight: '3rem' }}
+                        />
                     </div>
+                </div>
 
-                    {prompt.expected_answer && (
+                {
+                    prompt.expected_answer && (
                         <div style={{ marginBottom: '1.5rem' }}>
                             <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#334155', marginBottom: '0.5rem' }}>💡 예상 답변</h3>
-                            <div style={{ background: '#eff6ff', padding: '1.25rem', borderRadius: '0.5rem', color: '#1e3a8a', lineHeight: '1.7', border: '1px solid #dbeafe', whiteSpace: 'pre-wrap' }}>
-                                {prompt.expected_answer.replace(/<!--THREAD-->|\[PARENT:[^\]]+\]/g, '')}
-                            </div>
+                            <div
+                                dangerouslySetInnerHTML={{ __html: prompt.expected_answer.replace(/<!--THREAD-->|\[PARENT:[^\]]+\]/g, '') }}
+                                style={{ background: '#eff6ff', padding: '1.25rem', borderRadius: '0.5rem', color: '#1e3a8a', lineHeight: '1.7', border: '1px solid #dbeafe', minHeight: '3rem' }}
+                            />
                         </div>
-                    )}
+                    )
+                }
 
-                    {prompt.attachment_url && (
+                {
+                    prompt.attachment_url && (
                         <div>
                             <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#334155', marginBottom: '0.5rem' }}>💾 첨부 자료</h3>
 
@@ -353,10 +413,12 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                                 <span>📥</span> 자료 다운로드
                             </a>
                         </div>
-                    )}
+                    )
+                }
 
-                    {/* --- THREADED REPLIES (PERSISTENT) --- */}
-                    {threadItems.length > 0 && (
+                {/* --- THREADED REPLIES (PERSISTENT) --- */}
+                {
+                    threadItems.length > 0 && (
                         <div style={{ marginTop: '3rem', borderTop: '2px dashed #e2e8f0', paddingTop: '2rem' }}>
                             <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#334155', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                 <span>🔗</span> 이어지는 프롬프트
@@ -378,27 +440,31 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
 
                                         <div style={{ marginBottom: '1rem' }}>
                                             <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.25rem', fontWeight: 600 }}>프롬프트 내용</div>
-                                            <div style={{ fontSize: '0.95rem', color: '#334155', whiteSpace: 'pre-wrap', lineHeight: '1.6', background: 'white', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
-                                                {item.content}
-                                            </div>
+                                            <div
+                                                dangerouslySetInnerHTML={{ __html: item.content }}
+                                                style={{ fontSize: '0.95rem', color: '#334155', lineHeight: '1.6', background: 'white', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}
+                                            />
                                         </div>
 
                                         {item.expected_answer && (
                                             <div>
                                                 <div style={{ fontSize: '0.85rem', color: '#d97706', marginBottom: '0.25rem', fontWeight: 600 }}>예상 답변</div>
-                                                <div style={{ fontSize: '0.95rem', color: '#92400e', whiteSpace: 'pre-wrap', lineHeight: '1.6', background: '#fffbeb', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #fcd34d' }}>
-                                                    {item.expected_answer.replace(/<!--THREAD-->|\[PARENT:[^\]]+\]/g, '')}
-                                                </div>
+                                                <div
+                                                    dangerouslySetInnerHTML={{ __html: item.expected_answer.replace(/<!--THREAD-->|\[PARENT:[^\]]+\]/g, '') }}
+                                                    style={{ fontSize: '0.95rem', color: '#92400e', lineHeight: '1.6', background: '#fffbeb', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #fcd34d' }}
+                                                />
                                             </div>
                                         )}
                                     </div>
                                 ))}
                             </div>
                         </div>
-                    )}
+                    )
+                }
 
-                    {/* --- ADD NEW THREAD BUTTON (Only Admin) --- */}
-                    {isAdmin && (enableThreadCreation || isThread) && (
+                {/* --- ADD NEW THREAD BUTTON (Only Admin) --- */}
+                {
+                    isAdmin && (enableThreadCreation || isThread) && (
                         <div style={{ marginTop: '3rem', borderTop: '1px solid #e2e8f0', paddingTop: '2rem', paddingBottom: '2rem' }}>
                             <button
                                 onClick={() => {
@@ -427,24 +493,24 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                                 <span>➕</span> 이어지는 프롬프트 추가하기 (스레드)
                             </button>
                         </div>
-                    )}
+                    )
+                }
 
-                    {/* Bottom Back Button */}
-                    <div style={{ marginTop: '0', borderTop: '1px solid #e2e8f0', paddingTop: '1.5rem' }}>
-                        <button
-                            onClick={onClose}
-                            style={{
-                                display: 'flex', alignItems: 'center', gap: '0.5rem',
-                                padding: '0.75rem 1.5rem',
-                                background: 'white', border: '1px solid #cbd5e1',
-                                borderRadius: '0.5rem', cursor: 'pointer',
-                                color: '#475569', fontWeight: 600,
-                                width: '100%', justifyContent: 'center'
-                            }}
-                        >
-                            <span>⬅️</span> 목록으로 돌아가기
-                        </button>
-                    </div>
+                {/* Bottom Back Button */}
+                <div style={{ marginTop: '0', borderTop: '1px solid #e2e8f0', paddingTop: '1.5rem' }}>
+                    <button
+                        onClick={onClose}
+                        style={{
+                            display: 'flex', alignItems: 'center', gap: '0.5rem',
+                            padding: '0.75rem 1.5rem',
+                            background: 'white', border: '1px solid #cbd5e1',
+                            borderRadius: '0.5rem', cursor: 'pointer',
+                            color: '#475569', fontWeight: 600,
+                            width: '100%', justifyContent: 'center'
+                        }}
+                    >
+                        <span>⬅️</span> 목록으로 돌아가기
+                    </button>
                 </div>
             </div>
         );
@@ -493,6 +559,15 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
     // --- MAIN RENDER (Edit / Create / Continuous / Collapsed) ---
     return (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
+            {/* CSS for Placeholder in ContentEditable */}
+            <style jsx>{`
+                .custom-editable-input:empty:before {
+                    content: attr(data-placeholder);
+                    color: #94a3b8;
+                    pointer-events: none;
+                    display: block; /* Ensure it shows up */
+                }
+            `}</style>
 
 
             <div style={{ paddingRight: '0.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', padding: '0.5rem', position: 'relative' }}>
@@ -513,9 +588,10 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                             </span>
                             <span>📅 {new Date(prompt.created_at).toLocaleDateString()}</span>
                         </div>
-                        <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '0.5rem', whiteSpace: 'pre-wrap', lineHeight: '1.6', border: '1px solid #e2e8f0', color: '#334155', fontSize: '0.95rem' }}>
-                            {prompt.content}
-                        </div>
+                        <div
+                            dangerouslySetInnerHTML={{ __html: prompt.content }}
+                            style={{ background: '#f8fafc', padding: '1rem', borderRadius: '0.5rem', lineHeight: '1.6', border: '1px solid #e2e8f0', color: '#334155', fontSize: '0.95rem' }}
+                        />
                     </div>
                 )}
 
@@ -602,16 +678,18 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                                 </div>
                                 <div style={{ marginBottom: '1rem' }}>
                                     <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.4rem', fontWeight: 600 }}>프롬프트 내용</div>
-                                    <div style={{ fontSize: '0.95rem', color: '#334155', whiteSpace: 'pre-wrap', lineHeight: '1.6', background: '#f8fafc', padding: '1rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0' }}>
-                                        {item.content}
-                                    </div>
+                                    <div
+                                        dangerouslySetInnerHTML={{ __html: item.content }}
+                                        style={{ fontSize: '0.95rem', color: '#334155', lineHeight: '1.6', background: '#f8fafc', padding: '1rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0' }}
+                                    />
                                 </div>
                                 {item.expected_answer && (
                                     <div>
                                         <div style={{ fontSize: '0.85rem', color: '#1e3a8a', marginBottom: '0.4rem', fontWeight: 600 }}>💡 예상 답변</div>
-                                        <div style={{ fontSize: '0.95rem', color: '#1e3a8a', whiteSpace: 'pre-wrap', lineHeight: '1.6', background: '#eff6ff', padding: '1rem', borderRadius: '0.75rem', border: '1px solid #dbeafe' }}>
-                                            {item.expected_answer.replace(/<!--THREAD-->|\[PARENT:[^\]]+\]/g, '')}
-                                        </div>
+                                        <div
+                                            dangerouslySetInnerHTML={{ __html: item.expected_answer.replace(/<!--THREAD-->|\[PARENT:[^\]]+\]/g, '') }}
+                                            style={{ fontSize: '0.95rem', color: '#1e3a8a', lineHeight: '1.6', background: '#eff6ff', padding: '1rem', borderRadius: '0.75rem', border: '1px solid #dbeafe' }}
+                                        />
                                     </div>
                                 )}
                             </div>
@@ -672,16 +750,18 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                                 </div>
                                 <div style={{ marginBottom: '1rem' }}>
                                     <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.4rem', fontWeight: 600 }}>프롬프트 내용</div>
-                                    <div style={{ fontSize: '0.95rem', color: '#334155', whiteSpace: 'pre-wrap', lineHeight: '1.6', background: '#f8fafc', padding: '1rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0' }}>
-                                        {historyItem.content}
-                                    </div>
+                                    <div
+                                        dangerouslySetInnerHTML={{ __html: historyItem.content }}
+                                        style={{ fontSize: '0.95rem', color: '#334155', lineHeight: '1.6', background: '#f8fafc', padding: '1rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0' }}
+                                    />
                                 </div>
                                 {historyItem.expected_answer && (
                                     <div>
                                         <div style={{ fontSize: '0.85rem', color: '#1e3a8a', marginBottom: '0.4rem', fontWeight: 600 }}>💡 예상 답변</div>
-                                        <div style={{ fontSize: '0.95rem', color: '#1e3a8a', whiteSpace: 'pre-wrap', lineHeight: '1.6', background: '#eff6ff', padding: '1rem', borderRadius: '0.75rem', border: '1px solid #dbeafe' }}>
-                                            {historyItem.expected_answer.replace(/<!--THREAD-->|\[PARENT:[^\]]+\]/g, '')}
-                                        </div>
+                                        <div
+                                            dangerouslySetInnerHTML={{ __html: historyItem.expected_answer.replace(/<!--THREAD-->|\[PARENT:[^\]]+\]/g, '') }}
+                                            style={{ fontSize: '0.95rem', color: '#1e3a8a', lineHeight: '1.6', background: '#eff6ff', padding: '1rem', borderRadius: '0.75rem', border: '1px solid #dbeafe' }}
+                                        />
                                     </div>
                                 )}
                             </div>
@@ -762,14 +842,11 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
 
                         <div>
                             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155', fontSize: '0.95rem' }}>프롬프트 내용</label>
-                            <textarea
+                            <EditableDiv
                                 value={formData.content}
-                                onChange={e => setFormData({ ...formData, content: e.target.value })}
+                                onChange={(val) => setFormData({ ...formData, content: val })}
                                 placeholder="프롬프트 내용을 상세히 작성하세요..."
-                                style={{ width: '100%', padding: '1rem', border: '1px solid #e2e8f0', borderRadius: '0.75rem', minHeight: '250px', fontSize: '1rem', fontFamily: 'monospace', lineHeight: '1.6', background: '#f8fafc', resize: 'vertical', outline: 'none', transition: 'all 0.2s' }}
-                                onFocus={(e) => { e.target.style.background = 'white'; e.target.style.borderColor = '#3b82f6'; e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)'; }}
-                                onBlur={(e) => { e.target.style.background = '#f8fafc'; e.target.style.borderColor = '#e2e8f0'; e.target.style.boxShadow = 'none'; }}
-                                required
+                                minHeight="80px" // Adjusted to approx 3 lines
                             />
                         </div>
 
@@ -780,11 +857,11 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                             <div style={{ padding: '1rem', borderTop: '1px dashed #e2e8f0', marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                                 <div>
                                     <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155', fontSize: '0.95rem' }}>예상 답변</label>
-                                    <textarea
+                                    <EditableDiv
                                         value={formData.expected_answer}
-                                        onChange={e => setFormData({ ...formData, expected_answer: e.target.value })}
+                                        onChange={(val) => setFormData({ ...formData, expected_answer: val })}
                                         placeholder="사용자가 이 프롬프트를 실행했을 때 기대하는 답변 예시를 입력하세요."
-                                        style={{ width: '100%', padding: '1rem', border: '1px solid #e2e8f0', borderRadius: '0.75rem', minHeight: '120px', fontSize: '0.95rem', background: 'white', resize: 'vertical', outline: 'none' }}
+                                        minHeight="400px" // User requested increase
                                     />
                                 </div>
 
