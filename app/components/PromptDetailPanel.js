@@ -132,13 +132,19 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
 
     // --- THREAD EDIT / DELETE HANDLERS ---
     const handleDeleteThread = async (id) => {
-        if (!confirm('정말 삭제하시겠습니까?')) return;
+        if (typeof window !== 'undefined' && !window.confirm('정말 이 프롬프트를 삭제하시겠습니까?')) return;
         try {
+            setLoading(true);
             const { error } = await supabase.from('prompts').delete().eq('id', id);
             if (error) throw error;
+
+            alert('삭제되었습니다.');
             setTriggerRefetch(p => p + 1);
         } catch (error) {
+            console.error('Thread delete error:', error);
             alert('삭제 실패: ' + error.message);
+        } finally {
+            setLoading(false);
         }
     };
 
