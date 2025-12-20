@@ -570,8 +570,8 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                                 </div>
                                 {item.expected_answer && (
                                     <div>
-                                        <div style={{ fontSize: '0.85rem', color: '#d97706', marginBottom: '0.4rem', fontWeight: 600 }}>예상 답변</div>
-                                        <div style={{ fontSize: '0.95rem', color: '#92400e', whiteSpace: 'pre-wrap', lineHeight: '1.6', background: '#fffbeb', padding: '1rem', borderRadius: '0.75rem', border: '1px solid #fcd34d' }}>
+                                        <div style={{ fontSize: '0.85rem', color: '#1e3a8a', marginBottom: '0.4rem', fontWeight: 600 }}>예상 답변</div>
+                                        <div style={{ fontSize: '0.95rem', color: '#1e3a8a', whiteSpace: 'pre-wrap', lineHeight: '1.6', background: '#eff6ff', padding: '1rem', borderRadius: '0.75rem', border: '1px solid #dbeafe' }}>
                                             {item.expected_answer.replace(/<!--THREAD-->|\[PARENT:[^\]]+\]/g, '')}
                                         </div>
                                     </div>
@@ -614,8 +614,8 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                                 </div>
                                 {historyItem.expected_answer && (
                                     <div>
-                                        <div style={{ fontSize: '0.85rem', color: '#d97706', marginBottom: '0.4rem', fontWeight: 600 }}>예상 답변</div>
-                                        <div style={{ fontSize: '0.95rem', color: '#92400e', whiteSpace: 'pre-wrap', lineHeight: '1.6', background: '#fffbeb', padding: '1rem', borderRadius: '0.75rem', border: '1px solid #fcd34d' }}>
+                                        <div style={{ fontSize: '0.85rem', color: '#1e3a8a', marginBottom: '0.4rem', fontWeight: 600 }}>예상 답변</div>
+                                        <div style={{ fontSize: '0.95rem', color: '#1e3a8a', whiteSpace: 'pre-wrap', lineHeight: '1.6', background: '#eff6ff', padding: '1rem', borderRadius: '0.75rem', border: '1px solid #dbeafe' }}>
                                             {historyItem.expected_answer.replace(/<!--THREAD-->|\[PARENT:[^\]]+\]/g, '')}
                                         </div>
                                     </div>
