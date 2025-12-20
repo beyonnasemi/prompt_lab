@@ -333,7 +333,7 @@ function LearnContent() {
     if (!userSession) return null;
 
     return (
-        <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '1rem', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+        <div className="learn-page-container" style={{ maxWidth: '1400px', margin: '0 auto', minHeight: '100vh', display: 'flex', flexDirection: 'column', padding: '1rem' }}>
             {/* Header */}
             <div style={{ marginBottom: '1rem' }}>
                 <div className="responsive-header">

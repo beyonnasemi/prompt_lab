@@ -110,8 +110,13 @@ body {
   .main-content {
     margin-left: 0;
     width: 100%;
-    padding: 9rem 1rem 2rem 1rem;
-    /* Adjust padding for mobile header + admin header space if needed */
+    padding: 4.5rem 0.5rem 2rem 0.5rem;
+    /* Reduced top/side padding */
+  }
+
+  .learn-page-container {
+    padding: 0.5rem !important;
+    /* Force smaller padding on mobile */
   }
 
   .mobile-header {
