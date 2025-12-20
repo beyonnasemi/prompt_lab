@@ -29,6 +29,7 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
     const [loading, setLoading] = useState(false);
     const [file, setFile] = useState(null);
     const [copiedId, setCopiedId] = useState(null);
+    const [editingThreadId, setEditingThreadId] = useState(null);
 
     // Reset history when mode changes away from create/continuous/collapsed (collapsed is part of flow)
     useEffect(() => {
@@ -129,6 +130,31 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
         }
     };
 
+    // --- THREAD EDIT / DELETE HANDLERS ---
+    const handleDeleteThread = async (id) => {
+        if (!confirm('정말 삭제하시겠습니까?')) return;
+        try {
+            const { error } = await supabase.from('prompts').delete().eq('id', id);
+            if (error) throw error;
+            setTriggerRefetch(p => p + 1);
+        } catch (error) {
+            alert('삭제 실패: ' + error.message);
+        }
+    };
+
+    const handleEditThread = (item) => {
+        setFormData({
+            title: item.title,
+            content: item.content,
+            expected_answer: (item.expected_answer || '').replace(/<!--THREAD-->|\[PARENT:[^\]]+\]/g, ''),
+            difficulty: item.difficulty,
+            attachment_url: item.attachment_url
+        });
+        setEditingThreadId(item.id);
+        setCurrentMode('continuous'); // Show the form
+        // Optional: Scroll to form
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
@@ -147,7 +173,15 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
 
             // Pass to parent
             // If creating thread child, targetId is null (new). If editing parent, targetId is prompt.id.
-            const targetId = (currentMode === 'edit') ? prompt?.id : null;
+            // If editing thread child, targetId is editingThreadId.
+            let targetId = (currentMode === 'edit') ? prompt?.id : null;
+
+            // If we are editing a specific thread item, use its ID.
+            if (editingThreadId) {
+                // We handle update directly here for thread items to keep it simple, 
+                // OR we can pass it to onSave. onSave logic in page.js handles update if ID provided.
+                targetId = editingThreadId;
+            }
 
             const savedPrompt = await onSave(payload, file, targetId);
 
@@ -174,6 +208,7 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                     attachment_url: null
                 }));
                 setFile(null);
+                setEditingThreadId(null); // Clear editing state
 
                 // If in thread mode (either prop or dynamic), collapse back to button.
                 if (isThreadMode) {
@@ -509,6 +544,26 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                                         {item.title}
                                     </span>
                                     <span style={{ fontSize: '0.8rem', fontWeight: 400, color: '#94a3b8' }}>{new Date(item.created_at).toLocaleDateString()}</span>
+
+                                    {/* Admin Actions for Thread Item */}
+                                    {isAdmin && (
+                                        <div style={{ display: 'flex', gap: '0.5rem', marginLeft: '1rem' }}>
+                                            <button
+                                                onClick={() => handleEditThread(item)}
+                                                style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: '0.9rem', padding: '0.2rem' }}
+                                                title="수정"
+                                            >
+                                                ✏️
+                                            </button>
+                                            <button
+                                                onClick={() => handleDeleteThread(item.id)}
+                                                style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: '0.9rem', padding: '0.2rem' }}
+                                                title="삭제"
+                                            >
+                                                🗑️
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                                 <div style={{ marginBottom: '1rem' }}>
                                     <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.4rem', fontWeight: 600 }}>프롬프트 내용</div>
