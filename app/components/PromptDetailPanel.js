@@ -51,10 +51,13 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
         }
     }, [currentMode, initialDifficulty]);
 
-    // --- FETCH THREADED CHILDREN (VIEW MODE) ---
+    // --- FETCH THREADED CHILDREN (VIEW MODE & CONTINUOUS MODE) ---
     const [threadItems, setThreadItems] = useState([]);
+    const [triggerRefetch, setTriggerRefetch] = useState(0);
+
     useEffect(() => {
-        if (currentMode === 'view' && prompt?.id) {
+        // Fetch threads if viewing OR in continuous mode (so we see history while adding)
+        if ((currentMode === 'view' || currentMode === 'continuous') && prompt?.id) {
             const fetchThreads = async () => {
                 const { data } = await supabase
                     .from('prompts')
@@ -65,9 +68,11 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
             };
             fetchThreads();
         } else {
-            setThreadItems([]);
+            // Should we clear threads? Only if changing prompts.
+            // If just switching mode, maybe keep them?
+            if (!prompt?.id) setThreadItems([]);
         }
-    }, [currentMode, prompt?.id]);
+    }, [currentMode, prompt?.id, triggerRefetch]);
 
     useEffect(() => {
         if (prompt && mode !== 'create' && mode !== 'collapsed') {
@@ -170,12 +175,14 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
 
                 // If in thread mode (either prop or dynamic), collapse back to button.
                 if (isThreadMode) {
+                    setTriggerRefetch(p => p + 1); // Refresh DB threads
                     setCurrentMode('collapsed');
                 } else {
                     if (currentMode !== 'continuous') setCurrentMode('continuous');
                 }
 
             } else {
+                setTriggerRefetch(p => p + 1);
                 setCurrentMode('view');
             }
         } catch (error) {
@@ -285,11 +292,18 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                             <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#334155', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                 <span>🔗</span> 이어지는 프롬프트
                             </h3>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', borderLeft: '3px solid #e2e8f0', paddingLeft: '1.5rem', marginLeft: '0.5rem' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', borderLeft: '3px solid #e2e8f0', paddingLeft: '1.5rem', marginLeft: '0.5rem' }}>
                                 {threadItems.map((item, idx) => (
-                                    <div key={item.id} style={{ position: 'relative', background: '#f8fafc', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0' }}>
+                                    <div key={item.id} style={{
+                                        position: 'relative',
+                                        background: 'white',
+                                        border: '1px solid #e2e8f0',
+                                        borderRadius: '1rem',
+                                        padding: '1.5rem',
+                                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)'
+                                    }}>
                                         {/* Connector Dot */}
-                                        <div style={{ position: 'absolute', left: '-1.9rem', top: '2rem', width: '12px', height: '12px', background: '#94a3b8', borderRadius: '50%', border: '2px solid white', boxShadow: '0 0 0 1px #cbd5e1' }}></div>
+                                        <div style={{ position: 'absolute', left: '-1.9rem', top: '2rem', width: '12px', height: '12px', background: '#3b82f6', borderRadius: '50%', border: '2px solid white', boxShadow: '0 0 0 1px #cbd5e1' }}></div>
 
                                         <div style={{ fontWeight: 600, color: '#475569', marginBottom: '1rem', fontSize: '1.05rem' }}>{item.title}</div>
 
@@ -446,6 +460,50 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                 >
                     ✖
                 </button>
+
+                {/* Existing DB Threads (Shown in Create/Continuous Mode too) */}
+                {threadItems.length > 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', paddingBottom: '0', borderLeft: isThreadMode ? '3px solid #e2e8f0' : 'none', marginLeft: isThreadMode ? '1.5rem' : '0', paddingLeft: isThreadMode ? '2rem' : '0' }}>
+                        {threadItems.map((item, idx) => (
+                            <div key={item.id} style={{
+                                alignSelf: 'flex-start',
+                                width: '100%',
+                                background: 'white',
+                                border: '1px solid #e2e8f0',
+                                borderRadius: '1rem',
+                                padding: '1.5rem',
+                                position: 'relative',
+                                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)'
+                            }}>
+                                {/* Thread Connector Node */}
+                                {isThreadMode && (
+                                    <div style={{ position: 'absolute', left: '-2.6rem', top: '1.8rem', width: '14px', height: '14px', background: '#3b82f6', borderRadius: '50%', border: '3px solid white', boxShadow: '0 0 0 2px #e2e8f0' }}></div>
+                                )}
+                                <div style={{ fontWeight: 600, color: '#0369a1', marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem' }}>
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '1.1rem' }}>
+                                        <span style={{ background: '#0ea5e9', color: 'white', padding: '0.15rem 0.6rem', borderRadius: '999px', fontSize: '0.75rem', fontWeight: 600 }}>등록완료</span>
+                                        {item.title}
+                                    </span>
+                                    <span style={{ fontSize: '0.8rem', fontWeight: 400, color: '#94a3b8' }}>{new Date(item.created_at).toLocaleDateString()}</span>
+                                </div>
+                                <div style={{ marginBottom: '1rem' }}>
+                                    <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.4rem', fontWeight: 600 }}>프롬프트 내용</div>
+                                    <div style={{ fontSize: '0.95rem', color: '#334155', whiteSpace: 'pre-wrap', lineHeight: '1.6', background: '#f8fafc', padding: '1rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0' }}>
+                                        {item.content}
+                                    </div>
+                                </div>
+                                {item.expected_answer && (
+                                    <div>
+                                        <div style={{ fontSize: '0.85rem', color: '#d97706', marginBottom: '0.4rem', fontWeight: 600 }}>예상 답변</div>
+                                        <div style={{ fontSize: '0.95rem', color: '#92400e', whiteSpace: 'pre-wrap', lineHeight: '1.6', background: '#fffbeb', padding: '1rem', borderRadius: '0.75rem', border: '1px solid #fcd34d' }}>
+                                            {item.expected_answer.replace(/<!--THREAD-->|\[PARENT:[^\]]+\]/g, '')}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                )} // END THREAD ITEMS
 
                 {/* Session History Cards (Chat Style / Thread Style) */}
                 {sessionHistory.length > 0 && (
