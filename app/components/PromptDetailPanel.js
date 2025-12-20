@@ -31,6 +31,11 @@ function EditableDiv({ value, onChange, placeholder, minHeight, style }) {
             ref={divRef}
             contentEditable
             onInput={(e) => onChange(e.currentTarget.innerHTML)}
+            onPaste={(e) => {
+                e.preventDefault();
+                const text = e.clipboardData.getData('text/plain');
+                document.execCommand('insertText', false, text);
+            }}
             onBlur={(e) => {
                 // Ensure value is synced on blur
                 if (e.currentTarget.innerHTML !== value) {
