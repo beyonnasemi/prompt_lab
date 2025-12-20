@@ -638,54 +638,51 @@ function LearnContent() {
                         {/* CREATE/EDIT FORM BELOW */}
                         {isAdmin && (
                             <div style={{ marginTop: '3rem', paddingTop: '2rem', borderTop: '1px dashed #e2e8f0' }}>
-                                <div style={{ marginBottom: '1rem', display: 'none' }}> {/* Hidden header as it's now internal */}
-                                    <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#334155', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                        <span>👇</span> 새 프롬프트 추가
-                                    </h3>
-                                </div>
+                                <div style={{ marginTop: '3rem', paddingTop: '2rem', borderTop: '1px dashed #e2e8f0' }}>
+                                    {/* Header removed */}
 
-                                <PromptDetailPanel
-                                    mode="collapsed"
-                                    isAdmin={true}
-                                    onSave={handleSavePrompt}
-                                    onClose={() => { }}
-                                    isThread={true}
-                                    prompt={selectedPrompt}
-                                    initialDifficulty={selectedDifficulty}
-                                />
-                            </div>
+                                    <PromptDetailPanel
+                                        mode="collapsed"
+                                        isAdmin={true}
+                                        onSave={handleSavePrompt}
+                                        onClose={() => { }}
+                                        isThread={true}
+                                        prompt={selectedPrompt}
+                                        initialDifficulty={selectedDifficulty}
+                                    />
+                                </div>
                         )}
 
-                        {/* BOTTOM BACK BUTTON */}
-                        <div style={{ marginTop: '3rem', textAlign: 'center', paddingBottom: '3rem' }}>
-                            <button
-                                onClick={() => {
-                                    setSelectedPrompt(null);
-                                    setActivePanel('none');
-                                }}
-                                style={{
-                                    padding: '0.8rem 2rem', border: '1px solid #cbd5e1', background: 'white',
-                                    borderRadius: '2rem', color: '#475569', fontWeight: 600,
-                                    cursor: 'pointer', boxShadow: '0 2px 5px rgba(0,0,0,0.05)',
-                                    display: 'inline-flex', alignItems: 'center', gap: '0.5rem'
-                                }}
-                            >
-                                <span>🔙</span> 목록으로 돌아가기
-                            </button>
-                        </div>
+                                {/* BOTTOM BACK BUTTON */}
+                                <div style={{ marginTop: '3rem', textAlign: 'center', paddingBottom: '3rem' }}>
+                                    <button
+                                        onClick={() => {
+                                            setSelectedPrompt(null);
+                                            setActivePanel('none');
+                                        }}
+                                        style={{
+                                            padding: '0.8rem 2rem', border: '1px solid #cbd5e1', background: 'white',
+                                            borderRadius: '2rem', color: '#475569', fontWeight: 600,
+                                            cursor: 'pointer', boxShadow: '0 2px 5px rgba(0,0,0,0.05)',
+                                            display: 'inline-flex', alignItems: 'center', gap: '0.5rem'
+                                        }}
+                                    >
+                                        <span>🔙</span> 목록으로 돌아가기
+                                    </button>
+                                </div>
 
+                            </div>
+                        )}
                     </div>
-                )}
-            </div>
         </div>
-    );
+            );
 }
 
-export default function LearnPage() {
+            export default function LearnPage() {
     return (
-        <Suspense fallback={<div>Loading...</div>}>
-            <LearnContent />
-        </Suspense>
-    );
+            <Suspense fallback={<div>Loading...</div>}>
+                <LearnContent />
+            </Suspense>
+            );
 }
 

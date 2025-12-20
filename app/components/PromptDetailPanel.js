@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-// import { createClient } from '@/utils/supabase/client'; // Assuming this path, will verify. If not, I'll fix.
+import { createClient } from '@/utils/supabase/client';
+
+const supabase = createClient();
 // Actually, standard Next.js Supabase starter often usesutils/supabase/client.
 // Let's safe-guard. I will use a prop for onSave and handle upload in parent if possible?
 // START_UPDATE
@@ -17,25 +19,35 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
     const [currentMode, setCurrentMode] = useState(mode);
     const [sessionHistory, setSessionHistory] = useState([]); // For continuous creation "cards"
     const [formData, setFormData] = useState({
-        title: mode === 'create' ? '' : (prompt?.title || ''),
-        content: mode === 'create' ? '' : (prompt?.content || ''),
-        expected_answer: mode === 'create' ? '' : (prompt?.expected_answer || ''),
+        title: (mode === 'create' || mode === 'collapsed') ? '' : (prompt?.title || ''),
+        content: (mode === 'create' || mode === 'collapsed') ? '' : (prompt?.content || ''),
+        expected_answer: (mode === 'create' || mode === 'collapsed') ? '' : (prompt?.expected_answer || ''),
         difficulty: prompt?.difficulty || 'beginner',
-        attachment_url: mode === 'create' ? null : (prompt?.attachment_url || null)
+        attachment_url: (mode === 'create' || mode === 'collapsed') ? null : (prompt?.attachment_url || null)
     });
     const [loading, setLoading] = useState(false);
     const [file, setFile] = useState(null);
     const [copiedId, setCopiedId] = useState(null);
 
-    // Reset history when mode changes away from create, OR keep it? 
-    // User wants "continuously connected". Let's keep it until explicitly closed or mode changed.
+    // Reset history when mode changes away from create/continuous
     useEffect(() => {
-        // Only clear history if we leave both create AND continuous modes
-        // e.g. when switching to 'view' or 'edit'
         if (currentMode !== 'create' && currentMode !== 'continuous') {
             setSessionHistory([]);
         }
     }, [currentMode]);
+
+    // Clear form when switching to continuous mode (User clicks the "Add" button)
+    useEffect(() => {
+        if (currentMode === 'continuous') {
+            setFormData({
+                title: '',
+                content: '',
+                expected_answer: '',
+                difficulty: initialDifficulty, // Use initial difficulty
+                attachment_url: null
+            });
+        }
+    }, [currentMode, initialDifficulty]);
 
     // --- FETCH THREADED CHILDREN (VIEW MODE) ---
     const [threadItems, setThreadItems] = useState([]);
@@ -56,44 +68,38 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
     }, [currentMode, prompt?.id]);
 
     useEffect(() => {
-        if (prompt && mode !== 'create') {
+        if (prompt && mode !== 'create' && mode !== 'collapsed') {
             setFormData({
-                title: prompt.title || '',
-                content: prompt.content || '',
                 title: prompt.title || '',
                 content: prompt.content || '',
                 expected_answer: (prompt.expected_answer || '').replace('<!--THREAD-->', ''),
                 difficulty: prompt.difficulty || 'beginner',
-
                 attachment_url: prompt.attachment_url || null
             });
-            setCurrentMode('view'); // Default to view if prompt exists
-        } else if (mode === 'create') {
-            // For create mode, we ALWAYS start fresh. 
-            // Even if 'prompt' is passed (as parent context for threads), we don't want to copy its text.
-            setFormData(prev => ({
-                ...prev,
+            setCurrentMode('view');
+        } else if (mode === 'create' || mode === 'collapsed') {
+            // Start fresh
+            setFormData({
                 title: '',
                 content: '',
                 expected_answer: '',
                 difficulty: initialDifficulty,
                 attachment_url: null
-            }));
-            setCurrentMode('create');
+            });
+            // If passed as collapsed, we stay collapsed. If create, well, create.
+            if (mode === 'create') setCurrentMode('create');
+            else if (mode === 'collapsed') setCurrentMode('collapsed');
         } else if (mode === 'edit') {
             setFormData({
                 title: prompt.title || '',
                 content: prompt.content || '',
-                title: prompt.title || '',
-                content: prompt.content || '',
                 expected_answer: (prompt.expected_answer || '').replace('<!--THREAD-->', ''),
-                difficulty: prompt.difficulty || 'beginner',
                 difficulty: prompt.difficulty || 'beginner',
                 attachment_url: prompt.attachment_url || null
             });
             setCurrentMode('edit');
         }
-    }, [prompt, mode]);
+    }, [prompt, mode, initialDifficulty]);
 
     const handleCopy = (text) => {
         navigator.clipboard.writeText(text);
@@ -104,10 +110,9 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
     const handleFileChange = (e) => {
         if (e.target.files && e.target.files[0]) {
             const selectedFile = e.target.files[0];
-            // 3MB Limit (Lowered to be safe against server limits)
             if (selectedFile.size > 3 * 1024 * 1024) {
                 alert("이미지 용량이 너무 큽니다. (3MB 제한)\n더 작은 이미지를 선택해주세요.");
-                e.target.value = ''; // Reset input
+                e.target.value = '';
                 setFile(null);
                 return;
             }
@@ -129,7 +134,13 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
             }
 
             // Pass to parent
-            const savedPrompt = await onSave(payload, file, prompt?.id);
+            // IMPORTANT: If isThread is true, we are creating a NEW CHILD, so we pass null ID.
+            // If isThread is false, we might be editing (if prompt.id exists AND mode is edit) - handled by caller logic usually?
+            // Wait, if mode='edit', we should pass prompt.id.
+            // If mode='create' or 'continuous', we pass null.
+            const targetId = (currentMode === 'edit') ? prompt?.id : null;
+
+            const savedPrompt = await onSave(payload, file, targetId);
 
             // 1. Standalone Create: Close immediately to show list
             if (!isThread && (currentMode === 'create' || currentMode === 'continuous')) {
