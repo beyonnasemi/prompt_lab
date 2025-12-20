@@ -40,6 +40,34 @@ export default function LinkManagerModal({ isOpen, onClose, onUpdate }) {
         onUpdate(); // Refresh parent
     };
 
+    const handleMove = async (index, direction) => {
+        if (direction === -1 && index === 0) return;
+        if (direction === 1 && index === links.length - 1) return;
+
+        const newLinks = [...links];
+        const item = newLinks[index];
+        const swapItem = newLinks[index + direction];
+
+        // Swap sort orders
+        // Use temp variable logic or just swap their entire objects?
+        // We rely on sort_order field.
+        const tempOrder = item.sort_order;
+        item.sort_order = swapItem.sort_order;
+        swapItem.sort_order = tempOrder;
+
+        // Optimistic update
+        setLinks(newLinks.sort((a, b) => a.sort_order - b.sort_order));
+
+        // Persist
+        setLoading(true);
+        await Promise.all([
+            saveLinkAction(item),
+            saveLinkAction(swapItem)
+        ]);
+        setLoading(false);
+        onUpdate();
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         const payload = { ...formData };
@@ -113,7 +141,19 @@ export default function LinkManagerModal({ isOpen, onClose, onUpdate }) {
                             padding: '0.75rem', border: '1px solid #e2e8f0', borderRadius: '0.5rem', background: 'white'
                         }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                <span style={{ color: '#cbd5e1' }}>⋮⋮</span>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                    <button
+                                        onClick={() => handleMove(links.indexOf(link), -1)}
+                                        disabled={links.indexOf(link) === 0}
+                                        style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: '0.6rem', color: links.indexOf(link) === 0 ? '#e2e8f0' : '#64748b', padding: 0 }}
+                                    >▲</button>
+                                    <span style={{ color: '#cbd5e1', fontSize: '1rem', lineHeight: '0.5' }}>⋮⋮</span>
+                                    <button
+                                        onClick={() => handleMove(links.indexOf(link), 1)}
+                                        disabled={links.indexOf(link) === links.length - 1}
+                                        style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: '0.6rem', color: links.indexOf(link) === links.length - 1 ? '#e2e8f0' : '#64748b', padding: 0 }}
+                                    >▼</button>
+                                </div>
                                 <div style={{ width: 24, height: 24, background: '#f1f5f9', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                     {/* Icon Preview */}
                                     {(!link.icon_key || link.icon_key === 'default' || link.icon_key === 'auto') ? <span>🌐</span> :
