@@ -380,13 +380,43 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                     </div>
                 </div>
 
+                {/* --- CUSTOM CSS FOR RESTORING HTML STYLES --- */}
+                <style jsx global>{`
+                    .doc-content h1 { display: block; font-size: 2em; font-weight: bold; margin: 0.67em 0; }
+                    .doc-content h2 { display: block; font-size: 1.5em; font-weight: bold; margin: 0.83em 0; }
+                    .doc-content h3 { display: block; font-size: 1.17em; font-weight: bold; margin: 1em 0; }
+                    .doc-content h4 { display: block; font-size: 1em; font-weight: bold; margin: 1.33em 0; }
+                    .doc-content p { display: block; margin: 1em 0; }
+                    .doc-content ul { display: block; list-style-type: disc; margin: 1em 0; padding-left: 40px; }
+                    .doc-content ol { display: block; list-style-type: decimal; margin: 1em 0; padding-left: 40px; }
+                    .doc-content li { display: list-item; }
+                    .doc-content blockquote { display: block; margin: 1em 40px; }
+                    .doc-content strong, .doc-content b { font-weight: bold; }
+                    .doc-content em, .doc-content i { font-style: italic; }
+                    .doc-content table { display: table; border-collapse: collapse; border-spacing: 0; }
+                    .doc-content thead { display: table-header-group; vertical-align: middle; border-color: inherit; }
+                    .doc-content tbody { display: table-row-group; vertical-align: middle; border-color: inherit; }
+                    .doc-content tr { display: table-row; vertical-align: inherit; border-color: inherit; }
+                    .doc-content td, .doc-content th { display: table-cell; vertical-align: inherit; padding: 5px; }
+                `}</style>
+
                 {
                     prompt.expected_answer && (
                         <div style={{ marginBottom: '1.5rem' }}>
                             <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#334155', marginBottom: '0.5rem' }}>💡 예상 답변</h3>
                             <div
+                                className={/<[a-z][\s\S]*>/i.test(prompt.expected_answer) ? 'doc-content' : ''}
                                 dangerouslySetInnerHTML={{ __html: prompt.expected_answer.replace(/<!--THREAD-->|\[PARENT:[^\]]+\]/g, '') }}
-                                style={{ background: '#eff6ff', padding: '1.25rem', borderRadius: '0.5rem', color: '#1e3a8a', lineHeight: '1.7', border: '1px solid #dbeafe', minHeight: '3rem', whiteSpace: 'pre-wrap' }}
+                                style={{
+                                    background: '#eff6ff',
+                                    padding: '1.25rem',
+                                    borderRadius: '0.5rem',
+                                    color: '#1e3a8a',
+                                    lineHeight: '1.6',
+                                    border: '1px solid #dbeafe',
+                                    minHeight: '3rem',
+                                    whiteSpace: /<[a-z][\s\S]*>/i.test(prompt.expected_answer) ? 'normal' : 'pre-wrap'
+                                }}
                             />
                         </div>
                     )
@@ -692,8 +722,18 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                                     <div>
                                         <div style={{ fontSize: '0.85rem', color: '#1e3a8a', marginBottom: '0.4rem', fontWeight: 600 }}>💡 예상 답변</div>
                                         <div
+                                            className={/<[a-z][\s\S]*>/i.test(item.expected_answer) ? 'doc-content' : ''}
                                             dangerouslySetInnerHTML={{ __html: item.expected_answer.replace(/<!--THREAD-->|\[PARENT:[^\]]+\]/g, '') }}
-                                            style={{ fontSize: '0.95rem', color: '#1e3a8a', lineHeight: '1.6', background: '#eff6ff', padding: '1rem', borderRadius: '0.75rem', border: '1px solid #dbeafe', whiteSpace: 'pre-wrap' }}
+                                            style={{
+                                                fontSize: '0.95rem',
+                                                color: '#1e3a8a',
+                                                lineHeight: '1.6',
+                                                background: '#eff6ff',
+                                                padding: '1rem',
+                                                borderRadius: '0.75rem',
+                                                border: '1px solid #dbeafe',
+                                                whiteSpace: /<[a-z][\s\S]*>/i.test(item.expected_answer) ? 'normal' : 'pre-wrap'
+                                            }}
                                         />
                                     </div>
                                 )}
