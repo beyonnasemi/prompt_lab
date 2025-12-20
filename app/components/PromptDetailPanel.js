@@ -30,9 +30,9 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
     const [file, setFile] = useState(null);
     const [copiedId, setCopiedId] = useState(null);
 
-    // Reset history when mode changes away from create/continuous
+    // Reset history when mode changes away from create/continuous/collapsed (collapsed is part of flow)
     useEffect(() => {
-        if (currentMode !== 'create' && currentMode !== 'continuous') {
+        if (currentMode !== 'create' && currentMode !== 'continuous' && currentMode !== 'collapsed') {
             setSessionHistory([]);
             setIsCreatingThread(false);
         }
@@ -198,7 +198,7 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
     // --- VIEW MODE ---
     if (currentMode === 'view') {
         return (
-            <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
                 <div style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '1.5rem', marginBottom: '1.5rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                         <button onClick={onClose} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.5rem 0.75rem', border: '1px solid #e2e8f0', background: 'white', borderRadius: '0.375rem', cursor: 'pointer', color: '#64748b' }}>
@@ -237,7 +237,7 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                     </div>
                 </div>
 
-                <div style={{ flex: 1, overflowY: 'auto' }}>
+                <div style={{}}>
                     <div style={{ marginBottom: '1.5rem' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                             <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#334155' }}>📝 프롬프트</h3>
@@ -423,10 +423,10 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
 
     // --- MAIN RENDER (Edit / Create / Continuous / Collapsed) ---
     return (
-        <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
 
 
-            <div style={{ flex: 1, overflowY: 'auto', paddingRight: '0.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', padding: '0.5rem', position: 'relative' }}>
+            <div style={{ paddingRight: '0.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', padding: '0.5rem', position: 'relative' }}>
 
                 {/* Floating Close Button */}
                 <button
