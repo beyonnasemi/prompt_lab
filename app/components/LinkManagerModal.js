@@ -7,6 +7,7 @@ import Image from 'next/image';
 export default function LinkManagerModal({ isOpen, onClose, onUpdate }) {
     const [links, setLinks] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [draggedItemIndex, setDraggedItemIndex] = useState(null);
     const [editingId, setEditingId] = useState(null);
     const [formData, setFormData] = useState({ title: '', url: '', sort_order: 0 });
 
@@ -37,9 +38,47 @@ export default function LinkManagerModal({ isOpen, onClose, onUpdate }) {
         if (!confirm('삭제하시겠습니까?')) return;
         await deleteLinkAction(id);
         fetchLinks();
-        onUpdate(); // Refresh parent
+        onUpdate();
     };
 
+    // --- DnD Handlers ---
+    const handleDragStart = (e, index) => {
+        setDraggedItemIndex(index);
+        e.dataTransfer.effectAllowed = "move";
+        e.target.style.opacity = '0.5';
+    };
+
+    const handleDragEnd = (e) => {
+        e.target.style.opacity = '1';
+        setDraggedItemIndex(null);
+    };
+
+    const handleDragOver = (e) => {
+        e.preventDefault();
+    };
+
+    const handleDrop = async (e, dropIndex) => {
+        e.preventDefault();
+        if (draggedItemIndex === null || draggedItemIndex === dropIndex) return;
+
+        const newLinks = [...links];
+        const [draggedItem] = newLinks.splice(draggedItemIndex, 1);
+        newLinks.splice(dropIndex, 0, draggedItem);
+
+        const updatedLinks = newLinks.map((link, idx) => ({
+            ...link,
+            sort_order: idx + 1
+        }));
+
+        setLinks(updatedLinks);
+        setLoading(true);
+        await Promise.all(updatedLinks.map(l => saveLinkAction(l)));
+        setLoading(false);
+        onUpdate();
+        setDraggedItemIndex(null);
+    };
+
+    // --- Arrow Handlers ---
     const handleMove = async (index, direction) => {
         if (direction === -1 && index === 0) return;
         if (direction === 1 && index === links.length - 1) return;
@@ -48,22 +87,16 @@ export default function LinkManagerModal({ isOpen, onClose, onUpdate }) {
         const item = newLinks[index];
         const swapItem = newLinks[index + direction];
 
-        // Swap sort orders
-        // Use temp variable logic or just swap their entire objects?
-        // We rely on sort_order field.
         const tempOrder = item.sort_order;
         item.sort_order = swapItem.sort_order;
         swapItem.sort_order = tempOrder;
 
-        // Optimistic update
-        setLinks(newLinks.sort((a, b) => a.sort_order - b.sort_order));
+        newLinks[index] = swapItem;
+        newLinks[index + direction] = item;
 
-        // Persist
+        setLinks([...newLinks]);
         setLoading(true);
-        await Promise.all([
-            saveLinkAction(item),
-            saveLinkAction(swapItem)
-        ]);
+        await Promise.all([saveLinkAction(item), saveLinkAction(swapItem)]);
         setLoading(false);
         onUpdate();
     };
@@ -71,10 +104,7 @@ export default function LinkManagerModal({ isOpen, onClose, onUpdate }) {
     const handleSubmit = async (e) => {
         e.preventDefault();
         const payload = { ...formData };
-        // Clean up payload (backend defaults icon_key to 'auto' if missing)
-
         if (editingId) payload.id = editingId;
-
         const result = await saveLinkAction(payload);
         if (result.error) {
             alert('오류 발생: ' + result.error);
@@ -133,29 +163,40 @@ export default function LinkManagerModal({ isOpen, onClose, onUpdate }) {
                     </div>
                 </form>
 
-                {/* List */}
+                {/* List with DnD */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    {loading ? <div>로딩 중...</div> : links.map(link => (
-                        <div key={link.id} style={{
-                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                            padding: '0.75rem', border: '1px solid #e2e8f0', borderRadius: '0.5rem', background: 'white'
-                        }}>
+                    {loading && links.length === 0 ? <div>로딩 중...</div> : links.map((link, index) => (
+                        <div
+                            key={link.id}
+                            draggable
+                            onDragStart={(e) => handleDragStart(e, index)}
+                            onDragEnd={handleDragEnd}
+                            onDragOver={handleDragOver}
+                            onDrop={(e) => handleDrop(e, index)}
+                            style={{
+                                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                padding: '0.75rem', border: '1px solid #e2e8f0', borderRadius: '0.5rem', background: 'white',
+                                cursor: 'grab',
+                                opacity: draggedItemIndex === index ? 0.5 : 1
+                            }}
+                        >
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'center' }}>
                                     <button
-                                        onClick={() => handleMove(links.indexOf(link), -1)}
-                                        disabled={links.indexOf(link) === 0}
-                                        style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: '0.6rem', color: links.indexOf(link) === 0 ? '#e2e8f0' : '#64748b', padding: 0 }}
+                                        type="button"
+                                        onClick={() => handleMove(index, -1)}
+                                        disabled={index === 0}
+                                        style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: '0.8rem', color: index === 0 ? '#e2e8f0' : '#64748b', padding: '2px' }}
                                     >▲</button>
-                                    <span style={{ color: '#cbd5e1', fontSize: '1rem', lineHeight: '0.5' }}>⋮⋮</span>
+                                    <span style={{ color: '#cbd5e1', fontSize: '1.2rem', lineHeight: '0.5', cursor: 'grab' }}>⋮⋮</span>
                                     <button
-                                        onClick={() => handleMove(links.indexOf(link), 1)}
-                                        disabled={links.indexOf(link) === links.length - 1}
-                                        style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: '0.6rem', color: links.indexOf(link) === links.length - 1 ? '#e2e8f0' : '#64748b', padding: 0 }}
+                                        type="button"
+                                        onClick={() => handleMove(index, 1)}
+                                        disabled={index === links.length - 1}
+                                        style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: '0.8rem', color: index === links.length - 1 ? '#e2e8f0' : '#64748b', padding: '2px' }}
                                     >▼</button>
                                 </div>
                                 <div style={{ width: 24, height: 24, background: '#f1f5f9', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    {/* Icon Preview */}
                                     {(!link.icon_key || link.icon_key === 'default' || link.icon_key === 'auto') ? <span>🌐</span> :
                                         <div style={{ width: '100%', height: '100%', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                             <span>🌐</span>
