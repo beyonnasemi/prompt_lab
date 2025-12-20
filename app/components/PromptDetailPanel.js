@@ -20,6 +20,9 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
     // mode: 'view' | 'edit' | 'create'
     const [currentMode, setCurrentMode] = useState(mode);
     const [isCreatingThread, setIsCreatingThread] = useState(false); // Helper for root prompts creating threads
+
+    // Debugging Version
+    useEffect(() => { console.log("PromptDetailPanel v3 Loaded - Server Actions Enabled"); }, []);
     const [sessionHistory, setSessionHistory] = useState([]); // For continuous creation "cards"
     const [formData, setFormData] = useState({
         title: (mode === 'create' || mode === 'collapsed') ? '' : (prompt?.title || ''),
