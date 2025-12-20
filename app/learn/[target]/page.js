@@ -445,6 +445,7 @@ function LearnContent() {
                             isAdmin={true}
                             onSave={handleSavePrompt}
                             onClose={() => setActivePanel('none')}
+                            initialDifficulty={selectedDifficulty}
                         />
                     </div>
                 )}

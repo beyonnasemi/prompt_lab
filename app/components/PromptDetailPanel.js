@@ -14,7 +14,7 @@ import { supabase } from '@/lib/supabase';
 
 // Re-verified page.js in next step.
 
-export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onClose, onSave, onDelete, isThread = false, initialDifficulty = 'beginner' }) {
+export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onClose, onSave, onDelete = () => { }, isThread = false, initialDifficulty = 'beginner' }) {
     // mode: 'view' | 'edit' | 'create'
     const [currentMode, setCurrentMode] = useState(mode);
     const [sessionHistory, setSessionHistory] = useState([]); // For continuous creation "cards"
