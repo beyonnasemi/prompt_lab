@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 
 import { deletePromptAction } from '@/app/actions/prompt-actions';
@@ -99,18 +99,9 @@ const defaultDocStyles = `
 `;
 
 function ShadowHtmlView({ html, style, className }) {
-    const hostRef = import('react').useRef(null); // Use standard import or rely on top level. 
-    // Wait, import is reserved. I need to rely on 'react' being imported. 
-    // In PromptDetailPanel.js 'useRef' is NOT imported in line 3? "import { useState, useEffect } from 'react';"
-    // I need to update the import line or just use React.useRef if React is imported? React is not imported.
-    // I check line 3: "import { useState, useEffect } from 'react';"
-    // I should simply use useState/useEffect if I can't add imports easily without replacing huge blocks. 
-    // But working with DOM refs usually needs useRef.
-    // I will try to use a callback ref or simple dom manipulation in useEffect.
-    // Actually, I can use 'useEffect' to find the element by ID? No, component instance.
-    // I will assume useRef is available or I will add it to the import in another chunk.
-    // For now, let's look at the import block. Line 3.
-    // I'll update line 3 first.
+    // We use a callback ref to handle the DOM node.
+    // This allows us to interact with the DOM element as soon as it is mounted
+    // and whenever the 'html' prop potentially changes (though we handle updates manually).
     return <div ref={(node) => {
         if (node && html) {
             if (!node.shadowRoot) {
