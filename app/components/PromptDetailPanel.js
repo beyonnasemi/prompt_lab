@@ -143,8 +143,9 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
     const [loading, setLoading] = useState(false);
     const [file, setFile] = useState(null);
     const [copiedId, setCopiedId] = useState(null);
-    const [editingThreadId, setEditingThreadId] = useState(null);
-    const formRef = useRef(null);
+    const [editingThreadId, setEditingThreadId] = useState(null); // Kept for safety, though mostly replaced by inline
+    const [inlineEditingId, setInlineEditingId] = useState(null); // Track which thread is being edited inline
+    const [inlineFormData, setInlineFormData] = useState({}); // Form data for inline editing
 
     // Reset history when mode changes away from create/continuous/collapsed (collapsed is part of flow)
     useEffect(() => {
@@ -285,19 +286,46 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
     };
 
     const handleEditThread = (item) => {
-        setFormData({
+        setInlineFormData({
             title: item.title,
             content: item.content,
             expected_answer: (item.expected_answer || '').replace(/<!--THREAD-->|\[PARENT:[^\]]+\]/g, ''),
             difficulty: item.difficulty,
             attachment_url: item.attachment_url
         });
-        setEditingThreadId(item.id);
-        setCurrentMode('continuous'); // Show the form
-        // Scroll to form
-        setTimeout(() => {
-            formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }, 100);
+        setInlineEditingId(item.id);
+        // No scrolling needed for inline editing
+    };
+
+    const handleInlineCancel = () => {
+        setInlineEditingId(null);
+        setInlineFormData({});
+    };
+
+    const handleInlineSave = async (id) => {
+        if (!window.confirm('수정하시겠습니까?')) return;
+        setLoading(true);
+        try {
+            const payload = { ...inlineFormData };
+            // Add thread markers
+            const parentIdTag = prompt?.id ? `[PARENT:${prompt.id}]` : '';
+            payload.expected_answer = `<!--THREAD-->${parentIdTag}` + (payload.expected_answer || '');
+
+            await onSave(payload, null, id); // file is null for now unless we add file input to inline form
+
+            // Update UI list manually
+            setThreadItems(prev => prev.map(item =>
+                item.id === id ? { ...item, ...inlineFormData, expected_answer: payload.expected_answer } : item
+            ));
+
+            setInlineEditingId(null);
+            setInlineFormData({});
+            alert('수정되었습니다.');
+        } catch (error) {
+            alert('수정 실패: ' + error.message);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleSubmit = async (e) => {
@@ -728,59 +756,104 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                                 {isThreadMode && (
                                     <div style={{ position: 'absolute', left: '-2.6rem', top: '1.8rem', width: '14px', height: '14px', background: '#3b82f6', borderRadius: '50%', border: '3px solid white', boxShadow: '0 0 0 2px #e2e8f0' }}></div>
                                 )}
-                                <div style={{ fontWeight: 600, color: '#0369a1', marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '1.1rem' }}>
-                                            <span style={{ background: '#0ea5e9', color: 'white', padding: '0.15rem 0.6rem', borderRadius: '999px', fontSize: '0.75rem', fontWeight: 600 }}>등록완료</span>
-                                            {item.title}
-                                        </span>
+                                {inlineEditingId === item.id ? (
+                                    // --- INLINE EDIT FORM ---
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                        <div style={{ fontWeight: 600, color: '#0369a1', marginBottom: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem' }}>
+                                            <span style={{ fontSize: '1.1rem', fontWeight: 700 }}>✏️ 수정 중...</span>
+                                        </div>
 
-                                        {/* Admin Actions moved to left */}
-                                        {isAdmin && (
-                                            <div style={{ display: 'flex', gap: '0.25rem' }}>
-                                                <button
-                                                    onClick={() => handleEditThread(item)}
-                                                    style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: '1rem', padding: '0.2rem', opacity: 0.7 }}
-                                                    onMouseEnter={(e) => e.target.style.opacity = 1}
-                                                    onMouseLeave={(e) => e.target.style.opacity = 0.7}
-                                                    title="수정"
-                                                >
-                                                    ✏️
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDeleteThread(item.id)}
-                                                    style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: '1rem', padding: '0.2rem', opacity: 0.7 }}
-                                                    onMouseEnter={(e) => e.target.style.opacity = 1}
-                                                    onMouseLeave={(e) => e.target.style.opacity = 0.7}
-                                                    title="삭제"
-                                                >
-                                                    🗑️
-                                                </button>
+                                        <div>
+                                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155', fontSize: '0.9rem' }}>제목</label>
+                                            <input
+                                                type="text"
+                                                value={inlineFormData.title}
+                                                onChange={e => setInlineFormData({ ...inlineFormData, title: e.target.value })}
+                                                style={{ width: '100%', padding: '0.75rem', border: '1px solid #e2e8f0', borderRadius: '0.5rem', fontSize: '0.95rem' }}
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155', fontSize: '0.9rem' }}>내용</label>
+                                            <EditableDiv
+                                                value={inlineFormData.content}
+                                                onChange={(val) => setInlineFormData({ ...inlineFormData, content: val })}
+                                                minHeight="80px"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155', fontSize: '0.9rem' }}>예상 답변</label>
+                                            <textarea
+                                                value={inlineFormData.expected_answer}
+                                                onChange={e => setInlineFormData({ ...inlineFormData, expected_answer: e.target.value })}
+                                                style={{ width: '100%', padding: '0.75rem', border: '1px solid #e2e8f0', borderRadius: '0.5rem', minHeight: '150px', fontSize: '0.95rem', fontFamily: 'monospace' }}
+                                            />
+                                        </div>
+
+                                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.5rem' }}>
+                                            <button onClick={handleInlineCancel} style={{ padding: '0.5rem 1rem', background: 'white', border: '1px solid #cbd5e1', borderRadius: '0.375rem', cursor: 'pointer' }}>취소</button>
+                                            <button onClick={() => handleInlineSave(item.id)} disabled={loading} style={{ padding: '0.5rem 1rem', background: '#2563eb', color: 'white', border: 'none', borderRadius: '0.375rem', cursor: 'pointer' }}>{loading ? '저장 중...' : '확인 (수정완료)'}</button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    // --- READ ONLY VIEW ---
+                                    <>
+                                        <div style={{ fontWeight: 600, color: '#0369a1', marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                                <span style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '1.1rem' }}>
+                                                    <span style={{ background: '#0ea5e9', color: 'white', padding: '0.15rem 0.6rem', borderRadius: '999px', fontSize: '0.75rem', fontWeight: 600 }}>등록완료</span>
+                                                    {item.title}
+                                                </span>
+
+                                                {/* Admin Actions moved to left */}
+                                                {isAdmin && (
+                                                    <div style={{ display: 'flex', gap: '0.25rem' }}>
+                                                        <button
+                                                            onClick={() => handleEditThread(item)}
+                                                            style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: '1rem', padding: '0.2rem', opacity: 0.7 }}
+                                                            onMouseEnter={(e) => e.target.style.opacity = 1}
+                                                            onMouseLeave={(e) => e.target.style.opacity = 0.7}
+                                                            title="수정"
+                                                        >
+                                                            ✏️
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDeleteThread(item.id)}
+                                                            style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: '1rem', padding: '0.2rem', opacity: 0.7 }}
+                                                            onMouseEnter={(e) => e.target.style.opacity = 1}
+                                                            onMouseLeave={(e) => e.target.style.opacity = 0.7}
+                                                            title="삭제"
+                                                        >
+                                                            🗑️
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <span style={{ fontSize: '0.8rem', fontWeight: 400, color: '#94a3b8' }}>{new Date(item.created_at).toLocaleDateString()}</span>
+                                        </div>
+                                        <div style={{ marginBottom: '1rem' }}>
+                                            <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.4rem', fontWeight: 600 }}>프롬프트 내용</div>
+                                            <ShadowHtmlView
+                                                html={item.content}
+                                                style={{ background: '#f8fafc', padding: '1rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0' }}
+                                            />
+                                        </div>
+                                        {item.expected_answer && (
+                                            <div>
+                                                <div style={{ fontSize: '0.85rem', color: '#1e3a8a', marginBottom: '0.4rem', fontWeight: 600 }}>💡 예상 답변</div>
+                                                <ShadowHtmlView
+                                                    html={item.expected_answer}
+                                                    style={{
+                                                        background: '#eff6ff',
+                                                        padding: '1rem',
+                                                        borderRadius: '0.75rem',
+                                                        border: '1px solid #dbeafe'
+                                                    }}
+                                                />
                                             </div>
                                         )}
-                                    </div>
-                                    <span style={{ fontSize: '0.8rem', fontWeight: 400, color: '#94a3b8' }}>{new Date(item.created_at).toLocaleDateString()}</span>
-                                </div>
-                                <div style={{ marginBottom: '1rem' }}>
-                                    <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.4rem', fontWeight: 600 }}>프롬프트 내용</div>
-                                    <ShadowHtmlView
-                                        html={item.content}
-                                        style={{ background: '#f8fafc', padding: '1rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0' }}
-                                    />
-                                </div>
-                                {item.expected_answer && (
-                                    <div>
-                                        <div style={{ fontSize: '0.85rem', color: '#1e3a8a', marginBottom: '0.4rem', fontWeight: 600 }}>💡 예상 답변</div>
-                                        <ShadowHtmlView
-                                            html={item.expected_answer}
-                                            style={{
-                                                background: '#eff6ff',
-                                                padding: '1rem',
-                                                borderRadius: '0.75rem',
-                                                border: '1px solid #dbeafe'
-                                            }}
-                                        />
-                                    </div>
+                                    </>
                                 )}
                             </div>
                         ))}
@@ -863,7 +936,7 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                 {currentMode === 'collapsed' ? (
                     renderCollapsedButton()
                 ) : (
-                    <form ref={formRef} onSubmit={handleSubmit} style={{
+                    <form onSubmit={handleSubmit} style={{
                         display: 'flex', flexDirection: 'column', gap: '1.5rem',
                         background: 'white',
                         padding: '2rem',
@@ -888,10 +961,10 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                                 <span style={{ fontSize: '1.75rem' }}>✍️</span>
                                 <div>
                                     <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#1e293b', lineHeight: 1.2 }}>
-                                        {sessionHistory.length > 0 ? (editingThreadId ? '프롬프트 수정' : '추가 프롬프트 작성') : '새 프롬프트 작성'}
+                                        {sessionHistory.length > 0 ? '추가 프롬프트 작성' : '새 프롬프트 작성'}
                                     </h3>
                                     <p style={{ fontSize: '0.9rem', color: '#64748b', margin: 0, marginTop: '0.2rem' }}>
-                                        {editingThreadId ? '내용을 수정한 후 저장 버튼을 눌러주세요.' : (sessionHistory.length > 0 ? '이전 단계에 이어지는 내용을 작성해주세요.' : '새로운 주제의 프롬프트를 작성합니다.')}
+                                        {sessionHistory.length > 0 ? '이전 단계에 이어지는 내용을 작성해주세요.' : '새로운 주제의 프롬프트를 작성합니다.'}
                                     </p>
                                 </div>
                             </div>
@@ -1013,7 +1086,7 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                                 disabled={loading}
                                 style={{ padding: '0.8rem 2rem', background: '#2563eb', color: 'white', border: 'none', borderRadius: '0.5rem', cursor: loading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1rem', fontWeight: 600, boxShadow: '0 4px 6px -1px rgba(37, 99, 235, 0.2)' }}
                             >
-                                {loading ? '저장 중...' : <span>{editingThreadId ? '✏️ 수정 완료' : '⬆️ 질문 등록하기'}</span>}
+                                {loading ? '저장 중...' : <span>⬆️ 질문 등록하기</span>}
                             </button>
                         </div>
                     </form>
