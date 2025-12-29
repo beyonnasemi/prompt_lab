@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 
 import { deletePromptAction } from '@/app/actions/prompt-actions';
@@ -35,6 +35,7 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
     const [file, setFile] = useState(null);
     const [copiedId, setCopiedId] = useState(null);
     const [editingThreadId, setEditingThreadId] = useState(null);
+    const formRef = useRef(null);
 
     // Reset history when mode changes away from create/continuous/collapsed (collapsed is part of flow)
     useEffect(() => {
@@ -184,7 +185,10 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
         });
         setEditingThreadId(item.id);
         setCurrentMode('continuous'); // Show the form
-        // Optional: Scroll to form
+        // Scroll to form
+        setTimeout(() => {
+            formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
     };
 
     const handleSubmit = async (e) => {
@@ -693,7 +697,7 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                 {currentMode === 'collapsed' ? (
                     renderCollapsedButton()
                 ) : (
-                    <form onSubmit={handleSubmit} style={{
+                    <form ref={formRef} onSubmit={handleSubmit} style={{
                         display: 'flex', flexDirection: 'column', gap: '1.5rem',
                         background: 'white',
                         padding: '2rem',
@@ -718,10 +722,10 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                                 <span style={{ fontSize: '1.75rem' }}>✍️</span>
                                 <div>
                                     <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#1e293b', lineHeight: 1.2 }}>
-                                        {sessionHistory.length > 0 ? '추가 프롬프트 작성' : '새 프롬프트 작성'}
+                                        {sessionHistory.length > 0 ? (editingThreadId ? '프롬프트 수정' : '추가 프롬프트 작성') : '새 프롬프트 작성'}
                                     </h3>
                                     <p style={{ fontSize: '0.9rem', color: '#64748b', margin: 0, marginTop: '0.2rem' }}>
-                                        {sessionHistory.length > 0 ? '이전 단계에 이어지는 내용을 작성해주세요.' : '새로운 주제의 프롬프트를 작성합니다.'}
+                                        {editingThreadId ? '내용을 수정한 후 저장 버튼을 눌러주세요.' : (sessionHistory.length > 0 ? '이전 단계에 이어지는 내용을 작성해주세요.' : '새로운 주제의 프롬프트를 작성합니다.')}
                                     </p>
                                 </div>
                             </div>
@@ -823,7 +827,7 @@ export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onCl
                                 disabled={loading}
                                 style={{ padding: '0.8rem 2rem', background: '#2563eb', color: 'white', border: 'none', borderRadius: '0.5rem', cursor: loading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1rem', fontWeight: 600, boxShadow: '0 4px 6px -1px rgba(37, 99, 235, 0.2)' }}
                             >
-                                {loading ? '저장 중...' : <span>⬆️ 질문 등록하기</span>}
+                                {loading ? '저장 중...' : <span>{editingThreadId ? '✏️ 수정 완료' : '⬆️ 질문 등록하기'}</span>}
                             </button>
                         </div>
                     </form>
