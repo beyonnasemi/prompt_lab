@@ -7,6 +7,8 @@ import Image from 'next/image';
 export default function LinkManagerModal({ isOpen, onClose, onUpdate }) {
     const [links, setLinks] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [draggedItemIndex, setDraggedItemIndex] = useState(null);
+    const [dropTargetIndex, setDropTargetIndex] = useState(null);
     const [editingId, setEditingId] = useState(null);
     const [formData, setFormData] = useState({ title: '', url: '', sort_order: 0 });
 
@@ -37,16 +39,58 @@ export default function LinkManagerModal({ isOpen, onClose, onUpdate }) {
         if (!confirm('삭제하시겠습니까?')) return;
         await deleteLinkAction(id);
         fetchLinks();
-        onUpdate(); // Refresh parent
+        onUpdate();
+    };
+
+    // --- DnD Handlers ---
+    const handleDragStart = (e, index) => {
+        setDraggedItemIndex(index);
+        e.dataTransfer.effectAllowed = "move";
+        e.target.style.opacity = '0.5';
+    };
+
+    const handleDragEnd = (e) => {
+        e.target.style.opacity = '1';
+        setDraggedItemIndex(null);
+        setDropTargetIndex(null);
+    };
+
+    const handleDragEnter = (e, index) => {
+        if (draggedItemIndex === index) return;
+        setDropTargetIndex(index);
+    };
+
+    const handleDragOver = (e) => {
+        e.preventDefault(); // Necessary to allow dropping
+        e.dataTransfer.dropEffect = 'move';
+    };
+
+    const handleDrop = async (e, dropIndex) => {
+        e.preventDefault();
+        setDropTargetIndex(null); // Clear indicator
+        if (draggedItemIndex === null || draggedItemIndex === dropIndex) return;
+
+        const newLinks = [...links];
+        const [draggedItem] = newLinks.splice(draggedItemIndex, 1);
+        newLinks.splice(dropIndex, 0, draggedItem);
+
+        const updatedLinks = newLinks.map((link, idx) => ({
+            ...link,
+            sort_order: idx + 1
+        }));
+
+        setLinks(updatedLinks);
+        setLoading(true);
+        await Promise.all(updatedLinks.map(l => saveLinkAction(l)));
+        setLoading(false);
+        onUpdate();
+        setDraggedItemIndex(null);
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         const payload = { ...formData };
-        // Clean up payload (backend defaults icon_key to 'auto' if missing)
-
         if (editingId) payload.id = editingId;
-
         const result = await saveLinkAction(payload);
         if (result.error) {
             alert('오류 발생: ' + result.error);
@@ -105,21 +149,44 @@ export default function LinkManagerModal({ isOpen, onClose, onUpdate }) {
                     </div>
                 </form>
 
-                {/* List */}
+                {/* List with DnD */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    {loading ? <div>로딩 중...</div> : links.map(link => (
-                        <div key={link.id} style={{
-                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                            padding: '0.75rem', border: '1px solid #e2e8f0', borderRadius: '0.5rem', background: 'white'
-                        }}>
+                    {loading && links.length === 0 ? <div>로딩 중...</div> : links.map((link, index) => (
+                        <div
+                            key={link.id}
+                            draggable
+                            onDragStart={(e) => handleDragStart(e, index)}
+                            onDragEnd={handleDragEnd}
+                            onDragOver={handleDragOver}
+                            onDragEnter={(e) => handleDragEnter(e, index)}
+                            onDrop={(e) => handleDrop(e, index)}
+                            style={{
+                                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                padding: '0.75rem',
+                                border: '1px solid #e2e8f0',
+                                borderTop: (draggedItemIndex !== null && draggedItemIndex !== index && dropTargetIndex === index)
+                                    ? '3px solid #3b82f6' // Visual Line Indicator
+                                    : '1px solid #e2e8f0',
+                                borderRadius: '0.5rem', background: 'white',
+                                cursor: 'grab',
+                                opacity: draggedItemIndex === index ? 0.5 : 1,
+                                transition: 'border-top 0.1s'
+                            }}
+                        >
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                <span style={{ color: '#cbd5e1' }}>⋮⋮</span>
-                                <div style={{ width: 24, height: 24, background: '#f1f5f9', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    {/* Icon Preview */}
-                                    {(!link.icon_key || link.icon_key === 'default' || link.icon_key === 'auto') ? <span>🌐</span> :
-                                        <div style={{ width: '100%', height: '100%', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                            <span>🌐</span>
-                                        </div>}
+                                <div style={{ display: 'flex', alignItems: 'center', paddingRight: '0.5rem', cursor: 'grab' }}>
+                                    <span style={{ color: '#94a3b8', fontSize: '1.5rem', lineHeight: '1' }}>⋮⋮</span>
+                                </div>
+                                <div style={{ width: 24, height: 24, background: '#f1f5f9', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                                    {(!link.icon_key || link.icon_key === 'default' || link.icon_key === 'auto') ? (
+                                        <span>🌐</span>
+                                    ) : (
+                                        <img
+                                            src={link.icon_key.startsWith('http') ? link.icon_key : `https://www.google.com/s2/favicons?domain=${link.url}&sz=128`}
+                                            alt=""
+                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                        />
+                                    )}
                                 </div>
                                 <div>
                                     <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{link.title}</div>
@@ -131,12 +198,16 @@ export default function LinkManagerModal({ isOpen, onClose, onUpdate }) {
                                 <button onClick={() => handleDelete(link.id)} style={{ padding: '0.25rem', color: '#ef4444', border: 'none', background: 'none', cursor: 'pointer' }}>🗑️</button>
                             </div>
                         </div>
-                    ))}
-                    {links.length === 0 && !loading && (
-                        <div style={{ textAlign: 'center', color: '#94a3b8', padding: '1rem' }}>등록된 링크가 없습니다.</div>
-                    )}
-                </div>
-            </div>
-        </div>
+
+                    ))
+                    }
+                    {
+                        links.length === 0 && !loading && (
+                            <div style={{ textAlign: 'center', color: '#94a3b8', padding: '1rem' }}>등록된 링크가 없습니다.</div>
+                        )
+                    }
+                </div >
+            </div >
+        </div >
     );
 }

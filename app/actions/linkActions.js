@@ -29,10 +29,23 @@ export async function getLinksAction() {
  */
 export async function saveLinkAction(linkData) {
     try {
+        let iconUrl = linkData.icon_key || 'default';
+
+        // Auto-fetch favicon if it's 'default' or empty, and we have a valid URL
+        if ((!iconUrl || iconUrl === 'default') && linkData.url) {
+            try {
+                const urlObj = new URL(linkData.url);
+                // Use Google's favicon service which is reliable and free
+                iconUrl = `https://www.google.com/s2/favicons?domain=${urlObj.hostname}&sz=128`;
+            } catch (err) {
+                console.warn("Invalid URL for favicon generation:", linkData.url);
+            }
+        }
+
         const payload = {
             title: linkData.title,
             url: linkData.url,
-            icon_key: linkData.icon_key || 'default',
+            icon_key: iconUrl,
             sort_order: parseInt(linkData.sort_order || 0),
             is_active: true
         };

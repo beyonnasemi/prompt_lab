@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, Suspense, useMemo } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter, useParams, useSearchParams, usePathname } from 'next/navigation';
+import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import BulkUploadPanel from '@/app/components/BulkUploadPanel';
 import AIGeneratePanel from '@/app/components/AIGeneratePanel';
@@ -56,7 +57,42 @@ function LearnContent() {
     // Search & Pagination State
     const [searchQuery, setSearchQuery] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
+    const searchParams = useSearchParams();
+    const pathname = usePathname();
     const [isAdmin, setIsAdmin] = useState(false);
+
+    // Sync URL with State (Handle Back Button)
+    useEffect(() => {
+        const promptId = searchParams.get('promptId');
+        if (promptId && prompts.length > 0) {
+            const prompt = prompts.find(p => p.id === promptId);
+            if (prompt) {
+                setSelectedPrompt(prompt);
+                // Ensure panel is correctly set
+                setActivePanel('detail');
+            }
+        } else {
+            setSelectedPrompt(null);
+            // Reset panel to show list if we are in detail view context
+            // But if user is creating/editing, we shouldn't force 'none' unless navigation implies it?
+            // If promptId is removed, we are likely going back to list.
+            setActivePanel('none');
+        }
+    }, [searchParams, prompts]);
+
+    // Handle Prompt Click (Update URL)
+    const handlePromptClick = (prompt) => {
+        const params = new URLSearchParams(searchParams);
+        params.set('promptId', prompt.id);
+        router.push(`${pathname}?${params.toString()}`);
+    };
+
+    // Handle Close (Reset URL)
+    const handleCloseDetail = () => {
+        const params = new URLSearchParams(searchParams);
+        params.delete('promptId');
+        router.push(`${pathname}?${params.toString()}`);
+    };
 
     useEffect(() => {
         if (!targetId) return;
@@ -137,7 +173,7 @@ function LearnContent() {
         return result.filter(p => p.title.toLowerCase().includes(searchQuery.toLowerCase()));
     }, [prompts, searchQuery]);
 
-    const itemsPerPage = 8; // Adjust for layout
+    const itemsPerPage = 10; // Increased to 10 as requested
     const totalPages = Math.ceil(filteredPrompts.length / itemsPerPage);
     const displayedPrompts = useMemo(() => {
         const start = (currentPage - 1) * itemsPerPage;
@@ -155,10 +191,7 @@ function LearnContent() {
 
     // --- Handlers ---
 
-    const handlePromptClick = (prompt) => {
-        setSelectedPrompt(prompt);
-        setActivePanel('detail');
-    };
+
 
     const handleCreateTabClick = () => {
         setSelectedPrompt(null);
@@ -311,43 +344,62 @@ function LearnContent() {
         else setCheckedIds([]);
     };
 
+    // New: Reorder functionality (Bump to Top)
+    const handleMoveToTop = async (e, id) => {
+        e.stopPropagation();
+        if (!confirm('이 게시글을 최상단으로 올리시겠습니까? (등록일시가 현재로 변경됩니다)')) return;
+
+        try {
+            const { error } = await supabase
+                .from('prompts')
+                .update({ created_at: new Date().toISOString() })
+                .eq('id', id);
+
+            if (error) throw error;
+            fetchPrompts(targetId, selectedDifficulty);
+        } catch (err) {
+            console.error(err);
+            alert('순서 변경 실패');
+        }
+    };
+
     if (!userSession) return null;
 
     return (
-        <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '1rem', minHeight: 'calc(100vh - 80px)', height: (selectedPrompt || activePanel !== 'none') ? 'auto' : 'calc(100vh - 80px)', display: 'flex', flexDirection: 'column' }}>
+        <div className="learn-page-container" style={{ maxWidth: '1400px', margin: '0 auto', minHeight: '100vh', display: 'flex', flexDirection: 'column', padding: '1rem' }}>
             {/* Header */}
-            <div style={{ marginBottom: '2rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+            <div style={{ marginBottom: '1rem' }}>
+                <div className="responsive-header">
                     <h1 style={{ fontSize: '1.8rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>
                         {userSession.display_name} 프롬프트 실습
                     </h1>
                     {isAdmin && (
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <div className="actions">
                             {/* NEW: Admin Actions */}
                             <button
                                 onClick={() => setActivePanel('create')}
                                 className="btn"
-                                style={{ background: '#2563eb', color: 'white', border: 'none', padding: '0.6rem 1rem', borderRadius: '0.375rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600 }}
+                                style={{ background: '#2563eb', color: 'white', border: 'none', padding: '0.6rem 1rem', borderRadius: '0.375rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600, fontSize: '0.9rem', whiteSpace: 'nowrap' }}
                             >
                                 <span>➕</span> 새 프롬프트
                             </button>
                             <button
                                 onClick={() => setActivePanel('ai')}
                                 className="btn"
-                                style={{ background: 'linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)', color: 'white', border: 'none', padding: '0.6rem 1rem', borderRadius: '0.375rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600 }}
+                                style={{ background: 'linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)', color: 'white', border: 'none', padding: '0.6rem 1rem', borderRadius: '0.375rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600, fontSize: '0.9rem', whiteSpace: 'nowrap' }}
                             >
                                 <span>✨</span> AI 자동 생성
                             </button>
                             <button
                                 onClick={() => setActivePanel('bulk')}
                                 className="btn"
-                                style={{ background: 'white', color: '#475569', border: '1px solid #cbd5e1', padding: '0.6rem 1rem', borderRadius: '0.375rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600 }}
+                                style={{ background: 'white', color: '#475569', border: '1px solid #cbd5e1', padding: '0.6rem 1rem', borderRadius: '0.375rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600, fontSize: '0.9rem', whiteSpace: 'nowrap' }}
                             >
                                 <span>📂</span> 대량 등록
                             </button>
 
-                            {/* Separator */}
-                            <div style={{ width: '1px', height: '24px', background: '#e2e8f0', margin: '0 0.5rem' }}></div>
+                            {/* Separator - Hidden on mobile if needed or kept */}
+                            <div style={{ width: '1px', height: '24px', background: '#e2e8f0', margin: '0 0.5rem' }} className="desktop-only"></div>
 
                             {checkedIds.length > 0 && (
                                 <button onClick={handleBulkDelete} className="btn" style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fca5a5', padding: '0.5rem 1rem', borderRadius: '0.375rem', cursor: 'pointer' }}>
@@ -357,66 +409,83 @@ function LearnContent() {
                         </div>
                     )}
                 </div>
+            </div>
 
-                {/* Difficulty Tabs */}
-                <div style={{ marginBottom: '1rem' }}>
-                    <div style={{ display: 'flex', gap: '0.5rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem' }}>
-                        {['beginner', 'intermediate', 'advanced'].map((level) => (
-                            <button
-                                key={level}
-                                onClick={() => setSelectedDifficulty(level)}
-                                style={{
-                                    padding: '0.75rem 1.5rem',
-                                    borderRadius: '0.5rem 0.5rem 0 0',
-                                    fontWeight: 600,
-                                    fontSize: '1rem',
-                                    cursor: 'pointer',
-                                    border: 'none',
-                                    borderBottom: selectedDifficulty === level ? '3px solid #2563eb' : '3px solid transparent',
-                                    color: selectedDifficulty === level ? '#2563eb' : '#64748b',
-                                    background: selectedDifficulty === level ? '#eff6ff' : 'transparent',
-                                    transition: 'all 0.2s'
-                                }}
-                            >
-                                {level === 'beginner' ? '🌱 초급' : level === 'intermediate' ? '🌿 중급' : '🌳 고급'}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Difficulty Description Box */}
-                <div style={{
-                    background: '#f8fafc',
-                    padding: '1.25rem',
-                    borderRadius: '0 0.5rem 0.5rem 0.5rem', // Connect visually with active tab if possible, or just rounded
-                    border: '1px solid #e2e8f0',
-                    marginBottom: '1rem',
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
-                }}>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.75rem', marginBottom: '0.5rem' }}>
-                        <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>
-                            {difficultyGuides[selectedDifficulty].title}
-                        </h3>
-                        <span style={{ fontSize: '0.9rem', color: '#2563eb', fontWeight: 600, background: '#dbeafe', padding: '0.1rem 0.5rem', borderRadius: '4px' }}>
-                            {selectedDifficulty === 'beginner' ? 'Beginner' : selectedDifficulty === 'intermediate' ? 'Intermediate' : 'Advanced'}
-                        </span>
-                    </div>
-                    <p style={{ fontSize: '0.95rem', color: '#475569', marginBottom: '0.5rem', lineHeight: '1.5' }}>
-                        {difficultyGuides[selectedDifficulty].desc}
-                    </p>
-                    <div style={{ fontSize: '0.9rem', color: '#0f766e', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <span>� 핵심 특징:</span>
-                        {difficultyGuides[selectedDifficulty].features}
-                    </div>
+            {/* Difficulty Tabs */}
+            <div style={{ marginBottom: '1rem' }}>
+                <div style={{ display: 'flex', gap: '0.5rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem' }}>
+                    {['beginner', 'intermediate', 'advanced'].map((level) => (
+                        <button
+                            key={level}
+                            onClick={() => setSelectedDifficulty(level)}
+                            style={{
+                                flex: 1,
+                                textAlign: 'center',
+                                padding: '1rem 1.5rem',
+                                borderBottom: selectedDifficulty === level ? '3px solid #3b82f6' : '3px solid transparent',
+                                color: selectedDifficulty === level ? '#2563eb' : '#64748b',
+                                fontWeight: selectedDifficulty === level ? 700 : 500,
+                                cursor: 'pointer',
+                                background: 'none',
+                                borderTop: 'none', borderLeft: 'none', borderRight: 'none',
+                                fontSize: '1.1rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                whiteSpace: 'nowrap',
+                                transition: 'all 0.2s',
+                                gap: '0.5rem'
+                            }}
+                        >
+                            <span className="tab-icon">
+                                {level === 'beginner' ? '🌱' : level === 'intermediate' ? '🌿' : '🌳'}
+                            </span>
+                            {level === 'beginner' ? '초급' : level === 'intermediate' ? '중급' : '고급'}
+                        </button>
+                    ))}
                 </div>
             </div>
 
+
+
+            {/* Difficulty Description Box */}
+            <div style={{
+                background: '#f8fafc',
+                padding: '1.5rem',
+                borderRadius: '0 0.5rem 0.5rem 0.5rem',
+                border: '1px solid #e2e8f0',
+                marginBottom: '1rem',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                fontSize: '0.95rem'
+            }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>
+                            {difficultyGuides[selectedDifficulty].title}
+                        </h3>
+                        <span style={{ fontSize: '0.85rem', color: '#64748b', background: '#e2e8f0', padding: '0.2rem 0.6rem', borderRadius: '4px' }}>
+                            {selectedDifficulty.toUpperCase()}
+                        </span>
+                    </div>
+                </div>
+
+                <p style={{ margin: '0 0 0.75rem 0', color: '#475569', lineHeight: '1.6' }} className="mobile-hidden">
+                    {difficultyGuides[selectedDifficulty].desc}
+                </p>
+
+                <div style={{ color: '#0f766e', fontWeight: 600, display: 'flex', alignItems: 'flex-start', gap: '0.5rem', fontSize: '0.9rem' }}>
+                    <span style={{ whiteSpace: 'nowrap' }}>💡 핵심 특징:</span>
+                    <span>{difficultyGuides[selectedDifficulty].features}</span>
+                </div>
+            </div>
+
+
             {/* MAIN CONTENT AREA */}
-            <div style={{ flex: 1, overflow: (selectedPrompt || activePanel !== 'none') ? 'visible' : 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
 
                 {/* MODE: AI GENERATE PANEL */}
                 {activePanel === 'ai' && (
-                    <div style={{ position: 'absolute', inset: 0, background: 'white', zIndex: 20, overflow: 'hidden' }}>
+                    <div style={{ position: 'absolute', inset: 0, background: 'white', zIndex: 20, overflowY: 'auto' }}>
                         <AIGeneratePanel
                             targetId={targetId}
                             currentDifficulty={selectedDifficulty}
@@ -428,7 +497,7 @@ function LearnContent() {
 
                 {/* MODE: BULK UPLOAD PANEL */}
                 {activePanel === 'bulk' && (
-                    <div style={{ position: 'absolute', inset: 0, background: 'white', zIndex: 20, overflow: 'hidden' }}>
+                    <div style={{ position: 'absolute', inset: 0, background: 'white', zIndex: 20, overflowY: 'auto' }}>
                         <BulkUploadPanel
                             targetId={targetId}
                             onSave={handleBulkSave}
@@ -439,7 +508,7 @@ function LearnContent() {
 
                 {/* MODE: CREATE STANDALONE PANEL */}
                 {activePanel === 'create' && (
-                    <div style={{ position: 'absolute', inset: 0, background: 'white', zIndex: 20, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ position: 'absolute', inset: 0, background: 'white', zIndex: 20, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
                         <PromptDetailPanel
                             mode="create"
                             isAdmin={true}
@@ -452,7 +521,7 @@ function LearnContent() {
 
                 {/* MODE: EDIT STANDALONE PANEL */}
                 {activePanel === 'edit' && selectedPrompt && (
-                    <div style={{ position: 'absolute', inset: 0, background: 'white', zIndex: 20, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ position: 'absolute', inset: 0, background: 'white', zIndex: 20, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
                         <PromptDetailPanel
                             prompt={selectedPrompt}
                             mode="edit"
@@ -478,9 +547,10 @@ function LearnContent() {
                             />
                         </div>
 
-                        {/* List Table */}
-                        <div style={{ flex: 1, overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '0.5rem', background: 'white' }}>
-                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        {/* List Table & Mobile Card View */}
+                        <div style={{ border: '1px solid #e2e8f0', borderRadius: '0.5rem', background: '#f8fafc' }}>
+                            {/* Desktop Table */}
+                            <table className="desktop-table" style={{ width: '100%', borderCollapse: 'collapse', background: 'white' }}>
                                 <thead style={{ position: 'sticky', top: 0, background: '#f8fafc', borderBottom: '1px solid #e2e8f0', zIndex: 10 }}>
                                     <tr>
                                         {isAdmin && <th style={{ padding: '1rem', width: '50px', textAlign: 'center' }}><input type="checkbox" onChange={handleCheckAll} checked={displayedPrompts.length > 0 && checkedIds.length === displayedPrompts.length} /></th>}
@@ -498,7 +568,7 @@ function LearnContent() {
                                         displayedPrompts.map((prompt, idx) => (
                                             <tr
                                                 key={prompt.id}
-                                                onClick={() => { setSelectedPrompt(prompt); setActivePanel('detail'); }}
+                                                onClick={() => handlePromptClick(prompt)}
                                                 style={{
                                                     cursor: 'pointer',
                                                     background: 'white',
@@ -514,10 +584,24 @@ function LearnContent() {
                                                     </td>
                                                 )}
                                                 <td style={{ padding: '1rem', textAlign: 'center', color: '#94a3b8' }}>
+                                                    {/* Re-add Up/Down for admin in PC Table if needed, but user asked for Link Manager. This is Post list. */}
+                                                    {/* Post list reordering was requested earlier and implemented via Bump. No change needed here. */}
                                                     {filteredPrompts.length - ((currentPage - 1) * itemsPerPage) - idx}
                                                 </td>
                                                 <td style={{ padding: '1rem', fontWeight: 600, color: '#334155', fontSize: '1.05rem' }}>
-                                                    {prompt.title}
+                                                    {/* Title Column with Admin Up Button */}
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        {prompt.title}
+                                                        {isAdmin && (
+                                                            <button
+                                                                onClick={(e) => handleMoveToTop(e, prompt.id)}
+                                                                title="맨 위로 올리기"
+                                                                style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: '0.8rem', opacity: 0.5 }}
+                                                            >
+                                                                🔼
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 </td>
                                                 <td style={{ padding: '1rem', textAlign: 'right', color: '#94a3b8', fontSize: '0.9rem' }}>
                                                     {new Date(prompt.created_at).toLocaleDateString()}
@@ -527,6 +611,53 @@ function LearnContent() {
                                     )}
                                 </tbody>
                             </table>
+
+                            {/* Mobile Card View */}
+                            <div className="mobile-list-view" style={{ padding: '0.5rem' }}>
+                                {loading ? (
+                                    <div style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8' }}>로딩 중...</div>
+                                ) : displayedPrompts.length === 0 ? (
+                                    <div style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8' }}>등록된 프롬프트가 없습니다.</div>
+                                ) : (
+                                    displayedPrompts.map((prompt) => (
+                                        <Link
+                                            key={prompt.id}
+                                            href={`${pathname}?promptId=${prompt.id}`}
+                                            className="mobile-card"
+                                            style={{ display: 'block', textDecoration: 'none', color: 'inherit', cursor: 'pointer' }}
+                                        >
+                                            <div className="mobile-card-header">
+                                                <div className="mobile-card-title">{prompt.title}</div>
+                                                {isAdmin && (
+                                                    <input
+                                                        type="checkbox"
+                                                        onClick={(e) => handleCheck(e, prompt.id)}
+                                                        checked={checkedIds.includes(prompt.id)}
+                                                        style={{ transform: 'scale(1.2)' }}
+                                                    />
+                                                )}
+                                            </div>
+                                            <div className="mobile-card-content">
+                                                {prompt.content.replace(/<[^>]+>/g, '') /* Simple Safe Strip for preview */}
+                                            </div>
+                                            <div className="mobile-card-meta">
+                                                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                                    <span>📅 {new Date(prompt.created_at).toLocaleDateString()}</span>
+                                                    {isAdmin && (
+                                                        <button
+                                                            onClick={(e) => handleMoveToTop(e, prompt.id)}
+                                                            style={{ border: '1px solid #e2e8f0', background: 'white', borderRadius: '4px', fontSize: '0.7rem', padding: '2px 6px' }}
+                                                        >
+                                                            🔼 위로
+                                                        </button>
+                                                    )}
+                                                </div>
+                                                <span style={{ color: '#2563eb' }}>자세히 보기 &gt;</span>
+                                            </div>
+                                        </Link>
+                                    ))
+                                )}
+                            </div>
                         </div>
 
                         {/* Pagination */}
@@ -547,7 +678,7 @@ function LearnContent() {
                             mode="view"
                             prompt={selectedPrompt}
                             isAdmin={isAdmin}
-                            onClose={() => { setSelectedPrompt(null); setActivePanel('none'); }}
+                            onClose={handleCloseDetail}
                             onSave={handleSavePrompt}
                             onDelete={handleDeleteClick}
                             enableThreadCreation={true}
@@ -557,7 +688,7 @@ function LearnContent() {
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     );
 }
 

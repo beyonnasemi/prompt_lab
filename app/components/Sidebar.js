@@ -158,8 +158,11 @@ export default function Sidebar() {
               else if (link.icon_key === 'perplexity') iconSrc = '/icons/perplexity.svg';
               else if (link.icon_key === 'aistudio') iconSrc = '/icons/gemini.svg';
               else if (link.icon_key === 'antigravity') iconSrc = '/favicon.png';
+              else if (link.icon_key && link.icon_key.startsWith('http')) {
+                iconSrc = link.icon_key;
+              }
               else if (link.icon_key === 'auto' || (!link.icon_key && link.url)) {
-                // Use Google S2 Favicon service
+                // Use Google S2 Favicon service (Client-side fallback)
                 try {
                   const domain = new URL(link.url).hostname;
                   iconSrc = `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
