@@ -3,700 +3,775 @@
 import { useState, useEffect, Suspense, useMemo } from 'react';
 import { useRouter, useParams, useSearchParams, usePathname } from 'next/navigation';
 import Link from 'next/link';
+import {
+  Plus, Sparkles, FolderUp, Trash2, Search, ChevronLeft, ChevronRight,
+  ArrowUpToLine, Loader2, Inbox, Leaf, TreePine, TreeDeciduous, Shield,
+} from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import BulkUploadPanel from '@/app/components/BulkUploadPanel';
 import AIGeneratePanel from '@/app/components/AIGeneratePanel';
 import PromptDetailPanel from '@/app/components/PromptDetailPanel';
+import { cn } from '@/lib/utils';
 
 const targetNames = {
-    'business': '비즈니스',
-    'public': '공공기관',
-    'univ': '대학',
-    'elem': '초등학교',
-    'middle': '중학교',
-    'high': '고등학교',
-    'adult': '일반성인 (기초)',
+  business: '비즈니스',
+  public: '공공기관',
+  univ: '대학',
+  elem: '초등학교',
+  middle: '중학교',
+  high: '고등학교',
+  adult: '일반성인 (기초)',
 };
 
 const difficultyGuides = {
-    beginner: {
-        title: "초급 (Beginner)",
-        desc: "생성형 AI와 친해지는 단계입니다. 간단하고 명확한 지시로 AI에게 기초적인 작업을 요청하는 방법을 익힙니다.",
-        features: "핵심 특징: 명확한 지시어(명령), 짧고 간결한 문장"
-    },
-    intermediate: {
-        title: "중급 (Intermediate)",
-        desc: "구체적인 상황(Context)을 설정하고 AI에게 역할(Persona)을 부여하여, 업무에 바로 활용 가능한 실무형 답변을 얻는 단계입니다.",
-        features: "핵심 특징: 역할 부여(Role), 구체적 상황 설명, 목적 명시"
-    },
-    advanced: {
-        title: "고급 (Advanced)",
-        desc: "복잡한 논리적 추론이나 창의적 결과물이 필요할 때 사용합니다. 예시(Few-shot)를 제공하거나 출력 형식을 지정하여 전문가 수준의 결과를 도출합니다.",
-        features: "핵심 특징: 예시 제공(Few-shot), 출력 형식 지정(Format), 단계별 사고 유도"
-    }
+  beginner: {
+    title: '초급 (Beginner)',
+    Icon: Leaf,
+    gradient: 'from-success-500 to-brand-400',
+    desc: '생성형 AI와 친해지는 단계입니다. 간단하고 명확한 지시로 AI에게 기초적인 작업을 요청하는 방법을 익힙니다.',
+    features: '명확한 지시어(명령), 짧고 간결한 문장',
+  },
+  intermediate: {
+    title: '중급 (Intermediate)',
+    Icon: TreeDeciduous,
+    gradient: 'from-brand-500 to-violet-500',
+    desc: '구체적인 상황(Context)을 설정하고 AI에게 역할(Persona)을 부여하여, 업무에 바로 활용 가능한 실무형 답변을 얻는 단계입니다.',
+    features: '역할 부여(Role), 구체적 상황 설명, 목적 명시',
+  },
+  advanced: {
+    title: '고급 (Advanced)',
+    Icon: TreePine,
+    gradient: 'from-violet-600 to-accent-500',
+    desc: '복잡한 논리적 추론이나 창의적 결과물이 필요할 때 사용합니다. 예시(Few-shot)를 제공하거나 출력 형식을 지정하여 전문가 수준의 결과를 도출합니다.',
+    features: '예시 제공(Few-shot), 출력 형식 지정(Format), 단계별 사고 유도',
+  },
 };
 
 function LearnContent() {
-    const params = useParams();
-    const router = useRouter();
-    const targetId = params.target;
-
-    const [userSession, setUserSession] = useState(null);
-    const [prompts, setPrompts] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [selectedDifficulty, setSelectedDifficulty] = useState('beginner');
-
-    // State for Right Panel
-    // 'none' (or 'placeholder'), 'detail', 'create', 'edit', 'ai', 'bulk'
-    const [activePanel, setActivePanel] = useState('none');
-
-    // Selection State
-    const [selectedPrompt, setSelectedPrompt] = useState(null);
-    const [checkedIds, setCheckedIds] = useState([]);
-
-    // Search & Pagination State
-    const [searchQuery, setSearchQuery] = useState('');
-    const [currentPage, setCurrentPage] = useState(1);
-    const searchParams = useSearchParams();
-    const pathname = usePathname();
-    const [isAdmin, setIsAdmin] = useState(false);
-
-    // Sync URL with State (Handle Back Button)
-    useEffect(() => {
-        const promptId = searchParams.get('promptId');
-        if (promptId && prompts.length > 0) {
-            const prompt = prompts.find(p => p.id === promptId);
-            if (prompt) {
-                setSelectedPrompt(prompt);
-                // Ensure panel is correctly set
-                setActivePanel('detail');
-            }
-        } else {
-            setSelectedPrompt(null);
-            // Reset panel to show list if we are in detail view context
-            // But if user is creating/editing, we shouldn't force 'none' unless navigation implies it?
-            // If promptId is removed, we are likely going back to list.
-            setActivePanel('none');
-        }
-    }, [searchParams, prompts]);
-
-    // Handle Prompt Click (Update URL)
-    const handlePromptClick = (prompt) => {
-        const params = new URLSearchParams(searchParams);
-        params.set('promptId', prompt.id);
-        router.push(`${pathname}?${params.toString()}`);
-    };
-
-    // Handle Close (Reset URL)
-    const handleCloseDetail = () => {
-        const params = new URLSearchParams(searchParams);
-        params.delete('promptId');
-        router.push(`${pathname}?${params.toString()}`);
-    };
-
-    useEffect(() => {
-        if (!targetId) return;
-
-        const adminSessionStr = localStorage.getItem('admin_session');
-        console.log("PromptLab Version: ThreadFix_v2");
-        if (adminSessionStr) {
-            const targetName = targetNames[targetId] || targetId;
-            setUserSession({ display_name: targetName, username: targetId, role: 'admin' });
-            setIsAdmin(true);
-            fetchPrompts(targetId, selectedDifficulty);
-            return;
-        }
-
-        const sessionStr = localStorage.getItem('user_session');
-        if (!sessionStr) {
-            router.replace(`/login?target=${targetId}`);
-            return;
-        }
-
-        try {
-            const session = JSON.parse(sessionStr);
-            if (session.username !== targetId && session.role !== 'admin') {
-                alert('접근 권한이 없습니다.');
-                router.replace('/');
-                return;
-            }
-            setUserSession({
-                ...session,
-                display_name: session.display_name || session.displayName || '사용자'
-            });
-            fetchPrompts(targetId, selectedDifficulty);
-        } catch (e) {
-            console.error(e);
-            localStorage.removeItem('user_session');
-            router.replace(`/login?target=${targetId}`);
-        }
-    }, [targetId, selectedDifficulty, router]);
-
-    const fetchPrompts = async (target, difficulty) => {
-        setLoading(true);
-        setCheckedIds([]);
-        // We do NOT reset selectedPrompt here to preserve view if refreshing, 
-        // but if difficulty changes, the prompt works might be filtered out? 
-        // For now let's keep it.
-
-        const { data, error } = await supabase
-            .from('prompts')
-            .select(`
-                id, title, content, expected_answer, difficulty, created_by, attachment_url, created_at,
-                accounts:created_by ( display_name )
-            `)
-            .eq('target_group', target)
-            .eq('difficulty', difficulty)
-            .order('created_at', { ascending: false });
-
-        if (error) {
-            // Fallback fetch
-            const { data: fallbackData } = await supabase.from('prompts').select('*').eq('target_group', target).eq('difficulty', difficulty).order('created_at', { ascending: false });
-            const filteredFallback = (fallbackData || []).filter(p => !p.expected_answer?.includes('<!--THREAD-->'));
-            setPrompts(filteredFallback);
-        } else {
-            // Safety Filter: Ensure threaded prompts are removed before setting state
-            const filteredData = (data || []).filter(p => !p.expected_answer?.includes('<!--THREAD-->'));
-            setPrompts(filteredData);
-        }
-        setLoading(false);
-    };
-
-
-    // --- Search & Pagination ---
-    const filteredPrompts = useMemo(() => {
-        let result = prompts;
-        // Filter out threaded/reply prompts (hidden from main list)
-        result = result.filter(p => !p.expected_answer?.includes('<!--THREAD-->'));
-
-        if (!searchQuery) return result;
-        return result.filter(p => p.title.toLowerCase().includes(searchQuery.toLowerCase()));
-    }, [prompts, searchQuery]);
-
-    const itemsPerPage = 10; // Increased to 10 as requested
-    const totalPages = Math.ceil(filteredPrompts.length / itemsPerPage);
-    const displayedPrompts = useMemo(() => {
-        const start = (currentPage - 1) * itemsPerPage;
-        return filteredPrompts.slice(start, start + itemsPerPage);
-    }, [filteredPrompts, currentPage, itemsPerPage]);
-
-    useEffect(() => {
-        setCurrentPage(1);
-        setSelectedPrompt(null);
-        setActivePanel('none'); // Also reset activePanel
-    }, [selectedDifficulty, searchQuery]);
-
-
-    // --- Handlers ---
-
-    // --- Handlers ---
-
-
-
-    const handleCreateTabClick = () => {
-        setSelectedPrompt(null);
-        setActivePanel('create');
-    };
-
-    // This handles single prompt save (create/edit)
-    const handleSavePrompt = async (formData, file, id) => {
-        try {
-            const adminSession = JSON.parse(localStorage.getItem('admin_session') || '{}');
-            const { data: adminAccount } = await supabase.from('accounts').select('id').eq('username', 'admin').single();
-
-            const payload = {
-                target_group: targetId,
-                difficulty: formData.difficulty || selectedDifficulty,
-                title: formData.title,
-                content: formData.content,
-                expected_answer: formData.expected_answer,
-                created_by: adminAccount?.id
-            };
-
-            // File Upload Logic
-            if (file) {
-                const fileExt = file.name.split('.').pop();
-                const fileName = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
-
-                try {
-                    const { error: uploadError } = await supabase.storage
-                        .from('prompt-files')
-                        .upload(fileName, file);
-
-                    if (uploadError) {
-                        console.error("Upload error detail:", uploadError);
-                        throw new Error(`이미지 업로드 실패: ${uploadError.message || '권한 부족 또는 네트워크 오류'}`);
-                    }
-
-                    const { data: { publicUrl } } = supabase.storage.from('prompt-files').getPublicUrl(fileName);
-                    payload.attachment_url = publicUrl;
-                } catch (err) {
-                    // Specific handling for common upload errors
-                    if (err.message && err.message.includes('exceeded')) {
-                        throw new Error("이미지 용량이 서버 허용치를 초과했습니다.");
-                    }
-                    // Re-throw to block save, because user expects image
-                    throw err;
-                }
-            } else if (formData.attachment_url) {
-                payload.attachment_url = formData.attachment_url;
-            }
-
-            let resultData = null;
-
-            if (id) {
-                // Update
-                const { data, error } = await supabase.from('prompts').update(payload).eq('id', id).select().single();
-                if (error) throw error;
-                resultData = data;
-
-                // Update local state if needed
-                if (selectedPrompt?.id === id) {
-                    setSelectedPrompt({ ...selectedPrompt, ...payload });
-                }
-            } else {
-                // Insert
-                const { data, error } = await supabase.from('prompts').insert([payload]).select().single();
-                if (error) throw error;
-                resultData = data;
-            }
-
-            fetchPrompts(targetId, selectedDifficulty);
-            // We do NOT change panel here if creating, to allow continuous flow.
-            // PromptDetailPanel handles the UI feedback.
-
-            return resultData;
-
-        } catch (error) {
-            console.error("Save failed", error);
-            throw error;
-        }
-    };
-
-    // This handles bulk save
-    const handleBulkSave = async (dataToSave) => {
-        if (!dataToSave || !Array.isArray(dataToSave) || dataToSave.length === 0) return;
-
-        try {
-            const adminSession = JSON.parse(localStorage.getItem('admin_session') || '{}');
-            const { data: adminAccount } = await supabase.from('accounts').select('id').eq('username', 'admin').single();
-
-            const rows = dataToSave.map(item => ({
-                target_group: targetId,
-                difficulty: item.difficulty || selectedDifficulty,
-                title: item.title,
-                content: item.content,
-                expected_answer: item.expected_answer,
-                created_by: adminAccount?.id
-            }));
-
-            const { error } = await supabase.from('prompts').insert(rows);
-            if (error) throw error;
-
-            alert(`${rows.length}개의 프롬프트가 성공적으로 등록되었습니다.`);
-            fetchPrompts(targetId, selectedDifficulty);
-            setActivePanel('none'); // Or back to list?
-        } catch (error) {
-            console.error("Save Error:", error);
-            alert('저장 중 오류가 발생했습니다: ' + error.message);
-        }
-    };
-
-    const handleDeleteClick = async (id) => {
-        // Redundant confirm removed here since PromptDetailPanel already asks? 
-        // Wait, PromptDetailPanel asks. I should remove confirm here if called from there?
-        // Actually, PromptDetailPanel code I fixed earlier: <button onClick={() => onDelete(prompt.id)}>
-        // So the confirm IS removed from PromptDetailPanel. It MUST be here.
-        if (!confirm('정말 삭제하시겠습니까?')) return;
-        const { error } = await supabase.from('prompts').delete().eq('id', id);
-        if (error) alert('삭제 실패: ' + error.message);
-        else {
-            fetchPrompts(targetId, selectedDifficulty);
-            if (selectedPrompt?.id === id) {
-                setSelectedPrompt(null);
-                setActivePanel('none');
-            }
-        }
-    };
-
-    const handleBulkDelete = async () => {
-        if (checkedIds.length === 0) return;
-        if (!confirm(`선택한 ${checkedIds.length}개의 프롬프트를 삭제하시겠습니까?`)) return;
-
-        const { error } = await supabase.from('prompts').delete().in('id', checkedIds);
-        if (error) {
-            alert('일괄 삭제 실패: ' + error.message);
-        } else {
-            alert('삭제되었습니다.');
-            fetchPrompts(targetId, selectedDifficulty);
-            setCheckedIds([]);
-        }
-    };
-
-    const handleCheck = (e, id) => {
-        e.stopPropagation();
-        if (e.target.checked) setCheckedIds(prev => [...prev, id]);
-        else setCheckedIds(prev => prev.filter(item => item !== id));
-    };
-
-    const handleCheckAll = (e) => {
-        if (e.target.checked) setCheckedIds(displayedPrompts.map(p => p.id));
-        else setCheckedIds([]);
-    };
-
-    // New: Reorder functionality (Bump to Top)
-    const handleMoveToTop = async (e, id) => {
-        e.stopPropagation();
-        if (!confirm('이 게시글을 최상단으로 올리시겠습니까? (등록일시가 현재로 변경됩니다)')) return;
-
-        try {
-            const { error } = await supabase
-                .from('prompts')
-                .update({ created_at: new Date().toISOString() })
-                .eq('id', id);
-
-            if (error) throw error;
-            fetchPrompts(targetId, selectedDifficulty);
-        } catch (err) {
-            console.error(err);
-            alert('순서 변경 실패');
-        }
-    };
-
-    if (!userSession) return null;
-
-    return (
-        <div className="learn-page-container" style={{ maxWidth: '1400px', margin: '0 auto', minHeight: '100vh', display: 'flex', flexDirection: 'column', padding: '1rem' }}>
-            {/* Header */}
-            <div style={{ marginBottom: '1rem' }}>
-                <div className="responsive-header">
-                    <h1 style={{ fontSize: '1.8rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>
-                        {userSession.display_name} 프롬프트 실습
-                    </h1>
-                    {isAdmin && (
-                        <div className="actions">
-                            {/* NEW: Admin Actions */}
-                            <button
-                                onClick={() => setActivePanel('create')}
-                                className="btn"
-                                style={{ background: '#2563eb', color: 'white', border: 'none', padding: '0.6rem 1rem', borderRadius: '0.375rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600, fontSize: '0.9rem', whiteSpace: 'nowrap' }}
-                            >
-                                <span>➕</span> 새 프롬프트
-                            </button>
-                            <button
-                                onClick={() => setActivePanel('ai')}
-                                className="btn"
-                                style={{ background: 'linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)', color: 'white', border: 'none', padding: '0.6rem 1rem', borderRadius: '0.375rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600, fontSize: '0.9rem', whiteSpace: 'nowrap' }}
-                            >
-                                <span>✨</span> AI 자동 생성
-                            </button>
-                            <button
-                                onClick={() => setActivePanel('bulk')}
-                                className="btn"
-                                style={{ background: 'white', color: '#475569', border: '1px solid #cbd5e1', padding: '0.6rem 1rem', borderRadius: '0.375rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600, fontSize: '0.9rem', whiteSpace: 'nowrap' }}
-                            >
-                                <span>📂</span> 대량 등록
-                            </button>
-
-                            {/* Separator - Hidden on mobile if needed or kept */}
-                            <div style={{ width: '1px', height: '24px', background: '#e2e8f0', margin: '0 0.5rem' }} className="desktop-only"></div>
-
-                            {checkedIds.length > 0 && (
-                                <button onClick={handleBulkDelete} className="btn" style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fca5a5', padding: '0.5rem 1rem', borderRadius: '0.375rem', cursor: 'pointer' }}>
-                                    🗑️ 선택 삭제 ({checkedIds.length})
-                                </button>
-                            )}
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {/* Difficulty Tabs */}
-            <div style={{ marginBottom: '1rem' }}>
-                <div style={{ display: 'flex', gap: '0.5rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem' }}>
-                    {['beginner', 'intermediate', 'advanced'].map((level) => (
-                        <button
-                            key={level}
-                            onClick={() => setSelectedDifficulty(level)}
-                            style={{
-                                flex: 1,
-                                textAlign: 'center',
-                                padding: '1rem 1.5rem',
-                                borderBottom: selectedDifficulty === level ? '3px solid #3b82f6' : '3px solid transparent',
-                                color: selectedDifficulty === level ? '#2563eb' : '#64748b',
-                                fontWeight: selectedDifficulty === level ? 700 : 500,
-                                cursor: 'pointer',
-                                background: 'none',
-                                borderTop: 'none', borderLeft: 'none', borderRight: 'none',
-                                fontSize: '1.1rem',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                whiteSpace: 'nowrap',
-                                transition: 'all 0.2s',
-                                gap: '0.5rem'
-                            }}
-                        >
-                            <span className="tab-icon">
-                                {level === 'beginner' ? '🌱' : level === 'intermediate' ? '🌿' : '🌳'}
-                            </span>
-                            {level === 'beginner' ? '초급' : level === 'intermediate' ? '중급' : '고급'}
-                        </button>
-                    ))}
-                </div>
-            </div>
-
-
-
-            {/* Difficulty Description Box */}
-            <div style={{
-                background: '#f8fafc',
-                padding: '1.5rem',
-                borderRadius: '0 0.5rem 0.5rem 0.5rem',
-                border: '1px solid #e2e8f0',
-                marginBottom: '1rem',
-                boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                fontSize: '0.95rem'
-            }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>
-                            {difficultyGuides[selectedDifficulty].title}
-                        </h3>
-                        <span style={{ fontSize: '0.85rem', color: '#64748b', background: '#e2e8f0', padding: '0.2rem 0.6rem', borderRadius: '4px' }}>
-                            {selectedDifficulty.toUpperCase()}
-                        </span>
-                    </div>
-                </div>
-
-                <p style={{ margin: '0 0 0.75rem 0', color: '#475569', lineHeight: '1.6' }} className="mobile-hidden">
-                    {difficultyGuides[selectedDifficulty].desc}
-                </p>
-
-                <div style={{ color: '#0f766e', fontWeight: 600, display: 'flex', alignItems: 'flex-start', gap: '0.5rem', fontSize: '0.9rem' }}>
-                    <span style={{ whiteSpace: 'nowrap' }}>💡 핵심 특징:</span>
-                    <span>{difficultyGuides[selectedDifficulty].features}</span>
-                </div>
-            </div>
-
-
-            {/* MAIN CONTENT AREA */}
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-
-                {/* MODE: AI GENERATE PANEL */}
-                {activePanel === 'ai' && (
-                    <div style={{ position: 'absolute', inset: 0, background: 'white', zIndex: 20, overflowY: 'auto' }}>
-                        <AIGeneratePanel
-                            targetId={targetId}
-                            currentDifficulty={selectedDifficulty}
-                            onSuccess={handleBulkSave}
-                            onClose={() => setActivePanel('none')}
-                        />
-                    </div>
-                )}
-
-                {/* MODE: BULK UPLOAD PANEL */}
-                {activePanel === 'bulk' && (
-                    <div style={{ position: 'absolute', inset: 0, background: 'white', zIndex: 20, overflowY: 'auto' }}>
-                        <BulkUploadPanel
-                            targetId={targetId}
-                            onSave={handleBulkSave}
-                            onClose={() => setActivePanel('none')}
-                        />
-                    </div>
-                )}
-
-                {/* MODE: CREATE STANDALONE PANEL */}
-                {activePanel === 'create' && (
-                    <div style={{ position: 'absolute', inset: 0, background: 'white', zIndex: 20, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
-                        <PromptDetailPanel
-                            mode="create"
-                            isAdmin={true}
-                            onSave={handleSavePrompt}
-                            onClose={() => setActivePanel('none')}
-                            initialDifficulty={selectedDifficulty}
-                        />
-                    </div>
-                )}
-
-                {/* MODE: EDIT STANDALONE PANEL */}
-                {activePanel === 'edit' && selectedPrompt && (
-                    <div style={{ position: 'absolute', inset: 0, background: 'white', zIndex: 20, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
-                        <PromptDetailPanel
-                            prompt={selectedPrompt}
-                            mode="edit"
-                            isAdmin={true}
-                            onSave={handleSavePrompt}
-                            onDelete={handleDeleteClick}
-                            onClose={() => setActivePanel('detail')}
-                        />
-                    </div>
-                )}
-
-                {/* MODE: LIST VIEW */}
-                {!selectedPrompt && (
-                    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-                        {/* Search */}
-                        <div style={{ marginBottom: '1rem' }}>
-                            <input
-                                type="text"
-                                placeholder="주제 검색..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                style={{ width: '100%', padding: '0.8rem', border: '1px solid #e2e8f0', borderRadius: '0.5rem', fontSize: '1rem' }}
-                            />
-                        </div>
-
-                        {/* List Table & Mobile Card View */}
-                        <div style={{ border: '1px solid #e2e8f0', borderRadius: '0.5rem', background: '#f8fafc' }}>
-                            {/* Desktop Table */}
-                            <table className="desktop-table" style={{ width: '100%', borderCollapse: 'collapse', background: 'white' }}>
-                                <thead style={{ position: 'sticky', top: 0, background: '#f8fafc', borderBottom: '1px solid #e2e8f0', zIndex: 10 }}>
-                                    <tr>
-                                        {isAdmin && <th style={{ padding: '1rem', width: '50px', textAlign: 'center' }}><input type="checkbox" onChange={handleCheckAll} checked={displayedPrompts.length > 0 && checkedIds.length === displayedPrompts.length} /></th>}
-                                        <th style={{ padding: '1rem', textAlign: 'center', width: '80px', color: '#64748b' }}>No.</th>
-                                        <th style={{ padding: '1rem', textAlign: 'left', color: '#64748b' }}>주제</th>
-                                        <th style={{ padding: '1rem', textAlign: 'right', width: '150px', color: '#64748b' }}>등록일</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {loading ? (
-                                        <tr><td colSpan="4" style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8' }}>로딩 중...</td></tr>
-                                    ) : displayedPrompts.length === 0 ? (
-                                        <tr><td colSpan="4" style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8' }}>등록된 프롬프트가 없습니다.</td></tr>
-                                    ) : (
-                                        displayedPrompts.map((prompt, idx) => (
-                                            <tr
-                                                key={prompt.id}
-                                                onClick={() => handlePromptClick(prompt)}
-                                                style={{
-                                                    cursor: 'pointer',
-                                                    background: 'white',
-                                                    borderBottom: '1px solid #f1f5f9',
-                                                    transition: 'background 0.2s'
-                                                }}
-                                                onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'}
-                                                onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
-                                            >
-                                                {isAdmin && (
-                                                    <td style={{ padding: '1rem', textAlign: 'center' }} onClick={e => e.stopPropagation()}>
-                                                        <input type="checkbox" checked={checkedIds.includes(prompt.id)} onChange={e => handleCheck(e, prompt.id)} />
-                                                    </td>
-                                                )}
-                                                <td style={{ padding: '1rem', textAlign: 'center', color: '#94a3b8' }}>
-                                                    {/* Re-add Up/Down for admin in PC Table if needed, but user asked for Link Manager. This is Post list. */}
-                                                    {/* Post list reordering was requested earlier and implemented via Bump. No change needed here. */}
-                                                    {filteredPrompts.length - ((currentPage - 1) * itemsPerPage) - idx}
-                                                </td>
-                                                <td style={{ padding: '1rem', fontWeight: 600, color: '#334155', fontSize: '1.05rem' }}>
-                                                    {/* Title Column with Admin Up Button */}
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                        {prompt.title}
-                                                        {isAdmin && (
-                                                            <button
-                                                                onClick={(e) => handleMoveToTop(e, prompt.id)}
-                                                                title="맨 위로 올리기"
-                                                                style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: '0.8rem', opacity: 0.5 }}
-                                                            >
-                                                                🔼
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                                <td style={{ padding: '1rem', textAlign: 'right', color: '#94a3b8', fontSize: '0.9rem' }}>
-                                                    {new Date(prompt.created_at).toLocaleDateString()}
-                                                </td>
-                                            </tr>
-                                        ))
-                                    )}
-                                </tbody>
-                            </table>
-
-                            {/* Mobile Card View */}
-                            <div className="mobile-list-view" style={{ padding: '0.5rem' }}>
-                                {loading ? (
-                                    <div style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8' }}>로딩 중...</div>
-                                ) : displayedPrompts.length === 0 ? (
-                                    <div style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8' }}>등록된 프롬프트가 없습니다.</div>
-                                ) : (
-                                    displayedPrompts.map((prompt) => (
-                                        <Link
-                                            key={prompt.id}
-                                            href={`${pathname}?promptId=${prompt.id}`}
-                                            className="mobile-card"
-                                            style={{ display: 'block', textDecoration: 'none', color: 'inherit', cursor: 'pointer' }}
-                                        >
-                                            <div className="mobile-card-header">
-                                                <div className="mobile-card-title">{prompt.title}</div>
-                                                {isAdmin && (
-                                                    <input
-                                                        type="checkbox"
-                                                        onClick={(e) => handleCheck(e, prompt.id)}
-                                                        checked={checkedIds.includes(prompt.id)}
-                                                        style={{ transform: 'scale(1.2)' }}
-                                                    />
-                                                )}
-                                            </div>
-                                            <div className="mobile-card-content">
-                                                {prompt.content.replace(/<[^>]+>/g, '') /* Simple Safe Strip for preview */}
-                                            </div>
-                                            <div className="mobile-card-meta">
-                                                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                                                    <span>📅 {new Date(prompt.created_at).toLocaleDateString()}</span>
-                                                    {isAdmin && (
-                                                        <button
-                                                            onClick={(e) => handleMoveToTop(e, prompt.id)}
-                                                            style={{ border: '1px solid #e2e8f0', background: 'white', borderRadius: '4px', fontSize: '0.7rem', padding: '2px 6px' }}
-                                                        >
-                                                            🔼 위로
-                                                        </button>
-                                                    )}
-                                                </div>
-                                                <span style={{ color: '#2563eb' }}>자세히 보기 &gt;</span>
-                                            </div>
-                                        </Link>
-                                    ))
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Pagination */}
-                        {totalPages > 1 && (
-                            <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', marginTop: '1.5rem' }}>
-                                <button disabled={currentPage === 1} onClick={() => setCurrentPage(c => c - 1)} className="btn" style={{ border: '1px solid #e2e8f0', padding: '0.5rem 1rem' }}>◀ 이전</button>
-                                <span style={{ display: 'flex', alignItems: 'center', color: '#64748b', margin: '0 1rem' }}>{currentPage} / {totalPages}</span>
-                                <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(c => c + 1)} className="btn" style={{ border: '1px solid #e2e8f0', padding: '0.5rem 1rem' }}>다음 ▶</button>
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                {/* MODE: DETAIL VIEW (UNIFIED) */}
-                {selectedPrompt && (
-                    <div style={{}}>
-                        <PromptDetailPanel
-                            mode="view"
-                            prompt={selectedPrompt}
-                            isAdmin={isAdmin}
-                            onClose={handleCloseDetail}
-                            onSave={handleSavePrompt}
-                            onDelete={handleDeleteClick}
-                            enableThreadCreation={true}
-                            initialDifficulty={selectedDifficulty}
-                        // Note: isThread is false by default for the ROOT view
-                        />
-                    </div>
-                )}
-            </div>
-        </div >
+  const params = useParams();
+  const router = useRouter();
+  const targetId = params.target;
+
+  const [userSession, setUserSession] = useState(null);
+  const [prompts, setPrompts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(null);
+  const [selectedDifficulty, setSelectedDifficulty] = useState('beginner');
+
+  const [activePanel, setActivePanel] = useState('none');
+  const [selectedPrompt, setSelectedPrompt] = useState(null);
+  const [checkedIds, setCheckedIds] = useState([]);
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const promptId = searchParams.get('promptId');
+    if (promptId && prompts.length > 0) {
+      const prompt = prompts.find((p) => p.id === promptId);
+      if (prompt) {
+        setSelectedPrompt(prompt);
+        setActivePanel('detail');
+      }
+    } else {
+      setSelectedPrompt(null);
+      setActivePanel('none');
+    }
+  }, [searchParams, prompts]);
+
+  const handlePromptClick = (prompt) => {
+    const p = new URLSearchParams(searchParams);
+    p.set('promptId', prompt.id);
+    router.push(`${pathname}?${p.toString()}`);
+  };
+
+  const handleCloseDetail = () => {
+    const p = new URLSearchParams(searchParams);
+    p.delete('promptId');
+    router.push(`${pathname}?${p.toString()}`);
+  };
+
+  useEffect(() => {
+    if (!targetId) return;
+
+    const adminSessionStr = localStorage.getItem('admin_session');
+    if (adminSessionStr) {
+      const targetName = targetNames[targetId] || targetId;
+      setUserSession({
+        display_name: targetName,
+        username: targetId,
+        role: 'admin',
+      });
+      setIsAdmin(true);
+      fetchPrompts(targetId, selectedDifficulty);
+      return;
+    }
+
+    const sessionStr = localStorage.getItem('user_session');
+    if (!sessionStr) {
+      router.replace(`/login?target=${targetId}`);
+      return;
+    }
+
+    try {
+      const session = JSON.parse(sessionStr);
+      if (session.username !== targetId && session.role !== 'admin') {
+        alert('접근 권한이 없습니다.');
+        router.replace('/');
+        return;
+      }
+      setUserSession({
+        ...session,
+        display_name: session.display_name || session.displayName || '사용자',
+      });
+      fetchPrompts(targetId, selectedDifficulty);
+    } catch (e) {
+      console.error(e);
+      localStorage.removeItem('user_session');
+      router.replace(`/login?target=${targetId}`);
+    }
+  }, [targetId, selectedDifficulty, router]);
+
+  const fetchPrompts = async (target, difficulty) => {
+    setLoading(true);
+    setFetchError(null);
+    setCheckedIds([]);
+
+    try {
+      const { data, error } = await supabase
+        .from('prompts')
+        .select(
+          `id, title, content, expected_answer, difficulty, created_by, attachment_url, created_at,
+           accounts:created_by ( display_name )`,
+        )
+        .eq('target_group', target)
+        .eq('difficulty', difficulty)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        // Try fallback without join
+        const { data: fallback, error: fallbackErr } = await supabase
+          .from('prompts')
+          .select('*')
+          .eq('target_group', target)
+          .eq('difficulty', difficulty)
+          .order('created_at', { ascending: false });
+        if (fallbackErr) throw fallbackErr;
+        const filtered = (fallback || []).filter(
+          (p) => !p.expected_answer?.includes('<!--THREAD-->'),
+        );
+        setPrompts(filtered);
+      } else {
+        const filtered = (data || []).filter(
+          (p) => !p.expected_answer?.includes('<!--THREAD-->'),
+        );
+        setPrompts(filtered);
+      }
+    } catch (err) {
+      console.error('fetchPrompts error:', err);
+      setFetchError(
+        err?.message?.includes('fetch')
+          ? '서버 연결이 일시적으로 끊겼어요. 잠시 후 다시 시도해주세요.'
+          : `데이터 불러오기 실패: ${err.message || '알 수 없는 오류'}`,
+      );
+      setPrompts([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredPrompts = useMemo(() => {
+    let result = prompts.filter(
+      (p) => !p.expected_answer?.includes('<!--THREAD-->'),
     );
+    if (!searchQuery) return result;
+    return result.filter((p) =>
+      p.title.toLowerCase().includes(searchQuery.toLowerCase()),
+    );
+  }, [prompts, searchQuery]);
+
+  const itemsPerPage = 10;
+  const totalPages = Math.ceil(filteredPrompts.length / itemsPerPage);
+  const displayedPrompts = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredPrompts.slice(start, start + itemsPerPage);
+  }, [filteredPrompts, currentPage]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+    setSelectedPrompt(null);
+    setActivePanel('none');
+  }, [selectedDifficulty, searchQuery]);
+
+  const handleSavePrompt = async (formData, file, id) => {
+    try {
+      const { data: adminAccount } = await supabase
+        .from('accounts')
+        .select('id')
+        .eq('username', 'admin')
+        .single();
+
+      const payload = {
+        target_group: targetId,
+        difficulty: formData.difficulty || selectedDifficulty,
+        title: formData.title,
+        content: formData.content,
+        expected_answer: formData.expected_answer,
+        created_by: adminAccount?.id,
+      };
+
+      if (file) {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}_${Math.random()
+          .toString(36)
+          .substr(2, 9)}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage
+          .from('prompt-files')
+          .upload(fileName, file);
+        if (uploadError)
+          throw new Error(
+            `이미지 업로드 실패: ${uploadError.message || '권한 부족'}`,
+          );
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from('prompt-files').getPublicUrl(fileName);
+        payload.attachment_url = publicUrl;
+      } else if (formData.attachment_url) {
+        payload.attachment_url = formData.attachment_url;
+      }
+
+      let resultData = null;
+      if (id) {
+        const { data, error } = await supabase
+          .from('prompts')
+          .update(payload)
+          .eq('id', id)
+          .select()
+          .single();
+        if (error) throw error;
+        resultData = data;
+        if (selectedPrompt?.id === id) {
+          setSelectedPrompt({ ...selectedPrompt, ...payload });
+        }
+      } else {
+        const { data, error } = await supabase
+          .from('prompts')
+          .insert([payload])
+          .select()
+          .single();
+        if (error) throw error;
+        resultData = data;
+      }
+      fetchPrompts(targetId, selectedDifficulty);
+      return resultData;
+    } catch (error) {
+      console.error('Save failed', error);
+      throw error;
+    }
+  };
+
+  const handleBulkSave = async (dataToSave) => {
+    if (!dataToSave?.length) return;
+    try {
+      const { data: adminAccount } = await supabase
+        .from('accounts')
+        .select('id')
+        .eq('username', 'admin')
+        .single();
+
+      const rows = dataToSave.map((item) => ({
+        target_group: targetId,
+        difficulty: item.difficulty || selectedDifficulty,
+        title: item.title,
+        content: item.content,
+        expected_answer: item.expected_answer,
+        created_by: adminAccount?.id,
+      }));
+
+      const { error } = await supabase.from('prompts').insert(rows);
+      if (error) throw error;
+
+      alert(`${rows.length}개의 프롬프트가 성공적으로 등록되었습니다.`);
+      fetchPrompts(targetId, selectedDifficulty);
+      setActivePanel('none');
+    } catch (error) {
+      alert('저장 중 오류가 발생했습니다: ' + error.message);
+    }
+  };
+
+  const handleDeleteClick = async (id) => {
+    if (!confirm('정말 삭제하시겠습니까?')) return;
+    const { error } = await supabase.from('prompts').delete().eq('id', id);
+    if (error) alert('삭제 실패: ' + error.message);
+    else {
+      fetchPrompts(targetId, selectedDifficulty);
+      if (selectedPrompt?.id === id) {
+        setSelectedPrompt(null);
+        setActivePanel('none');
+      }
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (checkedIds.length === 0) return;
+    if (
+      !confirm(`선택한 ${checkedIds.length}개의 프롬프트를 삭제하시겠습니까?`)
+    )
+      return;
+    const { error } = await supabase.from('prompts').delete().in('id', checkedIds);
+    if (error) alert('일괄 삭제 실패: ' + error.message);
+    else {
+      fetchPrompts(targetId, selectedDifficulty);
+      setCheckedIds([]);
+    }
+  };
+
+  const handleCheck = (e, id) => {
+    e.stopPropagation();
+    if (e.target.checked) setCheckedIds((prev) => [...prev, id]);
+    else setCheckedIds((prev) => prev.filter((i) => i !== id));
+  };
+
+  const handleCheckAll = (e) => {
+    if (e.target.checked) setCheckedIds(displayedPrompts.map((p) => p.id));
+    else setCheckedIds([]);
+  };
+
+  const handleMoveToTop = async (e, id) => {
+    e.stopPropagation();
+    if (!confirm('이 게시글을 최상단으로 올리시겠습니까?')) return;
+    const { error } = await supabase
+      .from('prompts')
+      .update({ created_at: new Date().toISOString() })
+      .eq('id', id);
+    if (error) alert('순서 변경 실패');
+    else fetchPrompts(targetId, selectedDifficulty);
+  };
+
+  if (!userSession) return null;
+
+  const guide = difficultyGuides[selectedDifficulty];
+  const GuideIcon = guide.Icon;
+
+  return (
+    <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col">
+      {/* ---------- Header (hidden in detail view) ---------- */}
+      {!selectedPrompt && (
+      <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div>
+          {isAdmin && (
+            <span className="mb-2 inline-flex items-center gap-1 rounded-full border border-accent-400/40 bg-accent-400/10 px-2 py-0.5 text-[11px] font-semibold text-accent-500">
+              <Shield size={10} /> 관리자 모드
+            </span>
+          )}
+          <h1 className="font-display text-3xl tracking-tight text-foreground sm:text-4xl">
+            {userSession.display_name}{' '}
+            <span className="bg-gradient-to-r from-brand-600 via-violet-500 to-accent-400 bg-clip-text text-transparent">
+              프롬프트 실습
+            </span>
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            난이도를 선택하고, 마음에 드는 프롬프트를 직접 실습해보세요.
+          </p>
+        </div>
+
+        {isAdmin && (
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => setActivePanel('create')}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-3.5 py-2 text-sm font-semibold text-primary-foreground shadow-md shadow-brand-500/20 transition hover:shadow-lg"
+            >
+              <Plus size={14} /> 새 프롬프트
+            </button>
+            <button
+              onClick={() => setActivePanel('ai')}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-violet-500 to-accent-400 px-3.5 py-2 text-sm font-semibold text-white shadow-md shadow-violet-500/20 transition hover:shadow-lg"
+            >
+              <Sparkles size={14} /> AI 자동 생성
+            </button>
+            <button
+              onClick={() => setActivePanel('bulk')}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-card px-3.5 py-2 text-sm font-semibold text-foreground transition hover:border-brand-400"
+            >
+              <FolderUp size={14} /> 대량 등록
+            </button>
+            {checkedIds.length > 0 && (
+              <button
+                onClick={handleBulkDelete}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-red-300 bg-red-50 px-3.5 py-2 text-sm font-semibold text-red-600 hover:bg-red-100 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
+              >
+                <Trash2 size={14} /> 선택 삭제 ({checkedIds.length})
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+      )}
+
+      {/* ---------- Fetch error banner ---------- */}
+      {fetchError && !selectedPrompt && (
+        <div className="mb-4 flex items-start gap-3 rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
+          <span className="mt-0.5">⚠️</span>
+          <div className="flex-1">
+            <div className="font-semibold">{fetchError}</div>
+          </div>
+          <button
+            onClick={() => fetchPrompts(targetId, selectedDifficulty)}
+            className="rounded-lg border border-red-400/40 bg-card px-3 py-1 text-xs font-semibold text-red-700 transition hover:bg-red-50 dark:text-red-300"
+          >
+            다시 시도
+          </button>
+        </div>
+      )}
+
+      {/* ---------- Difficulty Tabs (hidden in detail view) ---------- */}
+      {!selectedPrompt && (
+      <div className="mb-4 grid grid-cols-3 gap-2 rounded-2xl border border-border bg-muted/40 p-1.5">
+        {['beginner', 'intermediate', 'advanced'].map((level) => {
+          const g = difficultyGuides[level];
+          const LevelIcon = g.Icon;
+          const active = selectedDifficulty === level;
+          return (
+            <button
+              key={level}
+              onClick={() => setSelectedDifficulty(level)}
+              className={cn(
+                'relative flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold transition-all',
+                active
+                  ? 'bg-card text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground',
+              )}
+            >
+              <span
+                className={cn(
+                  'flex h-6 w-6 items-center justify-center rounded-md transition',
+                  active
+                    ? `bg-gradient-to-br ${g.gradient} text-white shadow`
+                    : 'bg-muted text-muted-foreground',
+                )}
+              >
+                <LevelIcon size={13} />
+              </span>
+              {level === 'beginner' ? '초급' : level === 'intermediate' ? '중급' : '고급'}
+            </button>
+          );
+        })}
+      </div>
+      )}
+
+      {/* ---------- Difficulty Description Card (hidden in detail view) ---------- */}
+      {!selectedPrompt && (
+      <div className="relative mb-6 overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-sm">
+        <div
+          aria-hidden
+          className={cn(
+            'absolute -right-16 -top-16 h-40 w-40 rounded-full bg-gradient-to-br opacity-15 blur-3xl',
+            guide.gradient,
+          )}
+        />
+        <div className="relative flex items-start gap-3">
+          <div
+            className={cn(
+              'hidden h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br text-white shadow-md sm:flex',
+              guide.gradient,
+            )}
+          >
+            <GuideIcon size={20} />
+          </div>
+          <div className="flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="font-display text-lg tracking-tight text-foreground">
+                {guide.title}
+              </h3>
+              <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                {selectedDifficulty}
+              </span>
+            </div>
+            <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+              {guide.desc}
+            </p>
+            <div className="mt-2.5 flex items-start gap-1.5 text-xs">
+              <span className="shrink-0 font-semibold text-success-600 dark:text-success-500">
+                💡 핵심 특징:
+              </span>
+              <span className="text-muted-foreground">{guide.features}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      )}
+
+      {/* ---------- Full-screen panels (create/edit/ai/bulk) ---------- */}
+      {activePanel === 'ai' && (
+        <div className="fixed inset-0 z-30 overflow-y-auto bg-background md:absolute md:inset-0">
+          <AIGeneratePanel
+            targetId={targetId}
+            currentDifficulty={selectedDifficulty}
+            onSuccess={handleBulkSave}
+            onClose={() => setActivePanel('none')}
+          />
+        </div>
+      )}
+      {activePanel === 'bulk' && (
+        <div className="fixed inset-0 z-30 overflow-y-auto bg-background md:absolute md:inset-0">
+          <BulkUploadPanel
+            targetId={targetId}
+            onSave={handleBulkSave}
+            onClose={() => setActivePanel('none')}
+          />
+        </div>
+      )}
+      {activePanel === 'create' && (
+        <div className="fixed inset-0 z-30 flex flex-col overflow-y-auto bg-background md:absolute md:inset-0">
+          <PromptDetailPanel
+            mode="create"
+            isAdmin={true}
+            onSave={handleSavePrompt}
+            onClose={() => setActivePanel('none')}
+            initialDifficulty={selectedDifficulty}
+          />
+        </div>
+      )}
+      {activePanel === 'edit' && selectedPrompt && (
+        <div className="fixed inset-0 z-30 flex flex-col overflow-y-auto bg-background md:absolute md:inset-0">
+          <PromptDetailPanel
+            prompt={selectedPrompt}
+            mode="edit"
+            isAdmin={true}
+            onSave={handleSavePrompt}
+            onDelete={handleDeleteClick}
+            onClose={() => setActivePanel('detail')}
+          />
+        </div>
+      )}
+
+      {/* ---------- List view ---------- */}
+      {!selectedPrompt && (
+        <div className="flex flex-col">
+          {/* Search */}
+          <div className="mb-4 relative">
+            <Search
+              size={16}
+              className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+            />
+            <input
+              type="text"
+              placeholder="주제 검색..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full rounded-xl border border-border bg-card py-3 pl-10 pr-4 text-sm text-foreground outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+            />
+          </div>
+
+          {/* List table (desktop) / cards (mobile) */}
+          <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+            {/* Desktop */}
+            <table className="hidden w-full md:table">
+              <thead className="bg-muted/50 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                <tr>
+                  {isAdmin && (
+                    <th className="w-12 px-4 py-3 text-center">
+                      <input
+                        type="checkbox"
+                        onChange={handleCheckAll}
+                        checked={
+                          displayedPrompts.length > 0 &&
+                          checkedIds.length === displayedPrompts.length
+                        }
+                        className="accent-brand-600"
+                      />
+                    </th>
+                  )}
+                  <th className="w-16 px-4 py-3 text-center">No.</th>
+                  <th className="px-4 py-3 text-left">주제</th>
+                  <th className="w-36 px-4 py-3 text-right">등록일</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td
+                      colSpan={isAdmin ? 4 : 3}
+                      className="py-12 text-center text-muted-foreground"
+                    >
+                      <Loader2 className="mx-auto animate-spin" size={20} />
+                    </td>
+                  </tr>
+                ) : displayedPrompts.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={isAdmin ? 4 : 3}
+                      className="py-16 text-center text-muted-foreground"
+                    >
+                      <Inbox className="mx-auto mb-3" size={28} />
+                      등록된 프롬프트가 없습니다.
+                    </td>
+                  </tr>
+                ) : (
+                  displayedPrompts.map((prompt, idx) => (
+                    <tr
+                      key={prompt.id}
+                      onClick={() => handlePromptClick(prompt)}
+                      className="cursor-pointer border-t border-border transition hover:bg-muted/40"
+                    >
+                      {isAdmin && (
+                        <td
+                          className="px-4 py-3 text-center"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checkedIds.includes(prompt.id)}
+                            onChange={(e) => handleCheck(e, prompt.id)}
+                            className="accent-brand-600"
+                          />
+                        </td>
+                      )}
+                      <td className="px-4 py-3 text-center text-sm text-muted-foreground">
+                        {filteredPrompts.length -
+                          (currentPage - 1) * itemsPerPage -
+                          idx}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-semibold text-foreground line-clamp-1">
+                            {prompt.title}
+                          </span>
+                          {isAdmin && (
+                            <button
+                              onClick={(e) => handleMoveToTop(e, prompt.id)}
+                              title="맨 위로 올리기"
+                              className="shrink-0 rounded-md p-1 text-muted-foreground opacity-0 transition group-hover:opacity-100 hover:bg-muted hover:text-brand-600"
+                            >
+                              <ArrowUpToLine size={13} />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-right text-sm text-muted-foreground">
+                        {new Date(prompt.created_at).toLocaleDateString()}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+
+            {/* Mobile cards */}
+            <div className="flex flex-col divide-y divide-border md:hidden">
+              {loading ? (
+                <div className="py-10 text-center text-muted-foreground">
+                  <Loader2 className="mx-auto animate-spin" size={20} />
+                </div>
+              ) : displayedPrompts.length === 0 ? (
+                <div className="py-12 text-center text-muted-foreground">
+                  <Inbox className="mx-auto mb-2" size={26} />
+                  등록된 프롬프트가 없습니다.
+                </div>
+              ) : (
+                displayedPrompts.map((prompt) => (
+                  <Link
+                    key={prompt.id}
+                    href={`${pathname}?promptId=${prompt.id}`}
+                    className="block p-4 transition hover:bg-muted/40"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <h3 className="line-clamp-2 text-[15px] font-semibold text-foreground">
+                        {prompt.title}
+                      </h3>
+                      {isAdmin && (
+                        <input
+                          type="checkbox"
+                          onClick={(e) => handleCheck(e, prompt.id)}
+                          checked={checkedIds.includes(prompt.id)}
+                          onChange={() => {}}
+                          className="mt-1 accent-brand-600"
+                        />
+                      )}
+                    </div>
+                    <p className="mt-1.5 line-clamp-2 text-xs text-muted-foreground">
+                      {(prompt.content || '').replace(/<[^>]+>/g, '')}
+                    </p>
+                    <div className="mt-2.5 flex items-center justify-between text-[11px] text-muted-foreground">
+                      <div className="flex items-center gap-2">
+                        <span>📅 {new Date(prompt.created_at).toLocaleDateString()}</span>
+                        {isAdmin && (
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handleMoveToTop(e, prompt.id);
+                            }}
+                            className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-1.5 py-0.5 text-[10px]"
+                          >
+                            <ArrowUpToLine size={10} /> 위로
+                          </button>
+                        )}
+                      </div>
+                      <span className="text-brand-600">자세히 보기 →</span>
+                    </div>
+                  </Link>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="mt-5 flex items-center justify-center gap-3">
+              <button
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage((c) => c - 1)}
+                className="inline-flex items-center gap-1 rounded-lg border border-border bg-card px-3 py-1.5 text-sm font-semibold text-foreground transition hover:border-brand-400 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <ChevronLeft size={14} /> 이전
+              </button>
+              <span className="text-sm text-muted-foreground">
+                <b className="text-foreground">{currentPage}</b> / {totalPages}
+              </span>
+              <button
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage((c) => c + 1)}
+                className="inline-flex items-center gap-1 rounded-lg border border-border bg-card px-3 py-1.5 text-sm font-semibold text-foreground transition hover:border-brand-400 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                다음 <ChevronRight size={14} />
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ---------- Detail view ---------- */}
+      {selectedPrompt && (
+        <div>
+          <PromptDetailPanel
+            mode="view"
+            prompt={selectedPrompt}
+            isAdmin={isAdmin}
+            onClose={handleCloseDetail}
+            onSave={handleSavePrompt}
+            onDelete={handleDeleteClick}
+            enableThreadCreation={true}
+            initialDifficulty={selectedDifficulty}
+          />
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function LearnPage() {
-    return (
-        <Suspense fallback={<div>Loading...</div>}>
-            <LearnContent />
-        </Suspense>
-    );
+  return (
+    <Suspense
+      fallback={
+        <div className="p-8 text-muted-foreground">
+          <Loader2 className="inline animate-spin" size={16} /> Loading...
+        </div>
+      }
+    >
+      <LearnContent />
+    </Suspense>
+  );
 }
-

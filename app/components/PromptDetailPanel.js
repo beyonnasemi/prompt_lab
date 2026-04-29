@@ -1,1097 +1,998 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
+import {
+  ArrowLeft, Pencil, Trash2, X, Copy, CheckCircle2, Download,
+  MessageCircle, Link2, CornerDownRight, ChevronUp, ChevronDown,
+  Loader2, SendHorizontal, Paperclip, FileText, AlertCircle,
+} from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-
 import { deletePromptAction } from '@/app/actions/prompt-actions';
+import RichEditor from '@/app/components/RichEditor';
+import HtmlView from '@/app/components/HtmlView';
+import { cn } from '@/lib/utils';
 
-// const supabase = createClient(); // Removed incorrect client creation
-// Actually, standard Next.js Supabase starter often usesutils/supabase/client.
-// Let's safe-guard. I will use a prop for onSave and handle upload in parent if possible?
-// START_UPDATE
-// User complained about "max size" error. This is often because of passing base64 to server action.
-// Best practice is client-side upload.
-// Best practice is client-side upload.
-// I will implement client-side upload here.
-// I'll try to import createClient from '@/utils/supabase/client'. if it fails build, I'll fix.
+// -----------------------------------------------------------------------------
+// Helpers
+// -----------------------------------------------------------------------------
+const DIFFICULTY_META = {
+  beginner:     { label: '초급', classes: 'bg-success-500/10 text-success-600 border-success-500/30 dark:text-success-500' },
+  intermediate: { label: '중급', classes: 'bg-brand-500/10 text-brand-700 border-brand-500/30 dark:text-brand-300' },
+  advanced:     { label: '고급', classes: 'bg-accent-400/10 text-accent-500 border-accent-400/30' },
+};
 
-// Simple Editable Div Component for Rich Text
-function EditableDiv({ value, onChange, placeholder, minHeight, style }) {
-    const divRef = (node) => {
-        if (node) {
-            // Only update if not focused to prevent cursor jumping, or if empty (initial load)
-            if (document.activeElement !== node && node.innerHTML !== value) {
-                node.innerHTML = value;
-            }
-        }
-    };
-
-    return (
-        <div
-            ref={divRef}
-            contentEditable
-            onInput={(e) => onChange(e.currentTarget.innerHTML)}
-            onPaste={(e) => {
-                e.preventDefault();
-                const text = e.clipboardData.getData('text/plain');
-                document.execCommand('insertText', false, text);
-            }}
-            onBlur={(e) => {
-                // Ensure value is synced on blur
-                if (e.currentTarget.innerHTML !== value) {
-                    onChange(e.currentTarget.innerHTML);
-                }
-                // Reset styling
-                e.target.style.background = '#f8fafc';
-                e.target.style.borderColor = '#e2e8f0';
-                e.target.style.boxShadow = 'none';
-            }}
-            onFocus={(e) => {
-                e.target.style.background = 'white';
-                e.target.style.borderColor = '#3b82f6';
-                e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
-            }}
-            data-placeholder={placeholder}
-            className="custom-editable-input"
-            style={{
-                width: '100%',
-                padding: '1rem',
-                border: '1px solid #e2e8f0',
-                borderRadius: '0.75rem',
-                minHeight: minHeight,
-                fontSize: '1rem',
-                lineHeight: '1.3',
-                background: '#f8fafc',
-                outline: 'none',
-                overflowY: 'auto',
-                transition: 'all 0.2s',
-                whiteSpace: 'pre-wrap',
-                fontFamily: 'inherit', // Remove monospace to support rich text look
-                ...style
-            }}
-        />
-    );
+function DifficultyBadge({ value }) {
+  const meta = DIFFICULTY_META[value] || DIFFICULTY_META.beginner;
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold',
+        meta.classes,
+      )}
+    >
+      {meta.label}
+    </span>
+  );
 }
 
-// --- STANDARD DOC STYLES FOR SHADOW DOM ---
-const defaultDocStyles = `
-    :host { display: block; font-family: 'Inter', system-ui, sans-serif; color: #1e293b; line-height: 1.6; }
-    h1 { display: block; font-size: 2em; font-weight: bold; margin: 0.67em 0; }
-    h2 { display: block; font-size: 1.5em; font-weight: bold; margin: 0.83em 0; }
-    h3 { display: block; font-size: 1.17em; font-weight: bold; margin: 1em 0; }
-    h4 { display: block; font-size: 1em; font-weight: bold; margin: 1.33em 0; }
-    p { display: block; margin: 1em 0; }
-    ul { display: block; list-style-type: disc; margin: 1em 0; padding-left: 40px; }
-    ol { display: block; list-style-type: decimal; margin: 1em 0; padding-left: 40px; }
-    li { display: list-item; }
-    blockquote { display: block; margin: 1em 40px; border-left: 4px solid #cbd5e1; padding-left: 1rem; color: #64748b; }
-    strong, b { font-weight: bold; }
-    em, i { font-style: italic; }
-    table { display: table; border-collapse: collapse; border-spacing: 0; width: 100%; margin: 1em 0; border: 1px solid #e2e8f0; }
-    thead { display: table-header-group; vertical-align: middle; background: #f8fafc; font-weight: 600; }
-    tbody { display: table-row-group; vertical-align: middle; }
-    tr { display: table-row; vertical-align: inherit; border-bottom: 1px solid #e2e8f0; }
-    td, th { display: table-cell; vertical-align: inherit; padding: 0.75rem; text-align: left; }
-    img { max-width: 100%; height: auto; border-radius: 0.5rem; }
-    a { color: #2563eb; text-decoration: underline; }
-    pre { background: #1e293b; color: #f8fafc; padding: 1rem; borderRadius: 0.5rem; overflow-x: auto; }
-    code { font-family: monospace; background: #e2e8f0; padding: 0.2rem 0.4rem; borderRadius: 0.25rem; font-size: 0.9em; }
-`;
-
-function ShadowHtmlView({ html, style, className }) {
-    // We use a callback ref to handle the DOM node.
-    // This allows us to interact with the DOM element as soon as it is mounted
-    // and whenever the 'html' prop potentially changes (though we handle updates manually).
-    return <div ref={(node) => {
-        if (node && html) {
-            if (!node.shadowRoot) {
-                node.attachShadow({ mode: 'open' });
-            }
-            // Smart update: only update if changed to prevent flicker? 
-            // innerHTML replacement causes total reflow.
-            // Sanitize: REMOVE <script> blocks completely, Remove structural tags but keep content.
-            const safeHtml = html
-                .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '') // Remove script AND content
-                .replace(/<\/?(html|head|body|meta)[\s\S]*?>/gi, ''); // Remove other tags but keep content
-
-            // Detect if content is HTML or Plain Text
-            const isHtml = /<[a-z][\s\S]*>/i.test(safeHtml);
-            const whiteSpaceRule = isHtml ? 'normal' : 'pre-wrap';
-
-            node.shadowRoot.innerHTML = `<style>${defaultDocStyles} :host { white-space: ${whiteSpaceRule}; }</style>${safeHtml}`;
-        }
-    }} style={style} className={className}></div>;
-}
-
-// Re-verified page.js in next step.
-
-export default function PromptDetailPanel({ prompt, mode = 'view', isAdmin, onClose, onSave, onDelete = () => { }, isThread = false, initialDifficulty = 'beginner', enableThreadCreation = false }) {
-    // mode: 'view' | 'edit' | 'create'
-    const [currentMode, setCurrentMode] = useState(mode);
-    const [isCreatingThread, setIsCreatingThread] = useState(false); // Helper for root prompts creating threads
-
-    // Debugging Version
-    useEffect(() => { console.log("PromptDetailPanel v3 Loaded - Server Actions Enabled"); }, []);
-    const [sessionHistory, setSessionHistory] = useState([]); // For continuous creation "cards"
-    const [formData, setFormData] = useState({
-        title: (mode === 'create' || mode === 'collapsed') ? '' : (prompt?.title || ''),
-        content: (mode === 'create' || mode === 'collapsed') ? '' : (prompt?.content || ''),
-        expected_answer: (mode === 'create' || mode === 'collapsed') ? '' : (prompt?.expected_answer || ''),
-        difficulty: prompt?.difficulty || 'beginner',
-        attachment_url: (mode === 'create' || mode === 'collapsed') ? null : (prompt?.attachment_url || null)
+function formatDate(ts) {
+  if (!ts) return '';
+  try {
+    return new Date(ts).toLocaleDateString('ko-KR', {
+      year: 'numeric', month: '2-digit', day: '2-digit',
     });
-    const [loading, setLoading] = useState(false);
-    const [file, setFile] = useState(null);
-    const [copiedId, setCopiedId] = useState(null);
-    const [editingThreadId, setEditingThreadId] = useState(null); // Kept for safety, though mostly replaced by inline
-    const [inlineEditingId, setInlineEditingId] = useState(null); // Track which thread is being edited inline
-    const [inlineFormData, setInlineFormData] = useState({}); // Form data for inline editing
+  } catch { return ''; }
+}
 
-    // Reset history when mode changes away from create/continuous/collapsed (collapsed is part of flow)
-    useEffect(() => {
-        if (currentMode !== 'create' && currentMode !== 'continuous' && currentMode !== 'collapsed') {
-            setSessionHistory([]);
-            setIsCreatingThread(false);
-        }
-    }, [currentMode]);
+function cleanExpected(html) {
+  if (!html) return '';
+  return html.replace(/<!--THREAD-->|\[PARENT:[^\]]+\]/g, '');
+}
 
-    // Clear form when switching to continuous mode (User clicks the "Add" button)
-    useEffect(() => {
-        if (currentMode === 'continuous') {
-            setFormData({
-                title: '',
-                content: '',
-                expected_answer: '',
-                difficulty: initialDifficulty, // Use initial difficulty
-                attachment_url: null
-            });
-        }
-    }, [currentMode, initialDifficulty]);
+// -----------------------------------------------------------------------------
+// Main component
+// -----------------------------------------------------------------------------
+export default function PromptDetailPanel({
+  prompt,
+  mode = 'view',
+  isAdmin,
+  onClose,
+  onSave,
+  onDelete = () => {},
+  isThread = false,
+  initialDifficulty = 'beginner',
+  enableThreadCreation = false,
+}) {
+  const [currentMode, setCurrentMode] = useState(mode);
+  const [isCreatingThread, setIsCreatingThread] = useState(false);
+  const [sessionHistory, setSessionHistory] = useState([]);
+  const [formData, setFormData] = useState({
+    title: (mode === 'create' || mode === 'collapsed') ? '' : (prompt?.title || ''),
+    content: (mode === 'create' || mode === 'collapsed') ? '' : (prompt?.content || ''),
+    expected_answer: (mode === 'create' || mode === 'collapsed') ? '' : cleanExpected(prompt?.expected_answer),
+    difficulty: prompt?.difficulty || initialDifficulty,
+    attachment_url: (mode === 'create' || mode === 'collapsed') ? null : (prompt?.attachment_url || null),
+  });
+  const [loading, setLoading] = useState(false);
+  const [file, setFile] = useState(null);
+  const [copied, setCopied] = useState(false);
+  const [editingThreadId, setEditingThreadId] = useState(null);
+  const [inlineEditingId, setInlineEditingId] = useState(null);
+  const [inlineFormData, setInlineFormData] = useState({});
+  const [threadItems, setThreadItems] = useState([]);
+  const [triggerRefetch, setTriggerRefetch] = useState(0);
 
-    // --- FETCH THREADED CHILDREN (VIEW MODE & CONTINUOUS MODE) ---
-    const [threadItems, setThreadItems] = useState([]);
-    const [triggerRefetch, setTriggerRefetch] = useState(0);
+  // Reset history when mode changes away from create flow
+  useEffect(() => {
+    if (!['create', 'continuous', 'collapsed'].includes(currentMode)) {
+      setSessionHistory([]);
+      setIsCreatingThread(false);
+    }
+  }, [currentMode]);
 
-    useEffect(() => {
-        // Fetch threads if viewing OR in continuous mode (so we see history while adding)
-        if ((currentMode === 'view' || currentMode === 'continuous') && prompt?.id) {
-            const fetchThreads = async () => {
-                const { data } = await supabase
-                    .from('prompts')
-                    .select('*')
-                    .ilike('expected_answer', `%[PARENT:${prompt.id}]%`)
-                    .order('created_at', { ascending: true });
-                setThreadItems(data || []);
-            };
-            fetchThreads();
-        } else {
-            // Should we clear threads? Only if changing prompts.
-            // If just switching mode, maybe keep them?
-            if (!prompt?.id) setThreadItems([]);
-        }
-    }, [currentMode, prompt?.id, triggerRefetch]);
+  // Clear form when entering continuous mode
+  useEffect(() => {
+    if (currentMode === 'continuous') {
+      setFormData({
+        title: '',
+        content: '',
+        expected_answer: '',
+        difficulty: initialDifficulty,
+        attachment_url: null,
+      });
+    }
+  }, [currentMode, initialDifficulty]);
 
-    useEffect(() => {
-        // If we are creating a thread (local state), don't reset to view even if prompt updates (e.g. refetch).
-        // Only reset if we are NOT creating a thread.
-        if (prompt && mode !== 'create' && mode !== 'collapsed' && !isCreatingThread) {
-            setFormData({
-                title: prompt.title || '',
-                content: prompt.content || '',
-                expected_answer: (prompt.expected_answer || '').replace('<!--THREAD-->', ''),
-                difficulty: prompt.difficulty || 'beginner',
-                attachment_url: prompt.attachment_url || null
-            });
-            setCurrentMode('view');
-        } else if (mode === 'create' || mode === 'collapsed') {
-            // Start fresh
-            setFormData({
-                title: '',
-                content: '',
-                expected_answer: '',
-                difficulty: initialDifficulty,
-                attachment_url: null
-            });
-            // If passed as collapsed, we stay collapsed. If create, well, create.
-            if (mode === 'create') setCurrentMode('create');
-            else if (mode === 'collapsed') setCurrentMode('collapsed');
-        } else if (mode === 'edit') {
-            setFormData({
-                title: prompt.title || '',
-                content: prompt.content || '',
-                expected_answer: (prompt.expected_answer || '').replace('<!--THREAD-->', ''),
-                difficulty: prompt.difficulty || 'beginner',
-                attachment_url: prompt.attachment_url || null
-            });
-            setCurrentMode('edit');
-        }
-    }, [prompt, mode, initialDifficulty, isCreatingThread]);
+  // Fetch threads when viewing / continuous
+  useEffect(() => {
+    if ((currentMode === 'view' || currentMode === 'continuous') && prompt?.id) {
+      supabase
+        .from('prompts')
+        .select('*')
+        .ilike('expected_answer', `%[PARENT:${prompt.id}]%`)
+        .order('created_at', { ascending: true })
+        .then(({ data }) => setThreadItems(data || []));
+    } else if (!prompt?.id) {
+      setThreadItems([]);
+    }
+  }, [currentMode, prompt?.id, triggerRefetch]);
 
-    const handleCopy = (text) => {
-        navigator.clipboard.writeText(text);
-        setCopiedId('copy');
-        setTimeout(() => setCopiedId(null), 2000);
-    };
+  // Sync form data with incoming prompt
+  useEffect(() => {
+    if (prompt && mode !== 'create' && mode !== 'collapsed' && !isCreatingThread) {
+      setFormData({
+        title: prompt.title || '',
+        content: prompt.content || '',
+        expected_answer: cleanExpected(prompt.expected_answer),
+        difficulty: prompt.difficulty || 'beginner',
+        attachment_url: prompt.attachment_url || null,
+      });
+      setCurrentMode('view');
+    } else if (mode === 'create' || mode === 'collapsed') {
+      setFormData({
+        title: '',
+        content: '',
+        expected_answer: '',
+        difficulty: initialDifficulty,
+        attachment_url: null,
+      });
+      setCurrentMode(mode);
+    } else if (mode === 'edit') {
+      setFormData({
+        title: prompt.title || '',
+        content: prompt.content || '',
+        expected_answer: cleanExpected(prompt.expected_answer),
+        difficulty: prompt.difficulty || 'beginner',
+        attachment_url: prompt.attachment_url || null,
+      });
+      setCurrentMode('edit');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prompt, mode, initialDifficulty, isCreatingThread]);
 
-    const handleFileChange = (e) => {
-        if (e.target.files && e.target.files[0]) {
-            const selectedFile = e.target.files[0];
-            if (selectedFile.size > 3 * 1024 * 1024) {
-                alert("이미지 용량이 너무 큽니다. (3MB 제한)\n더 작은 이미지를 선택해주세요.");
-                e.target.value = '';
-                setFile(null);
-                return;
-            }
-            setFile(selectedFile);
-        }
-    };
+  // ---- Handlers ----
+  const handleCopy = (text) => {
+    const plain = (text || '').replace(/<[^>]+>/g, '');
+    navigator.clipboard.writeText(plain);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
-    // --- THREAD EDIT / DELETE HANDLERS ---
-    const handleDeleteThread = async (id) => {
-        if (typeof window !== 'undefined' && !window.confirm('정말 이 프롬프트를 삭제하시겠습니까?')) return;
-        try {
-            setLoading(true);
+  const handleFileChange = (e) => {
+    if (e.target.files?.[0]) {
+      const f = e.target.files[0];
+      if (f.size > 3 * 1024 * 1024) {
+        alert('이미지 용량이 너무 큽니다. (3MB 제한)');
+        e.target.value = '';
+        setFile(null);
+        return;
+      }
+      setFile(f);
+    }
+  };
 
-            // Get Admin ID from session
-            let adminId = null;
-            try {
-                const sessionStr = localStorage.getItem('admin_session');
-                if (sessionStr) {
-                    const session = JSON.parse(sessionStr);
-                    adminId = session.id;
-                }
-            } catch (e) {
-                console.error('Session parse error', e);
-            }
+  const handleDeleteThread = async (id) => {
+    if (!window.confirm('정말 이 프롬프트를 삭제하시겠습니까?')) return;
+    try {
+      setLoading(true);
+      const sessionStr = localStorage.getItem('admin_session');
+      const adminId = sessionStr ? JSON.parse(sessionStr).id : null;
+      if (!adminId) throw new Error('관리자 로그인 정보가 없습니다 (세션 만료).');
+      await deletePromptAction(id, adminId);
+      setThreadItems((prev) => prev.filter((i) => i.id !== id));
+      setSessionHistory((prev) => prev.filter((i) => i.id !== id));
+      setTriggerRefetch((p) => p + 1);
+    } catch (error) {
+      alert('삭제 실패: ' + (error.message || error));
+    } finally {
+      setLoading(false);
+    }
+  };
 
-            if (!adminId) {
-                throw new Error('관리자 로그인 정보가 없습니다 (세션 만료).');
-            }
+  const handleEditThread = (item) => {
+    console.log('[PromptDetailPanel] Edit thread:', item.id);
+    setInlineFormData({
+      title: item.title || '',
+      content: item.content || '',
+      expected_answer: cleanExpected(item.expected_answer),
+      difficulty: item.difficulty || 'beginner',
+      attachment_url: item.attachment_url || null,
+    });
+    setInlineEditingId(item.id);
+    // Scroll the card into view so user sees the edit form
+    setTimeout(() => {
+      document
+        .querySelector(`[data-thread-id="${item.id}"]`)
+        ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 50);
+  };
 
-            // Call Server Action
-            await deletePromptAction(id, adminId);
+  const handleInlineCancel = () => {
+    setInlineEditingId(null);
+    setInlineFormData({});
+  };
 
-            // Optimistic / Manual Update to remove from UI immediately
-            setThreadItems(prev => prev.filter(item => item.id !== id));
-            setSessionHistory(prev => prev.filter(item => item.id !== id));
+  const handleInlineSave = async (id) => {
+    // Validate: title and content (HTML may have just empty <p></p> tags)
+    const titleEmpty = !inlineFormData.title || !inlineFormData.title.trim();
+    const contentText = (inlineFormData.content || '').replace(/<[^>]+>/g, '').trim();
+    const contentEmpty = !contentText;
+    if (titleEmpty || contentEmpty) {
+      alert(
+        `다음 항목을 입력해주세요:\n${titleEmpty ? '· 제목\n' : ''}${contentEmpty ? '· 프롬프트 내용' : ''}`,
+      );
+      return;
+    }
+    if (!window.confirm('수정하시겠습니까?')) return;
+    setLoading(true);
+    try {
+      const payload = { ...inlineFormData };
+      const parentTag = prompt?.id ? `[PARENT:${prompt.id}]` : '';
+      payload.expected_answer = `<!--THREAD-->${parentTag}` + (payload.expected_answer || '');
+      await onSave(payload, null, id);
+      setThreadItems((prev) =>
+        prev.map((i) =>
+          i.id === id ? { ...i, ...inlineFormData, expected_answer: payload.expected_answer } : i,
+        ),
+      );
+      setInlineEditingId(null);
+      setInlineFormData({});
+    } catch (error) {
+      alert('수정 실패: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-            alert('삭제되었습니다.');
-            setTriggerRefetch(p => p + 1);
-        } catch (error) {
-            console.error('Thread delete error:', error);
-            alert('삭제 실패: ' + (error.message || error));
-        } finally {
-            setLoading(false);
-        }
-    };
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-    const handleEditThread = (item) => {
-        setInlineFormData({
-            title: item.title,
-            content: item.content,
-            expected_answer: (item.expected_answer || '').replace(/<!--THREAD-->|\[PARENT:[^\]]+\]/g, ''),
-            difficulty: item.difficulty,
-            attachment_url: item.attachment_url
-        });
-        setInlineEditingId(item.id);
-        // No scrolling needed for inline editing
-    };
-
-    const handleInlineCancel = () => {
-        setInlineEditingId(null);
-        setInlineFormData({});
-    };
-
-    const handleInlineSave = async (id) => {
-        if (!window.confirm('수정하시겠습니까?')) return;
-        setLoading(true);
-        try {
-            const payload = { ...inlineFormData };
-            // Add thread markers
-            const parentIdTag = prompt?.id ? `[PARENT:${prompt.id}]` : '';
-            payload.expected_answer = `<!--THREAD-->${parentIdTag}` + (payload.expected_answer || '');
-
-            await onSave(payload, null, id); // file is null for now unless we add file input to inline form
-
-            // Update UI list manually
-            setThreadItems(prev => prev.map(item =>
-                item.id === id ? { ...item, ...inlineFormData, expected_answer: payload.expected_answer } : item
-            ));
-
-            setInlineEditingId(null);
-            setInlineFormData({});
-            alert('수정되었습니다.');
-        } catch (error) {
-            alert('수정 실패: ' + error.message);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setLoading(true);
-        try {
-            // Override difficulty for threaded prompts to hide them from main list
-            const payload = { ...formData };
-            // Check either isThread prop OR dynamic creatingThread state
-            const isThreadMode = isThread || isCreatingThread;
-
-            if (isThreadMode) {
-                // DB has constraint on difficulty, so we can't use 'thread'.
-                // Instead, we use a hidden marker in expected_answer + Parent ID link.
-                const parentIdTag = prompt?.id ? `[PARENT:${prompt.id}]` : '';
-                payload.expected_answer = `<!--THREAD-->${parentIdTag}` + (payload.expected_answer || '');
-            }
-
-            // Pass to parent
-            // If creating thread child, targetId is null (new). If editing parent, targetId is prompt.id.
-            // If editing thread child, targetId is editingThreadId.
-            let targetId = (currentMode === 'edit') ? prompt?.id : null;
-
-            // If we are editing a specific thread item, use its ID.
-            if (editingThreadId) {
-                // We handle update directly here for thread items to keep it simple, 
-                // OR we can pass it to onSave. onSave logic in page.js handles update if ID provided.
-                targetId = editingThreadId;
-            }
-
-            const savedPrompt = await onSave(payload, file, targetId);
-
-            // 1. Standalone Create: Close immediately to show list
-            if (!isThreadMode && (currentMode === 'create' || currentMode === 'continuous')) {
-                onClose();
-                return;
-            }
-
-            // 2. Thread Continuous Flow
-            if (currentMode === 'create' || currentMode === 'continuous') {
-                // Continuous Flow: Add to ID-less session history or use returned object
-                const historyItem = savedPrompt || { ...formData, created_at: new Date().toISOString() };
-
-                // Add to history
-                setSessionHistory(prev => [...prev, historyItem]);
-
-                // Clear form for next input, but keep difficulty/mode
-                setFormData(prev => ({
-                    title: '',
-                    content: '',
-                    expected_answer: '',
-                    difficulty: prev.difficulty,
-                    attachment_url: null
-                }));
-                setFile(null);
-                setEditingThreadId(null); // Clear editing state
-
-                // If in thread mode (either prop or dynamic), collapse back to button.
-                if (isThreadMode) {
-                    setTriggerRefetch(p => p + 1); // Refresh DB threads
-                    setCurrentMode('collapsed');
-                } else {
-                    if (currentMode !== 'continuous') setCurrentMode('continuous');
-                }
-
-            } else {
-                setTriggerRefetch(p => p + 1);
-                setCurrentMode('view');
-            }
-        } catch (error) {
-            alert('저장 실패: ' + error.message);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // If viewing and no prompt, nothing to show
-    if (!prompt && currentMode === 'view') return null;
-
-    // --- VIEW MODE ---
-    if (currentMode === 'view') {
-        return (
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <div style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '1.5rem', marginBottom: '1.5rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                        <button onClick={onClose} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.5rem 0.75rem', border: '1px solid #e2e8f0', background: 'white', borderRadius: '0.375rem', cursor: 'pointer', color: '#64748b' }}>
-                            <span>⬅️</span> 목록으로
-                        </button>
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                            {isAdmin && (
-                                <>
-                                    <button onClick={() => setCurrentMode('edit')} style={{ padding: '0.5rem', cursor: 'pointer', border: 'none', background: 'none', fontSize: '1.2rem' }} title="수정">
-                                        ✏️
-                                    </button>
-                                    <button onClick={() => onDelete(prompt.id)} style={{ padding: '0.5rem', cursor: 'pointer', border: 'none', background: 'none', fontSize: '1.2rem' }} title="삭제">
-                                        🗑️
-                                    </button>
-                                </>
-                            )}
-                            <button onClick={onClose} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: '0.5rem', fontSize: '1.2rem', color: '#94a3b8' }} title="닫기">
-                                ✖
-                            </button>
-                        </div>
-                    </div>
-
-                    <h2 style={{ fontSize: '1.75rem', fontWeight: 700, color: '#1e293b', lineHeight: 1.3, marginBottom: '0.75rem' }}>
-                        {prompt.title}
-                    </h2>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#64748b', flexWrap: 'wrap' }}>
-                        <span style={{
-                            background: prompt.difficulty === 'beginner' ? '#dbeafe' : prompt.difficulty === 'intermediate' ? '#fce7f3' : '#ffedd5',
-                            color: prompt.difficulty === 'beginner' ? '#1e40af' : prompt.difficulty === 'intermediate' ? '#9d174d' : '#9a3412',
-                            fontSize: '0.75rem', padding: '0.2rem 0.5rem', borderRadius: '4px', fontWeight: 600
-                        }}>
-                            {prompt.difficulty === 'beginner' ? '초급' : prompt.difficulty === 'intermediate' ? '중급' : '고급'}
-                        </span>
-                        <span>📅 {new Date(prompt.created_at).toLocaleDateString()}</span>
-                        {prompt.accounts?.display_name && <span>👤 {prompt.accounts.display_name}</span>}
-                    </div>
-                </div>
-
-                <div style={{}}>
-                    <div style={{ marginBottom: '1.5rem' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                            <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#334155' }}>📝 프롬프트</h3>
-                            <button onClick={() => handleCopy(prompt.content)} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.3rem 0.6rem', border: '1px solid #cbd5e1', borderRadius: '0.25rem', background: 'white', cursor: 'pointer', fontSize: '0.85rem' }}>
-                                {copiedId ? '✅ 복사됨' : '📋 복사하기'}
-                            </button>
-                        </div>
-                        <ShadowHtmlView
-                            html={prompt.content}
-                            style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0', minHeight: '3rem' }}
-                        />
-                    </div>
-                </div>
-
-                {/* --- CUSTOM CSS FOR RESTORING HTML STYLES --- */}
-                <style jsx global>{`
-                    .doc-content h1 { display: block; font-size: 2em; font-weight: bold; margin: 0.67em 0; }
-                    .doc-content h2 { display: block; font-size: 1.5em; font-weight: bold; margin: 0.83em 0; }
-                    .doc-content h3 { display: block; font-size: 1.17em; font-weight: bold; margin: 1em 0; }
-                    .doc-content h4 { display: block; font-size: 1em; font-weight: bold; margin: 1.33em 0; }
-                    .doc-content p { display: block; margin: 1em 0; }
-                    .doc-content ul { display: block; list-style-type: disc; margin: 1em 0; padding-left: 40px; }
-                    .doc-content ol { display: block; list-style-type: decimal; margin: 1em 0; padding-left: 40px; }
-                    .doc-content li { display: list-item; }
-                    .doc-content blockquote { display: block; margin: 1em 40px; }
-                    .doc-content strong, .doc-content b { font-weight: bold; }
-                    .doc-content em, .doc-content i { font-style: italic; }
-                    .doc-content table { display: table; border-collapse: collapse; border-spacing: 0; }
-                    .doc-content thead { display: table-header-group; vertical-align: middle; border-color: inherit; }
-                    .doc-content tbody { display: table-row-group; vertical-align: middle; border-color: inherit; }
-                    .doc-content tr { display: table-row; vertical-align: inherit; border-color: inherit; }
-                    .doc-content td, .doc-content th { display: table-cell; vertical-align: inherit; padding: 5px; }
-                `}</style>
-
-                {
-                    prompt.expected_answer && (
-                        <div style={{ marginBottom: '1.5rem' }}>
-                            <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#334155', marginBottom: '0.5rem' }}>💡 예상 답변</h3>
-                            <ShadowHtmlView
-                                html={prompt.expected_answer}
-                                style={{
-                                    background: '#eff6ff',
-                                    padding: '1.25rem',
-                                    borderRadius: '0.5rem',
-                                    border: '1px solid #dbeafe',
-                                    minHeight: '3rem'
-                                }}
-                            />
-                        </div>
-                    )
-                }
-
-                {
-                    prompt.attachment_url && (
-                        <div>
-                            <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#334155', marginBottom: '0.5rem' }}>💾 첨부 자료</h3>
-
-                            {/* Image Preview */}
-                            {/\.(jpg|jpeg|png|gif|webp)$/i.test(prompt.attachment_url) && (
-                                <div style={{ marginBottom: '1rem', border: '1px solid #e2e8f0', borderRadius: '0.5rem', overflow: 'hidden' }}>
-                                    <img
-                                        src={prompt.attachment_url}
-                                        alt="첨부 이미지"
-                                        style={{ maxWidth: '100%', height: 'auto', display: 'block' }}
-                                    />
-                                </div>
-                            )}
-
-                            <a
-                                href={`${prompt.attachment_url}?download=`}
-                                download
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1rem', background: 'white', border: '1px solid #cbd5e1', borderRadius: '0.5rem', textDecoration: 'none', color: '#2563eb' }}
-                            >
-                                <span>📥</span> 자료 다운로드
-                            </a>
-                        </div>
-                    )
-                }
-
-                {/* --- THREADED REPLIES (PERSISTENT) --- */}
-                {
-                    threadItems.length > 0 && (
-                        <div style={{ marginTop: '3rem', borderTop: '2px dashed #e2e8f0', paddingTop: '2rem' }}>
-                            <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#334155', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                <span>🔗</span> 이어지는 프롬프트
-                            </h3>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', borderLeft: '3px solid #e2e8f0', paddingLeft: '1.5rem', marginLeft: '0.5rem' }}>
-                                {threadItems.map((item, idx) => (
-                                    <div key={item.id} style={{
-                                        position: 'relative',
-                                        background: 'white',
-                                        border: '1px solid #e2e8f0',
-                                        borderRadius: '1rem',
-                                        padding: '1.5rem',
-                                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)'
-                                    }}>
-                                        {/* Connector Dot */}
-                                        <div style={{ position: 'absolute', left: '-1.9rem', top: '2rem', width: '12px', height: '12px', background: '#3b82f6', borderRadius: '50%', border: '2px solid white', boxShadow: '0 0 0 1px #cbd5e1' }}></div>
-
-                                        <div style={{ fontWeight: 600, color: '#475569', marginBottom: '1rem', fontSize: '1.05rem' }}>{item.title}</div>
-
-                                        <div style={{ marginBottom: '1rem' }}>
-                                            <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.25rem', fontWeight: 600 }}>프롬프트 내용</div>
-                                            <ShadowHtmlView
-                                                html={item.content}
-                                                style={{ background: 'white', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}
-                                            />
-                                        </div>
-
-                                        {item.expected_answer && (
-                                            <div>
-                                                <div style={{ fontSize: '0.85rem', color: '#1e3a8a', marginBottom: '0.25rem', fontWeight: 600 }}>예상 답변</div>
-                                                <div
-                                                    dangerouslySetInnerHTML={{ __html: item.expected_answer.replace(/<!--THREAD-->|\[PARENT:[^\]]+\]/g, '').replace(/<style[\s\S]*?>[\s\S]*?<\/style>|<script[\s\S]*?>[\s\S]*?<\/script>|<\/?html.*?>|<\/?body.*?>|<\/?head.*?>|<meta.*?>/gi, '') }}
-                                                    style={{ fontSize: '0.95rem', color: '#1e3a8a', lineHeight: '1.6', background: '#eff6ff', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #dbeafe', whiteSpace: 'pre-wrap' }}
-                                                />
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )
-                }
-
-                {/* --- ADD NEW THREAD BUTTON (Only Admin) --- */}
-                {
-                    isAdmin && (enableThreadCreation || isThread) && (
-                        <div style={{ marginTop: '3rem', borderTop: '1px solid #e2e8f0', paddingTop: '2rem', paddingBottom: '2rem' }}>
-                            <button
-                                onClick={() => {
-                                    setIsCreatingThread(true);
-                                    setCurrentMode('continuous');
-                                }}
-                                style={{
-                                    width: '100%',
-                                    padding: '1rem',
-                                    background: '#f0f9ff',
-                                    border: '1px dashed #0ea5e9',
-                                    borderRadius: '0.75rem',
-                                    color: '#0284c7',
-                                    fontWeight: 600,
-                                    fontSize: '1rem',
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    justifyContent: 'center',
-                                    alignItems: 'center',
-                                    gap: '0.5rem',
-                                    transition: 'background 0.2s'
-                                }}
-                                onMouseEnter={(e) => e.currentTarget.style.background = '#e0f2fe'}
-                                onMouseLeave={(e) => e.currentTarget.style.background = '#f0f9ff'}
-                            >
-                                <span>➕</span> 이어지는 프롬프트 추가하기 (스레드)
-                            </button>
-                        </div>
-                    )
-                }
-
-                {/* Bottom Back Button */}
-                <div style={{ marginTop: '0', borderTop: '1px solid #e2e8f0', paddingTop: '1.5rem' }}>
-                    <button
-                        onClick={onClose}
-                        style={{
-                            display: 'flex', alignItems: 'center', gap: '0.5rem',
-                            padding: '0.75rem 1.5rem',
-                            background: 'white', border: '1px solid #cbd5e1',
-                            borderRadius: '0.5rem', cursor: 'pointer',
-                            color: '#475569', fontWeight: 600,
-                            width: '100%', justifyContent: 'center'
-                        }}
-                    >
-                        <span>⬅️</span> 목록으로 돌아가기
-                    </button>
-                </div>
-            </div>
-        );
+    // Validate
+    const titleEmpty = !formData.title || !formData.title.trim();
+    const contentText = (formData.content || '').replace(/<[^>]+>/g, '').trim();
+    const contentEmpty = !contentText;
+    if (titleEmpty || contentEmpty) {
+      alert(
+        `다음 항목을 입력해주세요:\n${titleEmpty ? '· 제목\n' : ''}${contentEmpty ? '· 프롬프트 내용' : ''}`,
+      );
+      return;
     }
 
-    // --- RENDER HELPERS ---
-    const renderCollapsedButton = () => (
-        <div style={{
-            background: 'white',
-            borderRadius: '1rem',
-            border: '1px dashed #cbd5e1',
-            padding: '2rem',
-            textAlign: 'center',
-            transition: 'all 0.2s ease-in-out',
-            cursor: 'pointer',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '0.75rem',
-            alignItems: 'center',
-            justifyContent: 'center'
-        }}
-            onClick={() => {
-                // Keep existing thread state or set it?
-                // If we are here, we are likely already in thread mode.
-                setCurrentMode('continuous');
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#3b82f6'; e.currentTarget.style.background = '#f8fafc'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#cbd5e1'; e.currentTarget.style.background = 'white'; }}
-        >
-            <div style={{
-                width: '3rem', height: '3rem', borderRadius: '50%', background: '#eff6ff', color: '#2563eb',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', marginBottom: '0.5rem'
-            }}>
-                ➕
-            </div>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#334155', margin: 0 }}>새로운 프롬프트 추가하기</h3>
-            <p style={{ fontSize: '0.9rem', color: '#64748b', margin: 0 }}>
-                클릭하여 스레드에 새로운 프롬프트를 연결합니다.
-            </p>
-        </div>
-    );
+    setLoading(true);
+    try {
+      const payload = { ...formData };
+      const isThreadMode = isThread || isCreatingThread;
+      if (isThreadMode) {
+        const parentTag = prompt?.id ? `[PARENT:${prompt.id}]` : '';
+        payload.expected_answer = `<!--THREAD-->${parentTag}` + (payload.expected_answer || '');
+      }
 
-    // --- EDIT / CREATE / CONTINUOUS MODE ---
-    const isThreadMode = isThread || isCreatingThread;
+      let targetId = currentMode === 'edit' ? prompt?.id : null;
+      if (editingThreadId) targetId = editingThreadId;
 
-    // --- MAIN RENDER (Edit / Create / Continuous / Collapsed) ---
+      const savedPrompt = await onSave(payload, file, targetId);
+
+      // Standalone create: close
+      if (!isThreadMode && (currentMode === 'create' || currentMode === 'continuous')) {
+        onClose();
+        return;
+      }
+
+      // Thread continuous flow
+      if (currentMode === 'create' || currentMode === 'continuous') {
+        const historyItem = savedPrompt || { ...formData, created_at: new Date().toISOString() };
+        setSessionHistory((prev) => [...prev, historyItem]);
+        setFormData((prev) => ({
+          title: '',
+          content: '',
+          expected_answer: '',
+          difficulty: prev.difficulty,
+          attachment_url: null,
+        }));
+        setFile(null);
+        setEditingThreadId(null);
+
+        if (isThreadMode) {
+          setTriggerRefetch((p) => p + 1);
+          setCurrentMode('collapsed');
+        } else if (currentMode !== 'continuous') {
+          setCurrentMode('continuous');
+        }
+      } else {
+        setTriggerRefetch((p) => p + 1);
+        setCurrentMode('view');
+      }
+    } catch (error) {
+      alert('저장 실패: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!prompt && currentMode === 'view') return null;
+
+  // ---------------------------------------------------------------------------
+  // VIEW MODE
+  // ---------------------------------------------------------------------------
+  if (currentMode === 'view') {
     return (
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {/* CSS for Placeholder in ContentEditable */}
-            <style jsx>{`
-                .custom-editable-input:empty:before {
-                    content: attr(data-placeholder);
-                    color: #94a3b8;
-                    pointer-events: none;
-                    display: block; /* Ensure it shows up */
-                }
-            `}</style>
+      <article className="mx-auto w-full max-w-3xl">
+        {/* Top bar */}
+        <div className="mb-5 flex items-center justify-between">
+          <button
+            onClick={onClose}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-sm font-semibold text-muted-foreground transition hover:border-brand-400 hover:text-foreground"
+          >
+            <ArrowLeft size={14} /> 목록으로
+          </button>
+          <div className="flex items-center gap-1">
+            {isAdmin && (
+              <>
+                <IconBtn onClick={() => setCurrentMode('edit')} title="수정">
+                  <Pencil size={15} />
+                </IconBtn>
+                <IconBtn onClick={() => onDelete(prompt.id)} title="삭제" tone="danger">
+                  <Trash2 size={15} />
+                </IconBtn>
+              </>
+            )}
+            <IconBtn onClick={onClose} title="닫기">
+              <X size={16} />
+            </IconBtn>
+          </div>
+        </div>
 
+        {/* Title header */}
+        <header className="mb-6 border-b border-border pb-5">
+          <h1 className="font-display text-2xl tracking-tight text-foreground sm:text-[2rem] leading-tight">
+            {prompt.title}
+          </h1>
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            <DifficultyBadge value={prompt.difficulty} />
+            <span>📅 {formatDate(prompt.created_at)}</span>
+            {prompt.accounts?.display_name && (
+              <span>👤 {prompt.accounts.display_name}</span>
+            )}
+          </div>
+        </header>
 
-            <div style={{ paddingRight: '0.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', padding: '0.5rem', position: 'relative' }}>
+        {/* Prompt content */}
+        <section className="mb-6">
+          <div className="mb-2 flex items-center justify-between">
+            <h3 className="flex items-center gap-1.5 text-sm font-bold text-foreground">
+              <FileText size={14} className="text-brand-600 dark:text-brand-300" /> 프롬프트
+            </h3>
+            <button
+              onClick={() => handleCopy(prompt.content)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1 text-xs font-semibold text-muted-foreground transition hover:border-brand-400 hover:text-foreground"
+            >
+              {copied ? (
+                <>
+                  <CheckCircle2 size={12} className="text-success-600" /> 복사됨
+                </>
+              ) : (
+                <>
+                  <Copy size={12} /> 복사하기
+                </>
+              )}
+            </button>
+          </div>
+          <div className="rounded-xl border border-border bg-muted/40 p-5">
+            <HtmlView html={prompt.content} />
+          </div>
+        </section>
 
-                {/* --- PARENT PROMPT DETAIL (CONTEXT) --- */}
-                {isThreadMode && prompt && (
-                    <div style={{ paddingBottom: '1.5rem', marginBottom: '1rem', borderBottom: '1px solid #e2e8f0' }}>
-                        <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#1e293b', lineHeight: 1.3, marginBottom: '0.75rem' }}>
-                            {prompt.title} (원문)
-                        </h2>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#64748b', flexWrap: 'wrap', marginBottom: '1rem' }}>
-                            <span style={{
-                                background: prompt.difficulty === 'beginner' ? '#dbeafe' : prompt.difficulty === 'intermediate' ? '#fce7f3' : '#ffedd5',
-                                color: prompt.difficulty === 'beginner' ? '#1e40af' : prompt.difficulty === 'intermediate' ? '#9d174d' : '#9a3412',
-                                fontSize: '0.75rem', padding: '0.2rem 0.5rem', borderRadius: '4px', fontWeight: 600
-                            }}>
-                                {prompt.difficulty === 'beginner' ? '초급' : prompt.difficulty === 'intermediate' ? '중급' : '고급'}
-                            </span>
-                            <span>📅 {new Date(prompt.created_at).toLocaleDateString()}</span>
-                        </div>
-                        <div
-                            dangerouslySetInnerHTML={{ __html: prompt.content }}
-                            style={{ background: '#f8fafc', padding: '1rem', borderRadius: '0.5rem', lineHeight: '1.6', border: '1px solid #e2e8f0', color: '#334155', fontSize: '0.95rem', whiteSpace: 'pre-wrap' }}
-                        />
-                    </div>
-                )}
-
-                {/* Floating Close Button */}
-                <button
-                    onClick={onClose}
-                    style={{
-                        position: 'absolute',
-                        right: '1rem',
-                        top: '1rem',
-                        zIndex: 10,
-                        border: 'none',
-                        background: 'white',
-                        borderRadius: '50%',
-                        width: '2.5rem',
-                        height: '2.5rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        cursor: 'pointer',
-                        color: '#94a3b8',
-                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                        border: '1px solid #f1f5f9',
-                        fontSize: '1.2rem',
-                        transition: 'all 0.2s'
-                    }}
-                    onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.1)'; e.currentTarget.style.color = '#ef4444'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.color = '#94a3b8'; }}
-                    title="닫기"
-                >
-                    ✖
-                </button>
-
-                {/* Existing DB Threads (Shown in Create/Continuous Mode too) */}
-                {threadItems.length > 0 && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', paddingBottom: '0', borderLeft: isThreadMode ? '3px solid #e2e8f0' : 'none', marginLeft: isThreadMode ? '1.5rem' : '0', paddingLeft: isThreadMode ? '2rem' : '0' }}>
-                        {threadItems.map((item, idx) => (
-                            <div key={item.id} style={{
-                                alignSelf: 'flex-start',
-                                width: '100%',
-                                background: 'white',
-                                border: '1px solid #e2e8f0',
-                                borderRadius: '1rem',
-                                padding: '1.5rem',
-                                position: 'relative',
-                                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)'
-                            }}>
-                                {/* Thread Connector Node */}
-                                {isThreadMode && (
-                                    <div style={{ position: 'absolute', left: '-2.6rem', top: '1.8rem', width: '14px', height: '14px', background: '#3b82f6', borderRadius: '50%', border: '3px solid white', boxShadow: '0 0 0 2px #e2e8f0' }}></div>
-                                )}
-                                {inlineEditingId === item.id ? (
-                                    // --- INLINE EDIT FORM ---
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                                        <div style={{ fontWeight: 600, color: '#0369a1', marginBottom: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem' }}>
-                                            <span style={{ fontSize: '1.1rem', fontWeight: 700 }}>✏️ 수정 중...</span>
-                                        </div>
-
-                                        <div>
-                                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155', fontSize: '0.9rem' }}>제목</label>
-                                            <input
-                                                type="text"
-                                                value={inlineFormData.title}
-                                                onChange={e => setInlineFormData({ ...inlineFormData, title: e.target.value })}
-                                                style={{ width: '100%', padding: '0.75rem', border: '1px solid #e2e8f0', borderRadius: '0.5rem', fontSize: '0.95rem' }}
-                                            />
-                                        </div>
-
-                                        <div>
-                                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155', fontSize: '0.9rem' }}>내용</label>
-                                            <EditableDiv
-                                                value={inlineFormData.content}
-                                                onChange={(val) => setInlineFormData({ ...inlineFormData, content: val })}
-                                                minHeight="80px"
-                                            />
-                                        </div>
-
-                                        <div>
-                                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155', fontSize: '0.9rem' }}>예상 답변</label>
-                                            <textarea
-                                                value={inlineFormData.expected_answer}
-                                                onChange={e => setInlineFormData({ ...inlineFormData, expected_answer: e.target.value })}
-                                                style={{ width: '100%', padding: '0.75rem', border: '1px solid #e2e8f0', borderRadius: '0.5rem', minHeight: '150px', fontSize: '0.95rem', fontFamily: 'monospace' }}
-                                            />
-                                        </div>
-
-                                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.5rem' }}>
-                                            <button onClick={handleInlineCancel} style={{ padding: '0.5rem 1rem', background: 'white', border: '1px solid #cbd5e1', borderRadius: '0.375rem', cursor: 'pointer' }}>취소</button>
-                                            <button onClick={() => handleInlineSave(item.id)} disabled={loading} style={{ padding: '0.5rem 1rem', background: '#2563eb', color: 'white', border: 'none', borderRadius: '0.375rem', cursor: 'pointer' }}>{loading ? '저장 중...' : '확인 (수정완료)'}</button>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    // --- READ ONLY VIEW ---
-                                    <>
-                                        <div style={{ fontWeight: 600, color: '#0369a1', marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                                <span style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '1.1rem' }}>
-                                                    <span style={{ background: '#0ea5e9', color: 'white', padding: '0.15rem 0.6rem', borderRadius: '999px', fontSize: '0.75rem', fontWeight: 600 }}>등록완료</span>
-                                                    {item.title}
-                                                </span>
-
-                                                {/* Admin Actions moved to left */}
-                                                {isAdmin && (
-                                                    <div style={{ display: 'flex', gap: '0.25rem' }}>
-                                                        <button
-                                                            onClick={() => handleEditThread(item)}
-                                                            style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: '1rem', padding: '0.2rem', opacity: 0.7 }}
-                                                            onMouseEnter={(e) => e.target.style.opacity = 1}
-                                                            onMouseLeave={(e) => e.target.style.opacity = 0.7}
-                                                            title="수정"
-                                                        >
-                                                            ✏️
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleDeleteThread(item.id)}
-                                                            style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: '1rem', padding: '0.2rem', opacity: 0.7 }}
-                                                            onMouseEnter={(e) => e.target.style.opacity = 1}
-                                                            onMouseLeave={(e) => e.target.style.opacity = 0.7}
-                                                            title="삭제"
-                                                        >
-                                                            🗑️
-                                                        </button>
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <span style={{ fontSize: '0.8rem', fontWeight: 400, color: '#94a3b8' }}>{new Date(item.created_at).toLocaleDateString()}</span>
-                                        </div>
-                                        <div style={{ marginBottom: '1rem' }}>
-                                            <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.4rem', fontWeight: 600 }}>프롬프트 내용</div>
-                                            <ShadowHtmlView
-                                                html={item.content}
-                                                style={{ background: '#f8fafc', padding: '1rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0' }}
-                                            />
-                                        </div>
-                                        {item.expected_answer && (
-                                            <div>
-                                                <div style={{ fontSize: '0.85rem', color: '#1e3a8a', marginBottom: '0.4rem', fontWeight: 600 }}>💡 예상 답변</div>
-                                                <ShadowHtmlView
-                                                    html={item.expected_answer}
-                                                    style={{
-                                                        background: '#eff6ff',
-                                                        padding: '1rem',
-                                                        borderRadius: '0.75rem',
-                                                        border: '1px solid #dbeafe'
-                                                    }}
-                                                />
-                                            </div>
-                                        )}
-                                    </>
-                                )}
-                            </div>
-                        ))}
-                    </div>
-                )}
-
-                {/* Session History Cards (Chat Style / Thread Style) */}
-                {sessionHistory.length > 0 && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', paddingBottom: '1.5rem', borderLeft: isThreadMode ? '3px solid #e2e8f0' : 'none', marginLeft: isThreadMode ? '1.5rem' : '0', paddingLeft: isThreadMode ? '2rem' : '0' }}>
-                        {sessionHistory.map((historyItem, idx) => (
-                            <div key={idx} style={{
-                                alignSelf: 'flex-start',
-                                width: '100%',
-                                background: 'white',
-                                border: '1px solid #e2e8f0',
-                                borderRadius: '1rem',
-                                padding: '1.5rem',
-                                position: 'relative',
-                                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)'
-                            }}>
-                                {/* Thread Connector Node */}
-                                {isThreadMode && (
-                                    <div style={{ position: 'absolute', left: '-2.6rem', top: '1.8rem', width: '14px', height: '14px', background: '#3b82f6', borderRadius: '50%', border: '3px solid white', boxShadow: '0 0 0 2px #e2e8f0' }}></div>
-                                )}
-                                <div style={{ fontWeight: 600, color: '#0369a1', marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '1.1rem' }}>
-                                            <span style={{ background: '#0ea5e9', color: 'white', padding: '0.15rem 0.6rem', borderRadius: '999px', fontSize: '0.75rem', fontWeight: 600 }}>등록완료</span>
-                                            {historyItem.title}
-                                        </span>
-
-                                        {/* Admin Actions moved to left */}
-                                        {isAdmin && historyItem.id && (
-                                            <div style={{ display: 'flex', gap: '0.25rem' }}>
-                                                <button
-                                                    onClick={() => handleEditThread(historyItem)}
-                                                    style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: '1rem', padding: '0.2rem', opacity: 0.7 }}
-                                                    onMouseEnter={(e) => e.target.style.opacity = 1}
-                                                    onMouseLeave={(e) => e.target.style.opacity = 0.7}
-                                                    title="수정"
-                                                >
-                                                    ✏️
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDeleteThread(historyItem.id)}
-                                                    style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: '1rem', padding: '0.2rem', opacity: 0.7 }}
-                                                    onMouseEnter={(e) => e.target.style.opacity = 1}
-                                                    onMouseLeave={(e) => e.target.style.opacity = 0.7}
-                                                    title="삭제"
-                                                >
-                                                    🗑️
-                                                </button>
-                                            </div>
-                                        )}
-                                    </div>
-                                    <span style={{ fontSize: '0.8rem', fontWeight: 400, color: '#94a3b8' }}>방금 전</span>
-                                </div>
-                                <div style={{ marginBottom: '1rem' }}>
-                                    <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.4rem', fontWeight: 600 }}>프롬프트 내용</div>
-                                    <div
-                                        dangerouslySetInnerHTML={{ __html: historyItem.content }}
-                                        style={{ fontSize: '0.95rem', color: '#334155', lineHeight: '1.6', background: '#f8fafc', padding: '1rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0', whiteSpace: 'pre-wrap' }}
-                                    />
-                                </div>
-                                {historyItem.expected_answer && (
-                                    <div>
-                                        <div style={{ fontSize: '0.85rem', color: '#1e3a8a', marginBottom: '0.4rem', fontWeight: 600 }}>💡 예상 답변</div>
-                                        <div
-                                            dangerouslySetInnerHTML={{ __html: historyItem.expected_answer.replace(/<!--THREAD-->|\[PARENT:[^\]]+\]/g, '') }}
-                                            style={{ fontSize: '0.95rem', color: '#1e3a8a', lineHeight: '1.6', background: '#eff6ff', padding: '1rem', borderRadius: '0.75rem', border: '1px solid #dbeafe', whiteSpace: 'pre-wrap' }}
-                                        />
-                                    </div>
-                                )}
-                            </div>
-                        ))}
-                    </div>
-                )}
-
-                {/* Show Collapsed Add Button OR Form */}
-                {currentMode === 'collapsed' ? (
-                    renderCollapsedButton()
-                ) : (
-                    <form onSubmit={handleSubmit} style={{
-                        display: 'flex', flexDirection: 'column', gap: '1.5rem',
-                        background: 'white',
-                        padding: '2rem',
-                        borderRadius: '1rem',
-                        border: '1px solid #e2e8f0',
-                        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.05)',
-                        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.05)',
-                        borderLeft: isThreadMode ? 'none' : 'none',
-                        marginLeft: (isThreadMode && sessionHistory.length > 0) ? '1.5rem' : '0',
-                        position: 'relative'
-                    }}>
-                        {/* Thread Connector Line for Form (Visual Only) */}
-                        {isThreadMode && (
-                            <div style={{ position: 'absolute', left: '-1.6rem', top: '0', bottom: '0', width: '3px', background: '#e2e8f0', display: sessionHistory.length > 0 ? 'block' : 'none' }}></div>
-                        )}
-
-                        <div style={{ position: 'relative', marginBottom: '0.5rem' }}>
-                            {isThreadMode && sessionHistory.length > 0 && (
-                                <div style={{ position: 'absolute', left: '-2.6rem', top: '0.5rem', width: '14px', height: '14px', background: '#cbd5e1', borderRadius: '50%', border: '3px solid white', boxShadow: '0 0 0 2px #e2e8f0' }}></div>
-                            )}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                <span style={{ fontSize: '1.75rem' }}>✍️</span>
-                                <div>
-                                    <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#1e293b', lineHeight: 1.2 }}>
-                                        {sessionHistory.length > 0 ? '추가 프롬프트 작성' : '새 프롬프트 작성'}
-                                    </h3>
-                                    <p style={{ fontSize: '0.9rem', color: '#64748b', margin: 0, marginTop: '0.2rem' }}>
-                                        {sessionHistory.length > 0 ? '이전 단계에 이어지는 내용을 작성해주세요.' : '새로운 주제의 프롬프트를 작성합니다.'}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-
-                        {!isThreadMode && (
-                            <div>
-                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155', fontSize: '0.95rem' }}>제목</label>
-                                <input
-                                    type="text"
-                                    value={formData.title}
-                                    onChange={e => setFormData({ ...formData, title: e.target.value })}
-                                    placeholder="이번 단계의 핵심 주제를 입력하세요"
-                                    style={{ width: '100%', padding: '1rem', border: '1px solid #e2e8f0', borderRadius: '0.75rem', fontSize: '1rem', background: '#f8fafc', transition: 'all 0.2s', outline: 'none' }}
-                                    onFocus={(e) => { e.target.style.background = 'white'; e.target.style.borderColor = '#3b82f6'; e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)'; }}
-                                    onBlur={(e) => { e.target.style.background = '#f8fafc'; e.target.style.borderColor = '#e2e8f0'; e.target.style.boxShadow = 'none'; }}
-                                    required
-                                />
-                            </div>
-                        )}
-
-                        {!isThreadMode && (
-                            <div style={{ display: 'flex', gap: '1rem' }}>
-                                <div style={{ flex: 1 }}>
-                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155', fontSize: '0.95rem' }}>난이도</label>
-                                    <select
-                                        value={formData.difficulty}
-                                        onChange={e => setFormData({ ...formData, difficulty: e.target.value })}
-                                        style={{ width: '100%', padding: '1rem', border: '1px solid #e2e8f0', borderRadius: '0.75rem', background: '#f8fafc', cursor: 'pointer', fontSize: '1rem', outline: 'none' }}
-                                    >
-                                        <option value="beginner">초급</option>
-                                        <option value="intermediate">중급</option>
-                                        <option value="advanced">고급</option>
-                                    </select>
-                                </div>
-                            </div>
-                        )}
-
-                        <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155', fontSize: '0.95rem' }}>프롬프트 내용</label>
-                            <EditableDiv
-                                value={formData.content}
-                                onChange={(val) => setFormData({ ...formData, content: val })}
-                                placeholder="프롬프트 내용을 상세히 작성하세요..."
-                                minHeight="80px" // Adjusted to approx 3 lines
-                            />
-                        </div>
-
-                        <details style={{ background: '#f8fafc', borderRadius: '0.75rem', padding: '0.5rem', border: '1px solid #e2e8f0' }}>
-                            <summary style={{ cursor: 'pointer', padding: '0.5rem', fontWeight: 600, color: '#64748b', listStyle: 'none' }}>
-                                <span style={{ marginRight: '0.5rem' }}>👉</span> 예상 답변 및 첨부 파일 (선택)
-                            </summary>
-                            <div style={{ padding: '1rem', borderTop: '1px dashed #e2e8f0', marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                                <div>
-                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155', fontSize: '0.95rem' }}>예상 답변</label>
-                                    <textarea
-                                        value={formData.expected_answer}
-                                        onChange={(e) => setFormData({ ...formData, expected_answer: e.target.value })}
-                                        placeholder="이곳에 HTML 코드를 직접 입력할 수 있습니다. (예: <b>강조</b>, <br> 줄바꿈, <ul>...</ul> 목록 등)"
-                                        style={{
-                                            width: '100%',
-                                            padding: '1rem',
-                                            border: '1px solid #e2e8f0',
-                                            borderRadius: '0.75rem',
-                                            minHeight: '400px',
-                                            fontSize: '1rem',
-                                            lineHeight: '1.5',
-                                            background: '#f8fafc',
-                                            outline: 'none',
-                                            fontFamily: 'monospace', // Use monospace for code editing
-                                            resize: 'vertical'
-                                        }}
-                                        onFocus={(e) => {
-                                            e.target.style.background = 'white';
-                                            e.target.style.borderColor = '#3b82f6';
-                                            e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
-                                        }}
-                                        onBlur={(e) => {
-                                            e.target.style.background = '#f8fafc';
-                                            e.target.style.borderColor = '#e2e8f0';
-                                            e.target.style.boxShadow = 'none';
-                                        }}
-                                    />
-
-                                </div>
-
-                                <div>
-                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155', fontSize: '0.95rem' }}>첨부 파일</label>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', border: '1px dashed #cbd5e1', borderRadius: '0.75rem', background: 'white' }}>
-                                        <input
-                                            type="file"
-                                            onChange={handleFileChange}
-                                            style={{ width: '100%', fontSize: '0.9rem' }}
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                        </details>
-
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem', borderTop: '1px solid #f1f5f9', paddingTop: '1.5rem' }}>
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    if (sessionHistory.length === 0 && (currentMode === 'create' || currentMode === 'continuous')) {
-                                        // If canceling initial create, close.
-                                        onClose();
-                                    } else {
-                                        // If thread or history exists, collapse
-                                        if (isThreadMode) setCurrentMode('collapsed');
-                                        else onClose();
-                                    }
-                                }}
-                                style={{ padding: '0.8rem 1.5rem', background: 'white', color: '#64748b', border: '1px solid #cbd5e1', borderRadius: '0.5rem', cursor: 'pointer', fontSize: '1rem', fontWeight: 600 }}
-                            >
-                                취소
-                            </button>
-                            <button
-                                type="submit"
-                                disabled={loading}
-                                style={{ padding: '0.8rem 2rem', background: '#2563eb', color: 'white', border: 'none', borderRadius: '0.5rem', cursor: loading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1rem', fontWeight: 600, boxShadow: '0 4px 6px -1px rgba(37, 99, 235, 0.2)' }}
-                            >
-                                {loading ? '저장 중...' : <span>⬆️ 질문 등록하기</span>}
-                            </button>
-                        </div>
-                    </form>
-                )}
+        {/* Expected answer */}
+        {prompt.expected_answer && cleanExpected(prompt.expected_answer) && (
+          <section className="mb-6">
+            <h3 className="mb-2 flex items-center gap-1.5 text-sm font-bold text-foreground">
+              <span className="text-accent-500">💡</span> 예상 답변
+            </h3>
+            <div className="rounded-xl border border-brand-200 bg-brand-50/60 p-5 dark:border-brand-900 dark:bg-brand-900/10">
+              <HtmlView html={prompt.expected_answer} tone="brand" />
             </div>
-        </div >
+          </section>
+        )}
+
+        {/* Attachment */}
+        {prompt.attachment_url && (
+          <section className="mb-6">
+            <h3 className="mb-2 flex items-center gap-1.5 text-sm font-bold text-foreground">
+              <Paperclip size={14} /> 첨부 자료
+            </h3>
+            {/\.(jpg|jpeg|png|gif|webp)$/i.test(prompt.attachment_url) && (
+              <div className="mb-3 overflow-hidden rounded-xl border border-border">
+                <img
+                  src={prompt.attachment_url}
+                  alt="첨부 이미지"
+                  className="block h-auto w-full"
+                />
+              </div>
+            )}
+            <a
+              href={`${prompt.attachment_url}?download=`}
+              download
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-sm font-semibold text-brand-600 transition hover:border-brand-400 dark:text-brand-300"
+            >
+              <Download size={14} /> 자료 다운로드
+            </a>
+          </section>
+        )}
+
+        {/* Threaded replies */}
+        {threadItems.length > 0 && (
+          <section className="mt-10 border-t border-dashed border-border pt-8">
+            <h3 className="mb-5 flex items-center gap-1.5 text-base font-bold text-foreground">
+              <Link2 size={16} className="text-brand-600 dark:text-brand-300" />
+              이어지는 프롬프트
+              <span className="ml-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                {threadItems.length}
+              </span>
+            </h3>
+
+            <div className="relative ml-2 flex flex-col gap-5 border-l-2 border-border pl-6">
+              {threadItems.map((item) => (
+                <ThreadCard
+                  key={item.id}
+                  item={item}
+                  isAdmin={isAdmin}
+                  isEditing={inlineEditingId === item.id}
+                  inlineFormData={inlineFormData}
+                  setInlineFormData={setInlineFormData}
+                  onEdit={() => handleEditThread(item)}
+                  onDelete={() => handleDeleteThread(item.id)}
+                  onSave={() => handleInlineSave(item.id)}
+                  onCancel={handleInlineCancel}
+                  loading={loading}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Comment-style "add thread" input */}
+        {isAdmin && (enableThreadCreation || isThread) && (
+          <section className="mt-10 border-t border-border pt-6">
+            <button
+              onClick={() => {
+                setIsCreatingThread(true);
+                setCurrentMode('continuous');
+              }}
+              className="group flex w-full items-center gap-3 rounded-2xl border border-border bg-card p-4 text-left transition hover:border-brand-400 hover:bg-muted/40"
+            >
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-violet-500 text-white">
+                <MessageCircle size={16} />
+              </div>
+              <div className="flex-1">
+                <div className="text-sm font-semibold text-foreground">
+                  이어지는 프롬프트 작성
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  이 프롬프트와 연결된 후속 질문을 댓글처럼 추가할 수 있어요.
+                </div>
+              </div>
+              <CornerDownRight
+                size={16}
+                className="text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-brand-600"
+              />
+            </button>
+          </section>
+        )}
+
+        {/* Bottom back */}
+        <div className="mt-8 border-t border-border pt-5">
+          <button
+            onClick={onClose}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-card px-4 py-3 text-sm font-semibold text-muted-foreground transition hover:border-brand-400 hover:text-foreground"
+          >
+            <ArrowLeft size={15} /> 목록으로 돌아가기
+          </button>
+        </div>
+      </article>
     );
+  }
+
+  // ---------------------------------------------------------------------------
+  // EDIT / CREATE / CONTINUOUS / COLLAPSED MODE
+  // ---------------------------------------------------------------------------
+  const isThreadMode = isThread || isCreatingThread;
+
+  return (
+    <div className="mx-auto w-full max-w-3xl">
+      <div className="relative flex flex-col gap-6 py-4">
+        {/* Floating close */}
+        <button
+          onClick={onClose}
+          className="absolute right-0 top-0 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-sm transition hover:scale-110 hover:text-accent-500"
+          title="닫기"
+        >
+          <X size={16} />
+        </button>
+
+        {/* Parent reference card (in thread mode) */}
+        {isThreadMode && prompt && (
+          <div className="rounded-2xl border border-border bg-muted/30 p-5">
+            <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <CornerDownRight size={12} /> 원문 프롬프트
+            </div>
+            <h2 className="font-display text-lg tracking-tight text-foreground">
+              {prompt.title}
+            </h2>
+            <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+              <DifficultyBadge value={prompt.difficulty} />
+              <span>📅 {formatDate(prompt.created_at)}</span>
+            </div>
+            <div className="mt-3 rounded-lg border border-border bg-card p-3">
+              <HtmlView html={prompt.content} tone="muted" />
+            </div>
+          </div>
+        )}
+
+        {/* Existing DB threads (shown in continuous mode so you see context) */}
+        {threadItems.length > 0 && isThreadMode && (
+          <div className="relative ml-2 flex flex-col gap-4 border-l-2 border-border pl-6">
+            {threadItems.map((item) => (
+              <ThreadCard
+                key={item.id}
+                item={item}
+                isAdmin={isAdmin}
+                isEditing={inlineEditingId === item.id}
+                inlineFormData={inlineFormData}
+                setInlineFormData={setInlineFormData}
+                onEdit={() => handleEditThread(item)}
+                onDelete={() => handleDeleteThread(item.id)}
+                onSave={() => handleInlineSave(item.id)}
+                onCancel={handleInlineCancel}
+                loading={loading}
+                compact
+              />
+            ))}
+          </div>
+        )}
+
+        {/* In-session history cards */}
+        {sessionHistory.length > 0 && (
+          <div
+            className={cn(
+              'flex flex-col gap-4',
+              isThreadMode && 'ml-2 border-l-2 border-success-500/40 pl-6',
+            )}
+          >
+            {sessionHistory.map((historyItem, idx) => (
+              <SessionHistoryCard
+                key={idx}
+                item={historyItem}
+                isAdmin={isAdmin}
+                onEdit={historyItem.id ? () => handleEditThread(historyItem) : null}
+                onDelete={historyItem.id ? () => handleDeleteThread(historyItem.id) : null}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Collapsed button (comment-style add) OR form */}
+        {currentMode === 'collapsed' ? (
+          <button
+            onClick={() => setCurrentMode('continuous')}
+            className="group flex w-full items-center gap-3 rounded-2xl border border-dashed border-border bg-card p-5 text-left transition hover:border-brand-400 hover:bg-muted/40"
+          >
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-violet-500 text-white">
+              <MessageCircle size={18} />
+            </div>
+            <div className="flex-1">
+              <div className="font-semibold text-foreground">새로운 프롬프트 추가하기</div>
+              <div className="text-xs text-muted-foreground">
+                이 스레드에 연결되는 후속 질문을 작성합니다.
+              </div>
+            </div>
+            <CornerDownRight
+              size={16}
+              className="text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-brand-600"
+            />
+          </button>
+        ) : (
+          <form
+            onSubmit={handleSubmit}
+            className="relative flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6"
+          >
+            {/* Header */}
+            <div className="flex items-center gap-3 border-b border-border pb-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-violet-500 text-white shadow-sm">
+                <Pencil size={16} />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-foreground">
+                  {currentMode === 'edit'
+                    ? '프롬프트 수정'
+                    : sessionHistory.length > 0
+                      ? '추가 프롬프트 작성'
+                      : '새 프롬프트 작성'}
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  {isThreadMode
+                    ? '이 프롬프트는 원문에 이어집니다.'
+                    : '제목과 내용을 입력한 뒤 저장해주세요.'}
+                </p>
+              </div>
+            </div>
+
+            {/* Title + difficulty (non-thread only) */}
+            {!isThreadMode && (
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_140px]">
+                <div>
+                  <Label>제목</Label>
+                  <input
+                    type="text"
+                    value={formData.title}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    placeholder="이번 프롬프트의 핵심 주제"
+                    required
+                    className="w-full rounded-xl border border-border bg-muted/40 px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-brand-500 focus:bg-card focus:ring-2 focus:ring-brand-500/20"
+                  />
+                </div>
+                <div>
+                  <Label>난이도</Label>
+                  <select
+                    value={formData.difficulty}
+                    onChange={(e) => setFormData({ ...formData, difficulty: e.target.value })}
+                    className="w-full rounded-xl border border-border bg-muted/40 px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-brand-500 focus:bg-card"
+                  >
+                    <option value="beginner">초급</option>
+                    <option value="intermediate">중급</option>
+                    <option value="advanced">고급</option>
+                  </select>
+                </div>
+              </div>
+            )}
+
+            {/* Thread title (simpler) */}
+            {isThreadMode && (
+              <div>
+                <Label>이어지는 프롬프트 제목</Label>
+                <input
+                  type="text"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  placeholder="이어지는 질문의 제목"
+                  required
+                  className="w-full rounded-xl border border-border bg-muted/40 px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-brand-500 focus:bg-card focus:ring-2 focus:ring-brand-500/20"
+                />
+              </div>
+            )}
+
+            {/* Content editor */}
+            <div>
+              <Label>프롬프트 내용</Label>
+              <RichEditor
+                value={formData.content}
+                onChange={(val) => setFormData({ ...formData, content: val })}
+                placeholder="프롬프트 내용을 작성하거나 붙여넣으세요. 이미지는 드래그·붙여넣기로 삽입할 수 있어요."
+                minHeight={180}
+              />
+            </div>
+
+            {/* Expected answer + attachment (collapsible) */}
+            <details className="group rounded-xl border border-border bg-muted/30 open:bg-muted/40">
+              <summary className="flex cursor-pointer items-center gap-2 list-none px-4 py-3 text-sm font-semibold text-muted-foreground hover:text-foreground">
+                <ChevronDown
+                  size={14}
+                  className="transition group-open:rotate-180"
+                />
+                예상 답변 및 첨부 파일 <span className="text-xs">(선택)</span>
+              </summary>
+              <div className="flex flex-col gap-4 border-t border-border px-4 py-4">
+                <div>
+                  <Label>예상 답변</Label>
+                  <p className="mb-1.5 text-[11px] text-muted-foreground">
+                    리치 에디터로 작성하면 HTML 태그 없이 서식 그대로 저장돼요.
+                  </p>
+                  <RichEditor
+                    value={formData.expected_answer}
+                    onChange={(val) =>
+                      setFormData({ ...formData, expected_answer: val })
+                    }
+                    placeholder="예상 답변을 서식과 함께 작성하세요..."
+                    minHeight={140}
+                  />
+                </div>
+
+                <div>
+                  <Label>첨부 파일</Label>
+                  <div className="flex items-center gap-3 rounded-xl border border-dashed border-border bg-card p-3 text-sm">
+                    <Paperclip size={14} className="text-muted-foreground" />
+                    <input
+                      type="file"
+                      onChange={handleFileChange}
+                      className="flex-1 text-xs text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-brand-500/15 file:px-2 file:py-1 file:text-xs file:font-semibold file:text-brand-700 hover:file:bg-brand-500/25 dark:file:text-brand-300"
+                    />
+                  </div>
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    최대 3MB · jpg · png · gif · webp
+                  </p>
+                </div>
+              </div>
+            </details>
+
+            {/* Actions */}
+            <div className="flex items-center justify-end gap-2 border-t border-border pt-4">
+              <button
+                type="button"
+                onClick={() => {
+                  if (sessionHistory.length === 0 && (currentMode === 'create' || currentMode === 'continuous')) {
+                    onClose();
+                  } else if (isThreadMode) {
+                    setCurrentMode('collapsed');
+                  } else {
+                    onClose();
+                  }
+                }}
+                className="rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-semibold text-muted-foreground transition hover:border-brand-400 hover:text-foreground"
+              >
+                취소
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-brand-600 to-violet-500 px-5 py-2.5 text-sm font-bold text-white shadow-md shadow-brand-500/20 transition hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" /> 저장 중...
+                  </>
+                ) : (
+                  <>
+                    <SendHorizontal size={14} />
+                    {currentMode === 'edit' ? '수정 완료' : '등록하기'}
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// Sub-components
+// -----------------------------------------------------------------------------
+
+function IconBtn({ onClick, title, children, tone = 'default' }) {
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      className={cn(
+        'inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-muted',
+        tone === 'danger' && 'hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40',
+        tone === 'default' && 'hover:text-foreground',
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+function Label({ children }) {
+  return (
+    <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+      {children}
+    </label>
+  );
+}
+
+function ThreadCard({
+  item,
+  isAdmin,
+  isEditing,
+  inlineFormData,
+  setInlineFormData,
+  onEdit,
+  onDelete,
+  onSave,
+  onCancel,
+  loading,
+  compact,
+}) {
+  return (
+    <div className="relative" data-thread-id={item.id}>
+      {/* Dot connector */}
+      <span
+        aria-hidden
+        className="absolute -left-[calc(1.5rem+5px)] top-5 h-2.5 w-2.5 rounded-full bg-gradient-to-br from-brand-500 to-violet-500 ring-2 ring-card"
+      />
+      <div
+        className={cn(
+          'rounded-2xl border border-border bg-card shadow-sm',
+          compact ? 'p-4' : 'p-5',
+        )}
+      >
+        {isEditing ? (
+          // Inline edit form
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <span className="inline-flex items-center gap-1.5 text-sm font-bold text-brand-600 dark:text-brand-300">
+                <Pencil size={13} /> 수정 중...
+              </span>
+            </div>
+            <div>
+              <Label>제목</Label>
+              <input
+                type="text"
+                value={inlineFormData.title || ''}
+                onChange={(e) =>
+                  setInlineFormData({ ...inlineFormData, title: e.target.value })
+                }
+                className="w-full rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:bg-card"
+              />
+            </div>
+            <div>
+              <Label>내용</Label>
+              <RichEditor
+                value={inlineFormData.content || ''}
+                onChange={(val) =>
+                  setInlineFormData({ ...inlineFormData, content: val })
+                }
+                placeholder="내용을 수정하세요..."
+                minHeight={120}
+                toolbar="compact"
+              />
+            </div>
+            <div>
+              <Label>예상 답변</Label>
+              <RichEditor
+                value={inlineFormData.expected_answer || ''}
+                onChange={(val) =>
+                  setInlineFormData({ ...inlineFormData, expected_answer: val })
+                }
+                placeholder="예상 답변 (선택)"
+                minHeight={100}
+                toolbar="compact"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={onCancel}
+                className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground"
+              >
+                취소
+              </button>
+              <button
+                onClick={onSave}
+                disabled={loading}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-brand-600 to-violet-500 px-3 py-1.5 text-xs font-bold text-white"
+              >
+                {loading ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle2 size={12} />}
+                수정 완료
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="mb-3 flex items-start justify-between gap-2 border-b border-border pb-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center rounded-full bg-brand-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-brand-600 dark:text-brand-300">
+                  Thread
+                </span>
+                <span className="text-sm font-semibold text-foreground">{item.title}</span>
+              </div>
+              <div className="flex shrink-0 items-center gap-1">
+                {isAdmin && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onEdit?.();
+                      }}
+                      title="수정"
+                      className="inline-flex h-8 items-center gap-1 rounded-lg border border-border bg-card px-2 text-xs font-semibold text-muted-foreground transition hover:border-brand-400 hover:bg-brand-500/10 hover:text-brand-600 dark:hover:text-brand-300"
+                    >
+                      <Pencil size={13} /> 수정
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDelete?.();
+                      }}
+                      title="삭제"
+                      className="inline-flex h-8 items-center gap-1 rounded-lg border border-border bg-card px-2 text-xs font-semibold text-muted-foreground transition hover:border-red-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-300"
+                    >
+                      <Trash2 size={13} /> 삭제
+                    </button>
+                  </>
+                )}
+                <span className="ml-1 text-[11px] text-muted-foreground">
+                  {formatDate(item.created_at)}
+                </span>
+              </div>
+            </div>
+
+            <div className="mb-3">
+              <div className="mb-1 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                프롬프트 내용
+              </div>
+              <div className="rounded-lg border border-border bg-muted/30 p-3">
+                <HtmlView html={item.content} />
+              </div>
+            </div>
+
+            {cleanExpected(item.expected_answer) && (
+              <div>
+                <div className="mb-1 text-[11px] font-bold uppercase tracking-wider text-brand-700 dark:text-brand-300">
+                  💡 예상 답변
+                </div>
+                <div className="rounded-lg border border-brand-200 bg-brand-50/60 p-3 dark:border-brand-900 dark:bg-brand-900/10">
+                  <HtmlView html={item.expected_answer} tone="brand" />
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function SessionHistoryCard({ item, isAdmin, onEdit, onDelete }) {
+  return (
+    <div className="relative">
+      <span
+        aria-hidden
+        className="absolute -left-[calc(1.5rem+5px)] top-5 hidden h-2.5 w-2.5 rounded-full bg-success-500 ring-2 ring-card"
+      />
+      <div className="rounded-2xl border border-success-500/30 bg-card p-4 shadow-sm">
+        <div className="mb-2 flex items-center justify-between gap-2 border-b border-border pb-2">
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center rounded-full bg-success-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-success-600 dark:text-success-500">
+              방금 등록
+            </span>
+            <span className="text-sm font-semibold text-foreground">{item.title}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            {isAdmin && onEdit && (
+              <button
+                onClick={onEdit}
+                className="rounded-md p-1 text-muted-foreground hover:bg-muted"
+                title="수정"
+              >
+                <Pencil size={12} />
+              </button>
+            )}
+            {isAdmin && onDelete && (
+              <button
+                onClick={onDelete}
+                className="rounded-md p-1 text-muted-foreground hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40"
+                title="삭제"
+              >
+                <Trash2 size={12} />
+              </button>
+            )}
+          </div>
+        </div>
+        <div className="mb-2">
+          <div className="mb-1 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+            프롬프트 내용
+          </div>
+          <div className="rounded-lg bg-muted/40 p-3">
+            <HtmlView html={item.content} />
+          </div>
+        </div>
+        {cleanExpected(item.expected_answer) && (
+          <div>
+            <div className="mb-1 text-[11px] font-bold uppercase tracking-wider text-brand-700 dark:text-brand-300">
+              💡 예상 답변
+            </div>
+            <div className="rounded-lg border border-brand-200 bg-brand-50/60 p-3 dark:border-brand-900 dark:bg-brand-900/10">
+              <HtmlView html={item.expected_answer} tone="brand" />
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }

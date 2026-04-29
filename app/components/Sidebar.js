@@ -4,8 +4,31 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
+import {
+  Home, BookOpen, Settings2, LogOut, Menu, X,
+  Shield, UserCircle2, Sparkles,
+} from 'lucide-react';
 import LinkManagerModal from '@/app/components/LinkManagerModal';
+import ThemeToggle from '@/app/components/ThemeToggle';
+import Logo from '@/app/components/Logo';
 import { getLinksAction } from '@/app/actions/linkActions';
+import { cn } from '@/lib/utils';
+
+const targetNames = {
+  business: '비즈니스',
+  public: '공공기관',
+  univ: '대학',
+  elem: '초등학교',
+  middle: '중학교',
+  high: '고등학교',
+  adult: '일반성인',
+};
+
+const navItems = [
+  { href: '/', label: '프롬프트 실습', icon: Home, match: (p) => p === '/' },
+  { href: '/manual', label: '사용 가이드', icon: BookOpen, match: (p) => p === '/manual' },
+  { href: '/admin/login', label: '관리자', icon: Settings2, match: (p) => p.includes('/admin') },
+];
 
 export default function Sidebar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -14,16 +37,6 @@ export default function Sidebar() {
   const [session, setSession] = useState(null);
   const [links, setLinks] = useState([]);
   const [isLinkManagerOpen, setIsLinkManagerOpen] = useState(false);
-
-  const targetNames = {
-    'business': '비즈니스',
-    'public': '공공기관',
-    'univ': '대학',
-    'elem': '초등학교',
-    'middle': '중학교',
-    'high': '고등학교',
-    'adult': '일반성인',
-  };
 
   useEffect(() => {
     const checkSession = () => {
@@ -35,19 +48,17 @@ export default function Sidebar() {
         }
         const userSessionStr = localStorage.getItem('user_session');
         if (userSessionStr) {
-          const userSession = JSON.parse(userSessionStr);
-          const displayName = targetNames[userSession.username] || userSession.displayName || '학습자';
-          setSession({ type: 'user', name: displayName });
+          const u = JSON.parse(userSessionStr);
+          const display = targetNames[u.username] || u.displayName || '학습자';
+          setSession({ type: 'user', name: display });
           return;
         }
         setSession(null);
-      } catch (e) {
-        console.error("Session check error:", e);
+      } catch {
         setSession(null);
       }
     };
     checkSession();
-
   }, [pathname]);
 
   useEffect(() => {
@@ -63,178 +74,251 @@ export default function Sidebar() {
         localStorage.removeItem('user_session');
         router.push('/');
       }
-    } catch (e) {
-      console.error("Logout error:", e);
+    } catch {
       router.push('/');
     }
     setSession(null);
     setIsOpen(false);
   };
 
-  const toggleSidebar = () => setIsOpen(!isOpen);
-
   return (
     <>
-      <div className="mobile-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', position: 'relative', paddingRight: '1.5rem', paddingTop: '0.5rem', paddingBottom: '0.5rem' }}>
-        <button className="btn" onClick={toggleSidebar} style={{ position: 'absolute', left: '1rem', border: 'none', background: 'none', fontSize: '1.5rem', cursor: 'pointer' }}>
-          ☰
+      {/* ---------- Mobile header ---------- */}
+      <div className="mobile-header">
+        <button
+          onClick={() => setIsOpen((v) => !v)}
+          aria-label="메뉴 열기"
+          className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card text-foreground hover:bg-muted"
+        >
+          {isOpen ? <X size={18} /> : <Menu size={18} />}
         </button>
-        <Image
-          src="https://img.aicec.kr/web_images/prompt_lab_logo_withoutbg.png"
-          alt="Prompt Lab"
-          width={180}
-          height={30}
-          style={{ height: '30px', width: 'auto' }}
-          priority
-        />
+        <Logo size="sm" showSubtitle={false} />
+        <ThemeToggle compact />
       </div>
 
-      <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
-        <div className="logo-container">
-          <Link href="/" style={{ cursor: 'pointer' }} onClick={() => setIsOpen(false)}>
-            <Image
-              src="https://img.aicec.kr/web_images/prompt_lab_logo_withoutbg.png"
-              alt="Prompt Lab"
-              width={220}
-              height={35}
-              className="logo-img"
-              style={{ width: 'auto', height: 'auto' }}
-              priority
-            />
-          </Link>
-        </div>
+      {/* ---------- Sidebar ---------- */}
+      <aside
+        className={cn(
+          'fixed left-0 top-0 z-50 flex h-screen w-[280px] flex-col overflow-hidden border-r border-border transition-transform duration-300',
+          'bg-card md:translate-x-0',
+          isOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full',
+        )}
+      >
+        {/* Decorative gradient glow at top */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-48 bg-gradient-to-b from-brand-500/15 via-violet-500/5 to-transparent dark:from-brand-500/20 dark:via-violet-500/10"
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -right-16 top-16 h-40 w-40 rounded-full bg-accent-400/20 blur-3xl dark:bg-accent-400/10"
+        />
 
-        <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+        {/* ---- Logo ---- */}
+        <div className="relative flex items-center justify-between border-b border-border px-5 py-5">
           <Link
             href="/"
-            className={`nav-item ${pathname === '/' ? 'active' : ''}`}
             onClick={() => setIsOpen(false)}
+            className="outline-none transition hover:opacity-90 focus-visible:ring-2 focus-visible:ring-brand-500 rounded-md"
           >
-            <span style={{ fontSize: '1.2rem' }}>🏠</span>
-            <span>프롬프트 실습</span>
+            <Logo size="md" showSubtitle />
           </Link>
-          <Link
-            href="/manual"
-            className={`nav-item ${pathname === '/manual' ? 'active' : ''}`}
+          <button
             onClick={() => setIsOpen(false)}
+            aria-label="메뉴 닫기"
+            className="md:hidden inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted"
           >
-            <span style={{ fontSize: '1.2rem' }}>📖</span>
-            <span>사용 가이드</span>
-          </Link>
-          <Link
-            href="/admin/login"
-            className={`nav-item ${pathname.includes('/admin') ? 'active' : ''}`}
-            onClick={() => setIsOpen(false)}
-          >
-            <span style={{ fontSize: '1.2rem' }}>⚙️</span>
-            <span>관리자</span>
-          </Link>
-        </nav>
-
-        <div style={{ padding: '0 1rem', marginTop: '2rem', marginBottom: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            Useful Links
-          </span>
-          {session && session.type === 'admin' && (
-            <button
-              onClick={() => setIsLinkManagerOpen(true)}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: 0 }}
-              title="링크 관리"
-            >
-              ⚙️
-            </button>
-          )}
+            <X size={16} />
+          </button>
         </div>
-        <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', maxHeight: '30vh', overflowY: 'auto' }}>
-          {links.length > 0 ? (
-            links.map(link => {
-              // Icon Mapping
-              let iconSrc = '/globe.svg';
-              let isAuto = false;
 
-              if (link.icon_key === 'chatgpt') iconSrc = '/icons/chatgpt.svg';
-              else if (link.icon_key === 'gemini') iconSrc = '/icons/gemini.svg';
-              else if (link.icon_key === 'claude') iconSrc = '/icons/claude.svg';
-              else if (link.icon_key === 'perplexity') iconSrc = '/icons/perplexity.svg';
-              else if (link.icon_key === 'aistudio') iconSrc = '/icons/gemini.svg';
-              else if (link.icon_key === 'antigravity') iconSrc = '/favicon.png';
-              else if (link.icon_key && link.icon_key.startsWith('http')) {
-                iconSrc = link.icon_key;
-              }
-              else if (link.icon_key === 'auto' || (!link.icon_key && link.url)) {
-                // Use Google S2 Favicon service (Client-side fallback)
-                try {
-                  const domain = new URL(link.url).hostname;
-                  iconSrc = `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
-                  isAuto = true;
-                } catch (e) {
-                  iconSrc = '/globe.svg';
-                }
-              }
-
+        {/* ---- Nav ---- */}
+        <div className="relative px-3 py-4">
+          <div className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground">
+            메뉴
+          </div>
+          <nav className="flex flex-col gap-1">
+            {navItems.map((item) => {
+              const active = item.match(pathname);
+              const Icon = item.icon;
               return (
-                <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer" className="nav-item" onClick={() => setIsOpen(false)}>
-                  <Image
-                    src={iconSrc}
-                    alt={link.title}
-                    width={16}
-                    height={16}
-                    style={{ opacity: (link.icon_key === 'default' && !isAuto) ? 0.6 : 1, objectFit: 'contain' }}
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setIsOpen(false)}
+                  className={cn(
+                    'group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-all',
+                    active
+                      ? 'bg-gradient-to-r from-brand-500/15 via-brand-500/5 to-transparent text-brand-700 dark:from-brand-500/25 dark:via-brand-500/10 dark:text-brand-200'
+                      : 'text-muted-foreground hover:bg-muted hover:text-foreground hover:translate-x-0.5',
+                  )}
+                >
+                  {/* Left indicator bar when active */}
+                  <span
+                    aria-hidden
+                    className={cn(
+                      'absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-gradient-to-b from-brand-500 to-accent-400 transition-opacity',
+                      active ? 'opacity-100' : 'opacity-0',
+                    )}
                   />
-                  <span style={{ fontSize: '0.9rem' }}>{link.title}</span>
-                </a>
+                  <Icon
+                    size={18}
+                    className={cn(
+                      'transition-transform',
+                      active
+                        ? 'text-brand-600 dark:text-brand-300'
+                        : 'group-hover:scale-110',
+                    )}
+                  />
+                  <span className="flex-1">{item.label}</span>
+                  {active && (
+                    <Sparkles size={12} className="text-accent-400 animate-pulse" />
+                  )}
+                </Link>
               );
-            })
-          ) : (
-            <div style={{ padding: '0 1rem', fontSize: '0.8rem', color: '#cbd5e1' }}>등록된 링크가 없습니다.</div>
-          )}
-        </nav>
+            })}
+          </nav>
+        </div>
+
+        {/* ---- Useful Links ---- */}
+        <div className="relative px-3 pb-2">
+          <div className="mb-2 flex items-center justify-between px-3">
+            <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground">
+              Useful Links
+            </span>
+            {session?.type === 'admin' && (
+              <button
+                onClick={() => setIsLinkManagerOpen(true)}
+                className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                title="링크 관리"
+              >
+                <Settings2 size={14} />
+              </button>
+            )}
+          </div>
+          <nav className="flex max-h-[28vh] flex-col gap-0.5 overflow-y-auto">
+            {links.length > 0 ? (
+              links.map((link) => {
+                let iconSrc = '/globe.svg';
+                let isAuto = false;
+                if (link.icon_key === 'chatgpt') iconSrc = '/icons/chatgpt.svg';
+                else if (link.icon_key === 'gemini') iconSrc = '/icons/gemini.svg';
+                else if (link.icon_key === 'claude') iconSrc = '/icons/claude.svg';
+                else if (link.icon_key === 'perplexity') iconSrc = '/icons/perplexity.svg';
+                else if (link.icon_key === 'aistudio') iconSrc = '/icons/gemini.svg';
+                else if (link.icon_key === 'antigravity') iconSrc = '/favicon.png';
+                else if (link.icon_key && link.icon_key.startsWith('http')) {
+                  iconSrc = link.icon_key;
+                } else if (link.icon_key === 'auto' || (!link.icon_key && link.url)) {
+                  try {
+                    const domain = new URL(link.url).hostname;
+                    iconSrc = `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
+                    isAuto = true;
+                  } catch {
+                    iconSrc = '/globe.svg';
+                  }
+                }
+
+                return (
+                  <a
+                    key={link.id}
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setIsOpen(false)}
+                    className="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-all hover:bg-muted hover:text-foreground hover:translate-x-0.5"
+                  >
+                    <Image
+                      src={iconSrc}
+                      alt={link.title}
+                      width={16}
+                      height={16}
+                      className="h-4 w-4 rounded object-contain"
+                      style={{ opacity: link.icon_key === 'default' && !isAuto ? 0.6 : 1 }}
+                    />
+                    <span className="truncate">{link.title}</span>
+                  </a>
+                );
+              })
+            ) : (
+              <div className="px-3 py-2 text-xs italic text-muted-foreground">
+                등록된 링크 없음
+              </div>
+            )}
+          </nav>
+        </div>
 
         <LinkManagerModal
           isOpen={isLinkManagerOpen}
           onClose={() => setIsLinkManagerOpen(false)}
-          onUpdate={() => {
-            getLinksAction().then(setLinks);
-          }}
+          onUpdate={() => getLinksAction().then(setLinks)}
         />
 
-        {session && (
-          <div style={{ marginTop: 'auto', paddingTop: '1rem', borderTop: '1px solid #e2e8f0' }}>
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: '0.5rem',
-              padding: '0.75rem 1rem', marginBottom: '0.5rem',
-              background: session.type === 'admin' ? '#fff7ed' : '#eff6ff',
-              color: session.type === 'admin' ? '#c2410c' : '#1d4ed8',
-              borderRadius: '0.5rem', fontSize: '0.9rem', fontWeight: 600
-            }}>
-              {session.type === 'admin' ? <span>🛡️</span> : <span>👤</span>}
-              {session.name}
-            </div>
-            <button
-              onClick={handleLogout}
-              style={{
-                width: '100%', display: 'flex', alignItems: 'center', gap: '0.75rem',
-                padding: '0.75rem 1rem', background: 'white', border: '1px solid #e2e8f0',
-                borderRadius: '0.5rem', cursor: 'pointer', color: '#64748b', fontWeight: 500
-              }}
-            >
-              <span>🚪</span> 로그아웃
-            </button>
+        {/* ---- Bottom: theme + session ---- */}
+        <div className="relative mt-auto border-t border-border px-4 pb-4 pt-4">
+          <div className="mb-3 flex items-center justify-between">
+            <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground">
+              테마
+            </span>
+            <ThemeToggle />
           </div>
-        )}
+
+          {session ? (
+            <div
+              className={cn(
+                'relative overflow-hidden rounded-xl border p-0.5',
+                session.type === 'admin'
+                  ? 'border-accent-400/40 bg-gradient-to-br from-accent-400/15 via-brand-500/10 to-violet-500/15'
+                  : 'border-brand-400/30 bg-gradient-to-br from-brand-500/10 via-violet-500/5 to-transparent',
+              )}
+            >
+              <div className="rounded-[10px] bg-card px-3 py-2.5">
+                <div className="flex items-center gap-2">
+                  <div
+                    className={cn(
+                      'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-white shadow-sm',
+                      session.type === 'admin'
+                        ? 'bg-gradient-to-br from-accent-400 to-accent-600'
+                        : 'bg-gradient-to-br from-brand-500 to-violet-500',
+                    )}
+                  >
+                    {session.type === 'admin' ? (
+                      <Shield size={14} />
+                    ) : (
+                      <UserCircle2 size={14} />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-bold text-foreground">
+                      {session.name}
+                    </div>
+                    <div className="text-[11px] text-muted-foreground">
+                      {session.type === 'admin' ? '모든 권한' : '학습자 세션'}
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg border border-border bg-muted/50 px-3 py-1.5 text-xs font-semibold text-muted-foreground transition hover:border-accent-400 hover:bg-accent-400/10 hover:text-accent-500"
+                >
+                  <LogOut size={12} /> 로그아웃
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-xl border border-dashed border-border px-3 py-3 text-center text-xs text-muted-foreground">
+              비로그인 상태
+            </div>
+          )}
+        </div>
       </aside>
 
-      {/* Overlay for mobile when sidebar is open */}
+      {/* Mobile overlay */}
       {isOpen && (
         <div
           onClick={() => setIsOpen(false)}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.5)',
-            zIndex: 45
-          }}
-          className="mobile-overlay"
+          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm md:hidden"
+          aria-hidden
         />
       )}
     </>
