@@ -50,4 +50,4 @@ npm run dev
 
 ---
 
-<p align="center">Made with ❤️ by AICEA & Antigravity</p>
+<p align="center">Made with ❤️ by AICEA</p>

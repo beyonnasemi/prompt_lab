@@ -208,7 +208,7 @@ export default function Home() {
       </section>
 
       <div className="mt-16 pb-8 text-center text-xs text-muted-foreground">
-        Made with <span className="text-accent-400">♥</span> by AICEA &amp; Antigravity
+        Made with <span className="text-accent-400">♥</span> by AICEA
       </div>
     </div>
   );
