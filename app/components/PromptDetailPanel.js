@@ -151,8 +151,32 @@ export default function PromptDetailPanel({
   }, [prompt, mode, initialDifficulty, isCreatingThread]);
 
   // ---- Handlers ----
-  const handleCopy = (text) => {
-    const plain = (text || '').replace(/<[^>]+>/g, '');
+  // HTML 본문을 텍스트로 변환해 클립보드에 복사한다.
+  // 단순 태그 제거는 줄바꿈 정보를 잃으므로, 블록 요소·<br>·리스트 마커·표 셀을
+  // 적절한 \n / \t / 글머리표로 치환한 뒤 textContent로 평문을 얻는다.
+  const handleCopy = (html) => {
+    let plain = '';
+    if (typeof window !== 'undefined') {
+      const div = document.createElement('div');
+      div.innerHTML = html || '';
+
+      div.querySelectorAll('br').forEach((br) => br.replaceWith('\n'));
+
+      div.querySelectorAll('ul > li').forEach((li) => li.prepend('• '));
+      div.querySelectorAll('ol').forEach((ol) => {
+        let n = 1;
+        ol.querySelectorAll(':scope > li').forEach((li) => {
+          li.prepend(`${n++}. `);
+        });
+      });
+
+      div
+        .querySelectorAll('p, div, h1, h2, h3, h4, h5, h6, li, blockquote, pre, tr')
+        .forEach((el) => el.append('\n'));
+      div.querySelectorAll('td, th').forEach((cell) => cell.append('\t'));
+
+      plain = div.textContent.replace(/\n{3,}/g, '\n\n').trim();
+    }
     navigator.clipboard.writeText(plain);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
