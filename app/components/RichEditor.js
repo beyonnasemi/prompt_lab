@@ -1,6 +1,6 @@
 'use client';
 
-import { useEditor, EditorContent } from '@tiptap/react';
+import { useEditor, EditorContent, useEditorState } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -160,6 +160,32 @@ export default function RichEditor({
   // handlePaste 클로저에서 editor 인스턴스에 접근하려면 ref 경유가 필요
   editorRef.current = editor;
 
+  // TipTap v3는 selection 변경으로 자동 재렌더링을 하지 않으므로,
+  // 툴바 활성 상태를 useEditorState로 명시적으로 구독한다.
+  const tb = useEditorState({
+    editor,
+    selector: (ctx) => {
+      const e = ctx.editor;
+      if (!e) return null;
+      return {
+        isBold: e.isActive('bold'),
+        isItalic: e.isActive('italic'),
+        isUnderline: e.isActive('underline'),
+        isStrike: e.isActive('strike'),
+        isH2: e.isActive('heading', { level: 2 }),
+        isH3: e.isActive('heading', { level: 3 }),
+        isBulletList: e.isActive('bulletList'),
+        isOrderedList: e.isActive('orderedList'),
+        isBlockquote: e.isActive('blockquote'),
+        isCodeBlock: e.isActive('codeBlock'),
+        isLink: e.isActive('link'),
+        isTable: e.isActive('table'),
+        canUndo: e.can().undo(),
+        canRedo: e.can().redo(),
+      };
+    },
+  });
+
   // Sync external value changes (e.g., when switching prompts)
   useEffect(() => {
     if (!editor) return;
@@ -269,28 +295,28 @@ export default function RichEditor({
       <div className="flex flex-wrap items-center gap-0.5 border-b border-border bg-muted/40 p-1.5">
         <ToolbarBtn
           onClick={() => editor.chain().focus().toggleBold().run()}
-          active={editor.isActive('bold')}
+          active={tb?.isBold}
           title="굵게 (Ctrl+B)"
         >
           <Bold size={14} />
         </ToolbarBtn>
         <ToolbarBtn
           onClick={() => editor.chain().focus().toggleItalic().run()}
-          active={editor.isActive('italic')}
+          active={tb?.isItalic}
           title="기울임 (Ctrl+I)"
         >
           <Italic size={14} />
         </ToolbarBtn>
         <ToolbarBtn
           onClick={() => editor.chain().focus().toggleUnderline().run()}
-          active={editor.isActive('underline')}
+          active={tb?.isUnderline}
           title="밑줄 (Ctrl+U)"
         >
           <UnderlineIcon size={14} />
         </ToolbarBtn>
         <ToolbarBtn
           onClick={() => editor.chain().focus().toggleStrike().run()}
-          active={editor.isActive('strike')}
+          active={tb?.isStrike}
           title="취소선"
         >
           <Strikethrough size={14} />
@@ -304,7 +330,7 @@ export default function RichEditor({
               onClick={() =>
                 editor.chain().focus().toggleHeading({ level: 2 }).run()
               }
-              active={editor.isActive('heading', { level: 2 })}
+              active={tb?.isH2}
               title="제목 2"
             >
               <Heading2 size={14} />
@@ -313,7 +339,7 @@ export default function RichEditor({
               onClick={() =>
                 editor.chain().focus().toggleHeading({ level: 3 }).run()
               }
-              active={editor.isActive('heading', { level: 3 })}
+              active={tb?.isH3}
               title="제목 3"
             >
               <Heading3 size={14} />
@@ -324,14 +350,14 @@ export default function RichEditor({
 
         <ToolbarBtn
           onClick={() => editor.chain().focus().toggleBulletList().run()}
-          active={editor.isActive('bulletList')}
+          active={tb?.isBulletList}
           title="글머리 기호"
         >
           <List size={14} />
         </ToolbarBtn>
         <ToolbarBtn
           onClick={() => editor.chain().focus().toggleOrderedList().run()}
-          active={editor.isActive('orderedList')}
+          active={tb?.isOrderedList}
           title="번호 매기기"
         >
           <ListOrdered size={14} />
@@ -341,14 +367,14 @@ export default function RichEditor({
           <>
             <ToolbarBtn
               onClick={() => editor.chain().focus().toggleBlockquote().run()}
-              active={editor.isActive('blockquote')}
+              active={tb?.isBlockquote}
               title="인용"
             >
               <Quote size={14} />
             </ToolbarBtn>
             <ToolbarBtn
               onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-              active={editor.isActive('codeBlock')}
+              active={tb?.isCodeBlock}
               title="코드 블록"
             >
               <Code2 size={14} />
@@ -364,7 +390,7 @@ export default function RichEditor({
 
         <Divider />
 
-        <ToolbarBtn onClick={handleLinkButton} active={editor.isActive('link')} title="링크">
+        <ToolbarBtn onClick={handleLinkButton} active={tb?.isLink} title="링크">
           <LinkIcon size={14} />
         </ToolbarBtn>
         <ToolbarBtn onClick={handleImageButton} title="이미지 삽입">
@@ -379,7 +405,7 @@ export default function RichEditor({
                 .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
                 .run()
             }
-            active={editor.isActive('table')}
+            active={tb?.isTable}
             title="표 삽입"
           >
             <TableIcon size={14} />
@@ -389,14 +415,14 @@ export default function RichEditor({
         <div className="ml-auto flex items-center gap-0.5">
           <ToolbarBtn
             onClick={() => editor.chain().focus().undo().run()}
-            disabled={!editor.can().undo()}
+            disabled={!tb?.canUndo}
             title="실행 취소 (Ctrl+Z)"
           >
             <Undo2 size={14} />
           </ToolbarBtn>
           <ToolbarBtn
             onClick={() => editor.chain().focus().redo().run()}
-            disabled={!editor.can().redo()}
+            disabled={!tb?.canRedo}
             title="다시 실행 (Ctrl+Y)"
           >
             <Redo2 size={14} />
@@ -405,7 +431,7 @@ export default function RichEditor({
       </div>
 
       {/* Contextual table toolbar — only visible when cursor is in a table */}
-      {editor.isActive('table') && !compact && (
+      {tb?.isTable && !compact && (
         <div className="flex flex-wrap items-center gap-0.5 border-b border-border bg-brand-500/5 px-1.5 py-1">
           <span className="mr-1 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-brand-700 dark:text-brand-300">
             <TableIcon size={11} /> 표 편집
