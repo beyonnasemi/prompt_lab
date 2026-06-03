@@ -35,6 +35,7 @@ export default function RichEditor({
   className,
 }) {
   const lastExternalValue = useRef(value);
+  const editorRef = useRef(null);
 
   const editor = useEditor({
     extensions: [
@@ -76,20 +77,62 @@ export default function RichEditor({
         style: `min-height:${minHeight}px`,
       },
       handlePaste: (view, event) => {
-        const items = event.clipboardData?.items;
-        if (!items) return false;
+        const cd = event.clipboardData;
+        if (!cd) return false;
 
-        for (const item of items) {
-          if (item.type?.startsWith('image/')) {
-            const file = item.getAsFile();
-            if (file) {
-              event.preventDefault();
-              uploadAndInsertImage(file);
-              return true;
+        // 1) 이미지 붙여넣기 (기존)
+        const items = cd.items;
+        if (items) {
+          for (const item of items) {
+            if (item.type?.startsWith('image/')) {
+              const file = item.getAsFile();
+              if (file) {
+                event.preventDefault();
+                uploadAndInsertImage(file);
+                return true;
+              }
             }
           }
         }
-        return false;
+
+        // 2) 일반 텍스트의 공백/줄바꿈/들여쓰기 보존
+        //    클립보드에 진짜 리치 HTML(헤딩·리스트·표·링크 등)이 있으면 기본 파서에 맡김.
+        //    그 외(ChatGPT/터미널/메모장 등에서 복사한 평문)는 직접 HTML을 구성해 삽입.
+        const text = cd.getData('text/plain');
+        const html = cd.getData('text/html');
+
+        const RICH_TAG_RE =
+          /<(h[1-6]|ul|ol|li|table|tr|td|blockquote|pre|code|strong|em|b\b|i\b|a\s|img)/i;
+        if (html && RICH_TAG_RE.test(html)) return false;
+
+        if (!text) return false;
+
+        event.preventDefault();
+
+        const escapeHtml = (s) =>
+          s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+        // HTML은 연속 공백/탭/선행 공백을 1칸으로 접어버리므로 NBSP로 치환해 보존.
+        const preserveWhitespace = (line) => {
+          let r = line.replace(/\t/g, '    ');
+          r = r.replace(/^ +/, (m) => ' '.repeat(m.length));
+          r = r.replace(/  +/g, (m) => ' ' + ' '.repeat(m.length - 1));
+          return r;
+        };
+
+        const safeHtml = text
+          .split(/\r?\n\r?\n+/) // 빈 줄 → 새 문단
+          .map((para) => {
+            const lines = para.split(/\r?\n/); // 단일 \n → <br>
+            const inner = lines
+              .map((line) => escapeHtml(preserveWhitespace(line)))
+              .join('<br>');
+            return `<p>${inner || '<br>'}</p>`;
+          })
+          .join('');
+
+        editorRef.current?.commands.insertContent(safeHtml);
+        return true;
       },
       handleDrop: (view, event, _slice, moved) => {
         if (moved) return false;
@@ -113,6 +156,9 @@ export default function RichEditor({
     },
     immediatelyRender: false,
   });
+
+  // handlePaste 클로저에서 editor 인스턴스에 접근하려면 ref 경유가 필요
+  editorRef.current = editor;
 
   // Sync external value changes (e.g., when switching prompts)
   useEffect(() => {
