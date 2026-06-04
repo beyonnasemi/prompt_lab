@@ -6,9 +6,11 @@ import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import {
   Plus, Sparkles, FolderUp, Trash2, Search, ChevronLeft, ChevronRight,
-  ArrowUpToLine, Loader2, Inbox, Leaf, TreePine, TreeDeciduous, Shield,
+  ArrowUpToLine, ArrowUp, ArrowDown, Loader2, Inbox, Leaf, TreePine,
+  TreeDeciduous, Shield, Eye, EyeOff,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { useAppSetting } from '@/lib/settings';
 import { cn } from '@/lib/utils';
 
 // 무거운 패널(TipTap 에디터·AI 폼·대량 업로드)은 실제 열릴 때만 청크 다운로드.
@@ -85,6 +87,9 @@ function LearnContent() {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const [isAdmin, setIsAdmin] = useState(false);
+
+  // 전역 UI 설정: 등록일 표시 여부 (관리자만 토글 가능)
+  const [showCreatedAt, setShowCreatedAt] = useAppSetting('show_created_at', true);
 
   const promptId = searchParams.get('promptId');
 
@@ -186,10 +191,11 @@ function LearnContent() {
       // - THREAD 의사 게시글은 WHERE 절에서 바로 제외(클라이언트 필터 제거)
       const { data, error } = await supabase
         .from('prompts')
-        .select('id, title, content, created_at')
+        .select('id, title, content, created_at, sort_order')
         .eq('target_group', target)
         .eq('difficulty', difficulty)
         .not('expected_answer', 'ilike', '%<!--THREAD-->%')
+        .order('sort_order', { ascending: false, nullsFirst: false })
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -361,14 +367,39 @@ function LearnContent() {
     else setCheckedIds([]);
   };
 
+  // 게시글을 최상단으로: 현재 보이는 목록의 최대 sort_order + 1 로 갱신
   const handleMoveToTop = async (e, id) => {
     e.stopPropagation();
     if (!confirm('이 게시글을 최상단으로 올리시겠습니까?')) return;
+    const maxOrder = prompts.reduce(
+      (m, p) => (p.sort_order > m ? p.sort_order : m),
+      0,
+    );
     const { error } = await supabase
       .from('prompts')
-      .update({ created_at: new Date().toISOString() })
+      .update({ sort_order: maxOrder + 1 })
       .eq('id', id);
     if (error) alert('순서 변경 실패');
+    else fetchPrompts(targetId, selectedDifficulty);
+  };
+
+  // 한 칸 위/아래로: 인접한 행과 sort_order 를 맞바꾼다.
+  // 목록은 sort_order DESC 정렬이므로 "위"는 인덱스가 작은 쪽 = sort_order 큰 쪽.
+  const handleSwapAdjacent = async (e, id, direction) => {
+    e.stopPropagation();
+    const idx = prompts.findIndex((p) => p.id === id);
+    if (idx < 0) return;
+    const neighborIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (neighborIdx < 0 || neighborIdx >= prompts.length) return;
+    const current = prompts[idx];
+    const neighbor = prompts[neighborIdx];
+
+    // 두 행의 sort_order 스왑 (개별 UPDATE 두 번 — RLS 정책상 트랜잭션 불필요)
+    const [{ error: e1 }, { error: e2 }] = await Promise.all([
+      supabase.from('prompts').update({ sort_order: neighbor.sort_order }).eq('id', current.id),
+      supabase.from('prompts').update({ sort_order: current.sort_order }).eq('id', neighbor.id),
+    ]);
+    if (e1 || e2) alert('순서 변경 실패');
     else fetchPrompts(targetId, selectedDifficulty);
   };
 
@@ -427,6 +458,14 @@ function LearnContent() {
                 <Trash2 size={14} /> 선택 삭제 ({checkedIds.length})
               </button>
             )}
+            <button
+              onClick={() => setShowCreatedAt(!showCreatedAt)}
+              title={showCreatedAt ? '등록일 숨기기' : '등록일 보이기'}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-card px-3.5 py-2 text-sm font-semibold text-foreground transition hover:border-brand-400"
+            >
+              {showCreatedAt ? <Eye size={14} /> : <EyeOff size={14} />}
+              등록일 {showCreatedAt ? '표시' : '숨김'}
+            </button>
           </div>
         )}
       </div>
@@ -608,35 +647,40 @@ function LearnContent() {
                   )}
                   <th className="w-16 px-4 py-3 text-center">No.</th>
                   <th className="px-4 py-3 text-left">주제</th>
-                  <th className="w-36 px-4 py-3 text-right">등록일</th>
+                  {showCreatedAt && (
+                    <th className="w-36 px-4 py-3 text-right">등록일</th>
+                  )}
                 </tr>
               </thead>
               <tbody>
-                {loading ? (
-                  <tr>
-                    <td
-                      colSpan={isAdmin ? 4 : 3}
-                      className="py-12 text-center text-muted-foreground"
-                    >
-                      <Loader2 className="mx-auto animate-spin" size={20} />
-                    </td>
-                  </tr>
-                ) : displayedPrompts.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={isAdmin ? 4 : 3}
-                      className="py-16 text-center text-muted-foreground"
-                    >
-                      <Inbox className="mx-auto mb-3" size={28} />
-                      등록된 프롬프트가 없습니다.
-                    </td>
-                  </tr>
-                ) : (
-                  displayedPrompts.map((prompt, idx) => (
+                {(() => {
+                  const baseCols = showCreatedAt ? 3 : 2;
+                  const colSpan = isAdmin ? baseCols + 1 : baseCols;
+                  if (loading) {
+                    return (
+                      <tr>
+                        <td colSpan={colSpan} className="py-12 text-center text-muted-foreground">
+                          <Loader2 className="mx-auto animate-spin" size={20} />
+                        </td>
+                      </tr>
+                    );
+                  }
+                  if (displayedPrompts.length === 0) {
+                    return (
+                      <tr>
+                        <td colSpan={colSpan} className="py-16 text-center text-muted-foreground">
+                          <Inbox className="mx-auto mb-3" size={28} />
+                          등록된 프롬프트가 없습니다.
+                        </td>
+                      </tr>
+                    );
+                  }
+                  const globalStart = (currentPage - 1) * itemsPerPage;
+                  return displayedPrompts.map((prompt, idx) => (
                     <tr
                       key={prompt.id}
                       onClick={() => handlePromptClick(prompt)}
-                      className="cursor-pointer border-t border-border transition hover:bg-muted/40"
+                      className="group cursor-pointer border-t border-border transition hover:bg-muted/40"
                     >
                       {isAdmin && (
                         <td
@@ -652,9 +696,7 @@ function LearnContent() {
                         </td>
                       )}
                       <td className="px-4 py-3 text-center text-sm text-muted-foreground">
-                        {filteredPrompts.length -
-                          (currentPage - 1) * itemsPerPage -
-                          idx}
+                        {filteredPrompts.length - globalStart - idx}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-between gap-2">
@@ -662,22 +704,45 @@ function LearnContent() {
                             {prompt.title}
                           </span>
                           {isAdmin && (
-                            <button
-                              onClick={(e) => handleMoveToTop(e, prompt.id)}
-                              title="맨 위로 올리기"
-                              className="shrink-0 rounded-md p-1 text-muted-foreground opacity-0 transition group-hover:opacity-100 hover:bg-muted hover:text-brand-600"
+                            <div
+                              className="flex shrink-0 items-center gap-0.5 opacity-0 transition group-hover:opacity-100"
+                              onClick={(e) => e.stopPropagation()}
                             >
-                              <ArrowUpToLine size={13} />
-                            </button>
+                              <button
+                                onClick={(e) => handleSwapAdjacent(e, prompt.id, 'up')}
+                                disabled={globalStart + idx === 0}
+                                title="한 칸 위로"
+                                className="rounded-md p-1 text-muted-foreground transition hover:bg-muted hover:text-brand-600 disabled:cursor-not-allowed disabled:opacity-30"
+                              >
+                                <ArrowUp size={13} />
+                              </button>
+                              <button
+                                onClick={(e) => handleSwapAdjacent(e, prompt.id, 'down')}
+                                disabled={globalStart + idx >= filteredPrompts.length - 1}
+                                title="한 칸 아래로"
+                                className="rounded-md p-1 text-muted-foreground transition hover:bg-muted hover:text-brand-600 disabled:cursor-not-allowed disabled:opacity-30"
+                              >
+                                <ArrowDown size={13} />
+                              </button>
+                              <button
+                                onClick={(e) => handleMoveToTop(e, prompt.id)}
+                                title="맨 위로 올리기"
+                                className="rounded-md p-1 text-muted-foreground transition hover:bg-muted hover:text-brand-600"
+                              >
+                                <ArrowUpToLine size={13} />
+                              </button>
+                            </div>
                           )}
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-right text-sm text-muted-foreground">
-                        {new Date(prompt.created_at).toLocaleDateString()}
-                      </td>
+                      {showCreatedAt && (
+                        <td className="px-4 py-3 text-right text-sm text-muted-foreground">
+                          {new Date(prompt.created_at).toLocaleDateString()}
+                        </td>
+                      )}
                     </tr>
-                  ))
-                )}
+                  ));
+                })()}
               </tbody>
             </table>
 
@@ -693,48 +758,78 @@ function LearnContent() {
                   등록된 프롬프트가 없습니다.
                 </div>
               ) : (
-                displayedPrompts.map((prompt) => (
-                  <Link
-                    key={prompt.id}
-                    href={`${pathname}?promptId=${prompt.id}`}
-                    className="block p-4 transition hover:bg-muted/40"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <h3 className="line-clamp-2 text-[15px] font-semibold text-foreground">
-                        {prompt.title}
-                      </h3>
-                      {isAdmin && (
-                        <input
-                          type="checkbox"
-                          onClick={(e) => handleCheck(e, prompt.id)}
-                          checked={checkedIds.includes(prompt.id)}
-                          onChange={() => {}}
-                          className="mt-1 accent-brand-600"
-                        />
-                      )}
-                    </div>
-                    <p className="mt-1.5 line-clamp-2 text-xs text-muted-foreground">
-                      {(prompt.content || '').replace(/<[^>]+>/g, '')}
-                    </p>
-                    <div className="mt-2.5 flex items-center justify-between text-[11px] text-muted-foreground">
-                      <div className="flex items-center gap-2">
-                        <span>📅 {new Date(prompt.created_at).toLocaleDateString()}</span>
+                displayedPrompts.map((prompt, idx) => {
+                  const globalStart = (currentPage - 1) * itemsPerPage;
+                  return (
+                    <Link
+                      key={prompt.id}
+                      href={`${pathname}?promptId=${prompt.id}`}
+                      className="block p-4 transition hover:bg-muted/40"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <h3 className="line-clamp-2 text-[15px] font-semibold text-foreground">
+                          {prompt.title}
+                        </h3>
                         {isAdmin && (
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault();
-                              handleMoveToTop(e, prompt.id);
-                            }}
-                            className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-1.5 py-0.5 text-[10px]"
-                          >
-                            <ArrowUpToLine size={10} /> 위로
-                          </button>
+                          <input
+                            type="checkbox"
+                            onClick={(e) => handleCheck(e, prompt.id)}
+                            checked={checkedIds.includes(prompt.id)}
+                            onChange={() => {}}
+                            className="mt-1 accent-brand-600"
+                          />
                         )}
                       </div>
-                      <span className="text-brand-600">자세히 보기 →</span>
-                    </div>
-                  </Link>
-                ))
+                      <p className="mt-1.5 line-clamp-2 text-xs text-muted-foreground">
+                        {(prompt.content || '').replace(/<[^>]+>/g, '')}
+                      </p>
+                      <div className="mt-2.5 flex items-center justify-between text-[11px] text-muted-foreground">
+                        <div className="flex items-center gap-2">
+                          {showCreatedAt && (
+                            <span>📅 {new Date(prompt.created_at).toLocaleDateString()}</span>
+                          )}
+                          {isAdmin && (
+                            <span className="inline-flex items-center gap-0.5">
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  handleSwapAdjacent(e, prompt.id, 'up');
+                                }}
+                                disabled={globalStart + idx === 0}
+                                title="한 칸 위로"
+                                className="rounded-md border border-border bg-card p-1 disabled:opacity-30"
+                              >
+                                <ArrowUp size={10} />
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  handleSwapAdjacent(e, prompt.id, 'down');
+                                }}
+                                disabled={globalStart + idx >= filteredPrompts.length - 1}
+                                title="한 칸 아래로"
+                                className="rounded-md border border-border bg-card p-1 disabled:opacity-30"
+                              >
+                                <ArrowDown size={10} />
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  handleMoveToTop(e, prompt.id);
+                                }}
+                                title="맨 위로"
+                                className="rounded-md border border-border bg-card p-1"
+                              >
+                                <ArrowUpToLine size={10} />
+                              </button>
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-brand-600">자세히 보기 →</span>
+                      </div>
+                    </Link>
+                  );
+                })
               )}
             </div>
           </div>

@@ -10,6 +10,7 @@ import { supabase } from '@/lib/supabase';
 import { deletePromptAction } from '@/app/actions/prompt-actions';
 import RichEditor from '@/app/components/RichEditor';
 import HtmlView from '@/app/components/HtmlView';
+import { useAppSetting } from '@/lib/settings';
 import { cn } from '@/lib/utils';
 
 // -----------------------------------------------------------------------------
@@ -76,6 +77,7 @@ export default function PromptDetailPanel({
   const [loading, setLoading] = useState(false);
   const [file, setFile] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [showCreatedAt] = useAppSetting('show_created_at', true);
   const [editingThreadId, setEditingThreadId] = useState(null);
   const [inlineEditingId, setInlineEditingId] = useState(null);
   const [inlineFormData, setInlineFormData] = useState({});
@@ -373,7 +375,7 @@ export default function PromptDetailPanel({
           </h1>
           <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             <DifficultyBadge value={prompt.difficulty} />
-            <span>📅 {formatDate(prompt.created_at)}</span>
+            {showCreatedAt && <span>📅 {formatDate(prompt.created_at)}</span>}
             {prompt.accounts?.display_name && (
               <span>👤 {prompt.accounts.display_name}</span>
             )}
@@ -546,7 +548,7 @@ export default function PromptDetailPanel({
             </h2>
             <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
               <DifficultyBadge value={prompt.difficulty} />
-              <span>📅 {formatDate(prompt.created_at)}</span>
+              {showCreatedAt && <span>📅 {formatDate(prompt.created_at)}</span>}
             </div>
             <div className="mt-3 rounded-lg border border-border bg-card p-3">
               <HtmlView html={prompt.content} tone="muted" />
