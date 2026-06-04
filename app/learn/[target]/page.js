@@ -724,13 +724,15 @@ function LearnContent() {
                               >
                                 <ArrowDown size={13} />
                               </button>
-                              <button
-                                onClick={(e) => handleMoveToTop(e, prompt.id)}
-                                title="맨 위로 올리기"
-                                className="rounded-md p-1 text-muted-foreground transition hover:bg-muted hover:text-brand-600"
-                              >
-                                <ArrowUpToLine size={13} />
-                              </button>
+                              {globalStart + idx !== 0 && (
+                                <button
+                                  onClick={(e) => handleMoveToTop(e, prompt.id)}
+                                  title="맨 위로 올리기"
+                                  className="rounded-md p-1 text-muted-foreground transition hover:bg-muted hover:text-brand-600"
+                                >
+                                  <ArrowUpToLine size={13} />
+                                </button>
+                              )}
                             </div>
                           )}
                         </div>
@@ -812,16 +814,18 @@ function LearnContent() {
                               >
                                 <ArrowDown size={10} />
                               </button>
-                              <button
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  handleMoveToTop(e, prompt.id);
-                                }}
-                                title="맨 위로"
-                                className="rounded-md border border-border bg-card p-1"
-                              >
-                                <ArrowUpToLine size={10} />
-                              </button>
+                              {globalStart + idx !== 0 && (
+                                <button
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    handleMoveToTop(e, prompt.id);
+                                  }}
+                                  title="맨 위로"
+                                  className="rounded-md border border-border bg-card p-1"
+                                >
+                                  <ArrowUpToLine size={10} />
+                                </button>
+                              )}
                             </span>
                           )}
                         </div>
