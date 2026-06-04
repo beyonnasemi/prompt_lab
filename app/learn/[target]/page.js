@@ -3,15 +3,33 @@
 import { useState, useEffect, Suspense, useMemo } from 'react';
 import { useRouter, useParams, useSearchParams, usePathname } from 'next/navigation';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import {
   Plus, Sparkles, FolderUp, Trash2, Search, ChevronLeft, ChevronRight,
   ArrowUpToLine, Loader2, Inbox, Leaf, TreePine, TreeDeciduous, Shield,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import BulkUploadPanel from '@/app/components/BulkUploadPanel';
-import AIGeneratePanel from '@/app/components/AIGeneratePanel';
-import PromptDetailPanel from '@/app/components/PromptDetailPanel';
 import { cn } from '@/lib/utils';
+
+// 무거운 패널(TipTap 에디터·AI 폼·대량 업로드)은 실제 열릴 때만 청크 다운로드.
+// 목록 첫 로드 번들에서 ~400KB+ 제거 → TTI/버튼 반응성 정상화.
+const loadingFallback = () => (
+  <div className="flex h-64 items-center justify-center">
+    <Loader2 className="animate-spin text-muted-foreground" size={20} />
+  </div>
+);
+const PromptDetailPanel = dynamic(
+  () => import('@/app/components/PromptDetailPanel'),
+  { ssr: false, loading: loadingFallback },
+);
+const AIGeneratePanel = dynamic(
+  () => import('@/app/components/AIGeneratePanel'),
+  { ssr: false, loading: loadingFallback },
+);
+const BulkUploadPanel = dynamic(
+  () => import('@/app/components/BulkUploadPanel'),
+  { ssr: false, loading: loadingFallback },
+);
 
 const targetNames = {
   business: '비즈니스',
@@ -68,19 +86,40 @@ function LearnContent() {
   const pathname = usePathname();
   const [isAdmin, setIsAdmin] = useState(false);
 
+  const promptId = searchParams.get('promptId');
+
+  // URL의 promptId가 사라지면 상세 닫기, 있으면 패널 열어두기
   useEffect(() => {
-    const promptId = searchParams.get('promptId');
-    if (promptId && prompts.length > 0) {
-      const prompt = prompts.find((p) => p.id === promptId);
-      if (prompt) {
-        setSelectedPrompt(prompt);
-        setActivePanel('detail');
-      }
-    } else {
+    if (!promptId) {
       setSelectedPrompt(null);
       setActivePanel('none');
+      return;
     }
-  }, [searchParams, prompts]);
+    setActivePanel('detail');
+    // 슬림 목록에 있으면 즉시 표시(타이틀만이라도) → 클릭 반응 빠르게
+    const slim = prompts.find((p) => p.id === promptId);
+    if (slim && !selectedPrompt) setSelectedPrompt(slim);
+  }, [promptId, prompts]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 상세 패널이 열릴 prompt의 풀 데이터(본문/예상답변/첨부/작성자)를 별도 페치
+  useEffect(() => {
+    if (!promptId) return;
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from('prompts')
+        .select(
+          `id, title, content, expected_answer, difficulty, created_by, attachment_url, created_at,
+           accounts:created_by ( display_name )`,
+        )
+        .eq('id', promptId)
+        .maybeSingle();
+      if (!cancelled && !error && data) setSelectedPrompt(data);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [promptId]);
 
   const handlePromptClick = (prompt) => {
     const p = new URLSearchParams(searchParams);
@@ -141,35 +180,20 @@ function LearnContent() {
     setCheckedIds([]);
 
     try {
+      // 목록 화면에 실제 필요한 필드만 가져온다.
+      // - content: 모바일 카드 2줄 미리보기에서만 사용
+      // - 스레드/답변용 expected_answer, 첨부 URL, 작성자 조인은 상세 패널에서 별도 페치
+      // - THREAD 의사 게시글은 WHERE 절에서 바로 제외(클라이언트 필터 제거)
       const { data, error } = await supabase
         .from('prompts')
-        .select(
-          `id, title, content, expected_answer, difficulty, created_by, attachment_url, created_at,
-           accounts:created_by ( display_name )`,
-        )
+        .select('id, title, content, created_at')
         .eq('target_group', target)
         .eq('difficulty', difficulty)
+        .not('expected_answer', 'ilike', '%<!--THREAD-->%')
         .order('created_at', { ascending: false });
 
-      if (error) {
-        // Try fallback without join
-        const { data: fallback, error: fallbackErr } = await supabase
-          .from('prompts')
-          .select('*')
-          .eq('target_group', target)
-          .eq('difficulty', difficulty)
-          .order('created_at', { ascending: false });
-        if (fallbackErr) throw fallbackErr;
-        const filtered = (fallback || []).filter(
-          (p) => !p.expected_answer?.includes('<!--THREAD-->'),
-        );
-        setPrompts(filtered);
-      } else {
-        const filtered = (data || []).filter(
-          (p) => !p.expected_answer?.includes('<!--THREAD-->'),
-        );
-        setPrompts(filtered);
-      }
+      if (error) throw error;
+      setPrompts(data || []);
     } catch (err) {
       console.error('fetchPrompts error:', err);
       setFetchError(
@@ -184,13 +208,10 @@ function LearnContent() {
   };
 
   const filteredPrompts = useMemo(() => {
-    let result = prompts.filter(
-      (p) => !p.expected_answer?.includes('<!--THREAD-->'),
-    );
-    if (!searchQuery) return result;
-    return result.filter((p) =>
-      p.title.toLowerCase().includes(searchQuery.toLowerCase()),
-    );
+    // THREAD 필터는 fetchPrompts의 WHERE 절에서 이미 처리됨
+    if (!searchQuery) return prompts;
+    const q = searchQuery.toLowerCase();
+    return prompts.filter((p) => p.title.toLowerCase().includes(q));
   }, [prompts, searchQuery]);
 
   const itemsPerPage = 10;
