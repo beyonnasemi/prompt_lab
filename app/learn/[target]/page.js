@@ -141,7 +141,7 @@ function LearnContent() {
   useEffect(() => {
     if (!targetId) return;
 
-    const adminSessionStr = localStorage.getItem('admin_session');
+    const adminSessionStr = sessionStorage.getItem('admin_session');
     if (adminSessionStr) {
       const targetName = targetNames[targetId] || targetId;
       setUserSession({
@@ -154,7 +154,7 @@ function LearnContent() {
       return;
     }
 
-    const sessionStr = localStorage.getItem('user_session');
+    const sessionStr = sessionStorage.getItem('user_session');
     if (!sessionStr) {
       router.replace(`/login?target=${targetId}`);
       return;
@@ -174,7 +174,7 @@ function LearnContent() {
       fetchPrompts(targetId, selectedDifficulty);
     } catch (e) {
       console.error(e);
-      localStorage.removeItem('user_session');
+      sessionStorage.removeItem('user_session');
       router.replace(`/login?target=${targetId}`);
     }
   }, [targetId, selectedDifficulty, router]);

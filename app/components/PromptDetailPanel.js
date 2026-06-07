@@ -201,7 +201,7 @@ export default function PromptDetailPanel({
     if (!window.confirm('정말 이 프롬프트를 삭제하시겠습니까?')) return;
     try {
       setLoading(true);
-      const sessionStr = localStorage.getItem('admin_session');
+      const sessionStr = sessionStorage.getItem('admin_session');
       const adminId = sessionStr ? JSON.parse(sessionStr).id : null;
       if (!adminId) throw new Error('관리자 로그인 정보가 없습니다 (세션 만료).');
       await deletePromptAction(id, adminId);

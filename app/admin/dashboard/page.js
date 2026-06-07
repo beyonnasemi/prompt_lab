@@ -32,7 +32,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     try {
-      const session = localStorage.getItem('admin_session');
+      const session = sessionStorage.getItem('admin_session');
       if (!session) {
         router.push('/admin/login');
         return;
@@ -118,7 +118,7 @@ export default function AdminDashboard() {
     const newPassword = prompt('새로운 관리자 비밀번호를 입력하세요:');
     if (!newPassword) return;
     try {
-      const session = JSON.parse(localStorage.getItem('admin_session'));
+      const session = JSON.parse(sessionStorage.getItem('admin_session'));
       const result = await changePasswordAction({
         userId: session.id,
         newPassword,

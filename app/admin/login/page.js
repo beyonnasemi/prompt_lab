@@ -14,7 +14,7 @@ export default function AdminLogin() {
 
   useEffect(() => {
     try {
-      const session = localStorage.getItem('admin_session');
+      const session = sessionStorage.getItem('admin_session');
       if (session) {
         router.push('/admin/dashboard');
       }
@@ -32,7 +32,7 @@ export default function AdminLogin() {
       const result = await adminLoginAction({ username, password });
       if (!result.success) throw new Error(result.error || '로그인 실패');
 
-      localStorage.setItem('admin_session', JSON.stringify(result.session));
+      sessionStorage.setItem('admin_session', JSON.stringify(result.session));
       router.push('/admin/dashboard');
     } catch (err) {
       setError(err.message);

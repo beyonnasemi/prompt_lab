@@ -51,7 +51,7 @@ function LoginForm() {
       const result = await studentLoginAction({ username: targetId, password });
       if (!result.success) throw new Error(result.error || '로그인 실패');
 
-      localStorage.setItem('user_session', JSON.stringify(result.session));
+      sessionStorage.setItem('user_session', JSON.stringify(result.session));
       router.replace(`/learn/${targetId}`);
     } catch (err) {
       setError(err.message);

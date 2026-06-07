@@ -41,12 +41,12 @@ export default function Sidebar() {
   useEffect(() => {
     const checkSession = () => {
       try {
-        const adminSession = localStorage.getItem('admin_session');
+        const adminSession = sessionStorage.getItem('admin_session');
         if (adminSession) {
           setSession({ type: 'admin', name: '관리자 모드' });
           return;
         }
-        const userSessionStr = localStorage.getItem('user_session');
+        const userSessionStr = sessionStorage.getItem('user_session');
         if (userSessionStr) {
           const u = JSON.parse(userSessionStr);
           const display = targetNames[u.username] || u.displayName || '학습자';
@@ -68,10 +68,10 @@ export default function Sidebar() {
   const handleLogout = () => {
     try {
       if (session?.type === 'admin') {
-        localStorage.removeItem('admin_session');
+        sessionStorage.removeItem('admin_session');
         router.push('/admin/login');
       } else {
-        localStorage.removeItem('user_session');
+        sessionStorage.removeItem('user_session');
         router.push('/');
       }
     } catch {

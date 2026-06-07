@@ -23,14 +23,14 @@ export default function SessionHeader() {
         const checkSession = () => {
             try {
                 // 1. Check Admin
-                const adminSession = localStorage.getItem('admin_session');
+                const adminSession = sessionStorage.getItem('admin_session');
                 if (adminSession) {
                     setSession({ type: 'admin', name: '관리자 모드' });
                     return;
                 }
 
                 // 2. Check User
-                const userSessionStr = localStorage.getItem('user_session');
+                const userSessionStr = sessionStorage.getItem('user_session');
                 if (userSessionStr) {
                     const userSession = JSON.parse(userSessionStr);
                     // Map username (target id) to display name if possible, else use provided display name
@@ -51,10 +51,10 @@ export default function SessionHeader() {
     const handleLogout = () => {
         try {
             if (session?.type === 'admin') {
-                localStorage.removeItem('admin_session');
+                sessionStorage.removeItem('admin_session');
                 router.push('/admin/login');
             } else {
-                localStorage.removeItem('user_session');
+                sessionStorage.removeItem('user_session');
                 router.push('/');
             }
         } catch (e) {

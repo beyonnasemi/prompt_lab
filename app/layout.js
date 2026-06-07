@@ -1,5 +1,4 @@
 import Sidebar from './components/Sidebar';
-import AutoLogout from './components/AutoLogout';
 import ThemeProvider from './components/ThemeProvider';
 import './globals.css';
 
@@ -36,7 +35,6 @@ export default function RootLayout({ children }) {
       <body className="bg-background text-foreground antialiased">
         <ThemeProvider>
           <div className="app-container">
-            <AutoLogout />
             <Sidebar />
             <main className="main-content relative">
               {children}

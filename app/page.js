@@ -63,7 +63,7 @@ export default function Home() {
 
   const handleTargetClick = (id) => {
     try {
-      const adminSession = localStorage.getItem('admin_session');
+      const adminSession = sessionStorage.getItem('admin_session');
       if (adminSession) {
         router.push(`/learn/${id}`);
         return;
